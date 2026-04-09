@@ -17,6 +17,10 @@ export interface Database {
           is_deactivated: boolean | null
           last_active: string | null
           privacy_setting: 'public' | 'private' | 'followers_only' | null
+          is_verified: boolean
+          verification_badge_type: 'verified' | 'official' | null
+          verification_status: 'none' | 'pending' | 'verified' | 'revoked'
+          verification_updated_at: string | null
         }
         Insert: {
           id?: string
@@ -33,6 +37,10 @@ export interface Database {
           is_deactivated?: boolean | null
           last_active?: string | null
           privacy_setting?: 'public' | 'private' | 'followers_only' | null
+          is_verified?: boolean
+          verification_badge_type?: 'verified' | 'official' | null
+          verification_status?: 'none' | 'pending' | 'verified' | 'revoked'
+          verification_updated_at?: string | null
         }
         Update: {
           id?: string
@@ -49,6 +57,10 @@ export interface Database {
           is_deactivated?: boolean | null
           last_active?: string | null
           privacy_setting?: 'public' | 'private' | 'followers_only' | null
+          is_verified?: boolean
+          verification_badge_type?: 'verified' | 'official' | null
+          verification_status?: 'none' | 'pending' | 'verified' | 'revoked'
+          verification_updated_at?: string | null
         }
       }
       posts: {
@@ -317,6 +329,103 @@ export interface Database {
           actor_user_id?: string | null
           actor_role?: 'user' | 'moderator' | 'admin' | 'super_admin' | null
           action_type?: string
+          reason?: string | null
+          metadata?: Record<string, any>
+        }
+      }
+      verification_applications: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          applicant_user_id: string
+          status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'revoked' | 'needs_resubmission' | 'withdrawn'
+          application_type: 'person' | 'creator' | 'organization'
+          requested_badge_type: 'verified' | 'official'
+          evidence_payload: Record<string, any>
+          review_notes: string | null
+          rejection_reason_code: string | null
+          reviewed_by_user_id: string | null
+          reviewed_at: string | null
+          final_decision_by_user_id: string | null
+          final_decision_at: string | null
+          resubmission_count: number
+          cooldown_until: string | null
+          active: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          applicant_user_id: string
+          status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'revoked' | 'needs_resubmission' | 'withdrawn'
+          application_type?: 'person' | 'creator' | 'organization'
+          requested_badge_type?: 'verified' | 'official'
+          evidence_payload?: Record<string, any>
+          review_notes?: string | null
+          rejection_reason_code?: string | null
+          reviewed_by_user_id?: string | null
+          reviewed_at?: string | null
+          final_decision_by_user_id?: string | null
+          final_decision_at?: string | null
+          resubmission_count?: number
+          cooldown_until?: string | null
+          active?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          applicant_user_id?: string
+          status?: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'revoked' | 'needs_resubmission' | 'withdrawn'
+          application_type?: 'person' | 'creator' | 'organization'
+          requested_badge_type?: 'verified' | 'official'
+          evidence_payload?: Record<string, any>
+          review_notes?: string | null
+          rejection_reason_code?: string | null
+          reviewed_by_user_id?: string | null
+          reviewed_at?: string | null
+          final_decision_by_user_id?: string | null
+          final_decision_at?: string | null
+          resubmission_count?: number
+          cooldown_until?: string | null
+          active?: boolean
+        }
+      }
+      verification_application_events: {
+        Row: {
+          id: string
+          created_at: string
+          application_id: string
+          actor_user_id: string | null
+          actor_role: 'user' | 'moderator' | 'admin' | 'super_admin' | null
+          event_type: string
+          from_status: string | null
+          to_status: string | null
+          reason: string | null
+          metadata: Record<string, any>
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          application_id: string
+          actor_user_id?: string | null
+          actor_role?: 'user' | 'moderator' | 'admin' | 'super_admin' | null
+          event_type: string
+          from_status?: string | null
+          to_status?: string | null
+          reason?: string | null
+          metadata?: Record<string, any>
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          application_id?: string
+          actor_user_id?: string | null
+          actor_role?: 'user' | 'moderator' | 'admin' | 'super_admin' | null
+          event_type?: string
+          from_status?: string | null
+          to_status?: string | null
           reason?: string | null
           metadata?: Record<string, any>
         }
