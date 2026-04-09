@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkAdminAccess } from '../../../../../src/lib/supabase/api';
 import { createClient } from '../../../../../src/lib/supabase/server';
+import { getUserGovernanceById, logGovernanceAudit, requireMinRole } from '@/lib/governance/server';
 
 // GET /api/admin/users/[id] - Get user details
 export async function GET(
@@ -9,14 +9,7 @@ export async function GET(
 ) {
   const resolvedParams = await params;
   try {
-    // Check admin access
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      return NextResponse.json(
-        { error: 'Access denied. Admin privileges required.' },
-        { status: 403 }
-      );
-    }
+    await requireMinRole('admin')
 
     const supabase = await createClient();
     const { data: user, error } = await supabase
@@ -28,7 +21,11 @@ export async function GET(
         email,
         image_url,
         bio,
+        role,
         is_admin,
+        is_active,
+        is_deactivated,
+        last_active,
         created_at,
         updated_at
       `)
@@ -63,6 +60,12 @@ export async function GET(
 
   } catch (error) {
     console.error('Admin user details API error:', error);
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'Access denied. Admin privileges required.' },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -77,58 +80,51 @@ export async function DELETE(
 ) {
   const resolvedParams = await params;
   try {
-    // Check admin access
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      return NextResponse.json(
-        { error: 'Access denied. Admin privileges required.' },
-        { status: 403 }
-      );
-    }
+    const actor = await requireMinRole('admin')
 
     const supabase = await createClient();
-    
-    // Get current admin user to prevent self-deactivation
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser?.id === resolvedParams.id) {
+
+    if (actor.userId === resolvedParams.id) {
       return NextResponse.json(
         { error: 'Cannot deactivate your own account' },
         { status: 400 }
       );
     }
 
-    // Check if user exists and is not already deactivated
-    const { data: targetUser, error: fetchError } = await supabase
-      .from('users')
-      .select('id, email, is_admin')
-      .eq('id', resolvedParams.id)
-      .single();
-
-    if (fetchError || !targetUser) {
+    const targetUser = await getUserGovernanceById(resolvedParams.id)
+    if (!targetUser) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // Check if trying to deactivate another admin
-    if (targetUser.is_admin) {
+    if (targetUser.role === 'super_admin') {
+      return NextResponse.json(
+        { error: 'Cannot deactivate a super admin user' },
+        { status: 400 }
+      );
+    }
+
+    if (targetUser.isBootstrapProtected) {
+      return NextResponse.json(
+        { error: 'Cannot deactivate protected bootstrap super admin' },
+        { status: 400 }
+      );
+    }
+
+    if (targetUser.role === 'admin' && actor.role !== 'super_admin') {
       return NextResponse.json(
         { error: 'Cannot deactivate another admin user' },
         { status: 400 }
       );
     }
 
-    // Instead of actually deleting, we'll mark the user as deactivated
-    // You might want to add a 'is_active' column to your users table
-    // For now, we'll use a soft delete approach by updating the email to mark as deactivated
-    
-    const deactivatedEmail = `deactivated_${Date.now()}_${targetUser.email}`;
-    
     const { error: updateError } = await supabase
       .from('users')
       .update({ 
-        email: deactivatedEmail,
+        is_deactivated: true,
+        is_active: false,
         updated_at: new Date().toISOString()
       })
       .eq('id', resolvedParams.id);
@@ -141,6 +137,21 @@ export async function DELETE(
       );
     }
 
+    await logGovernanceAudit({
+      actionType: 'admin_deactivate_user',
+      targetType: 'user',
+      targetId: resolvedParams.id,
+      reason: 'Admin deactivation action',
+      beforeSnapshot: {
+        role: targetUser.role,
+        is_deactivated: targetUser.is_deactivated,
+      },
+      afterSnapshot: {
+        is_deactivated: true,
+        is_active: false,
+      },
+    })
+
     return NextResponse.json({
       message: 'User deactivated successfully',
       userId: resolvedParams.id
@@ -148,6 +159,107 @@ export async function DELETE(
 
   } catch (error) {
     console.error('Admin user deactivation API error:', error);
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'Access denied. Admin privileges required.' },
+        { status: 403 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/admin/users/[id] - Toggle activation status
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const resolvedParams = await params;
+  try {
+    const actor = await requireMinRole('admin')
+    const body = await request.json().catch(() => ({} as any))
+    const reason = typeof body?.reason === 'string' ? body.reason : 'Admin activation status update'
+
+    if (actor.userId === resolvedParams.id) {
+      return NextResponse.json(
+        { error: 'Cannot modify your own account status' },
+        { status: 400 }
+      );
+    }
+
+    const targetUser = await getUserGovernanceById(resolvedParams.id)
+    if (!targetUser) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (targetUser.isBootstrapProtected || targetUser.role === 'super_admin') {
+      return NextResponse.json(
+        { error: 'Cannot modify protected super admin account status' },
+        { status: 400 }
+      );
+    }
+
+    if (targetUser.role === 'admin' && actor.role !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Only super admin can modify another admin status' },
+        { status: 403 }
+      );
+    }
+
+    const newDeactivatedStatus = !targetUser.is_deactivated;
+    const newActiveStatus = !newDeactivatedStatus;
+
+    const supabase = await createClient();
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        is_deactivated: newDeactivatedStatus,
+        is_active: newActiveStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', resolvedParams.id);
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: 'Failed to update user status' },
+        { status: 500 }
+      );
+    }
+
+    await logGovernanceAudit({
+      actionType: newDeactivatedStatus ? 'admin_deactivate_user' : 'admin_activate_user',
+      targetType: 'user',
+      targetId: resolvedParams.id,
+      reason,
+      beforeSnapshot: {
+        role: targetUser.role,
+        is_deactivated: targetUser.is_deactivated,
+      },
+      afterSnapshot: {
+        is_deactivated: newDeactivatedStatus,
+        is_active: newActiveStatus,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: `User ${newDeactivatedStatus ? 'deactivated' : 'activated'} successfully`,
+      isDeactivated: newDeactivatedStatus,
+    });
+  } catch (error) {
+    console.error('Admin user status update API error:', error);
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'Access denied. Admin privileges required.' },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -5,8 +5,11 @@ import Loader from "@/components/shared/Loader";
 import AdminManagement from "@/components/shared/AdminManagement";
 import AdminUserManagement from "@/components/shared/AdminUserManagement";
 import { useGetAdminStats, useCheckAdminAccess } from "@/lib/react-query/queriesAndMutations";
+import { useUserContext } from "@/context/SupabaseAuthContext";
 
 const AdminDashboard = () => {
+  const { user } = useUserContext();
+  const role = (user as any)?.role || ((user as any)?.is_admin ? 'admin' : 'user');
   const { data: hasAdminAccess, isLoading: isCheckingAccess } = useCheckAdminAccess();
   const { data: stats, isLoading: isLoadingStats, isError } = useGetAdminStats();
 
@@ -74,6 +77,9 @@ const AdminDashboard = () => {
             className="invert-white"
           />
           <h2 className="h3-bold md:h2-bold text-left w-full">Admin Dashboard</h2>
+          <span className="px-3 py-1 text-xs rounded-full border border-primary-500/30 text-primary-400 bg-primary-500/10 self-center">
+            Role: {String(role).replace('_', ' ')}
+          </span>
         </div>
 
         {stats && (
@@ -267,8 +273,8 @@ const AdminDashboard = () => {
           </div>
         </motion.div>
 
-        {/* Admin Management Section */}
-        <AdminManagement />
+        {/* Super Admin Role Governance Section */}
+        {role === 'super_admin' ? <AdminManagement /> : null}
         
         {/* User & Content Management Section */}
         <AdminUserManagement />

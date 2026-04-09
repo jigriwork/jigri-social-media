@@ -42,8 +42,8 @@ const LeftSidebar = () => {
 
   return (
     <nav className="leftsidebar">
-      <div className="flex flex-col gap-11">
-        <Link href="/" className="flex gap-3 items-center">
+      <div className="flex flex-col gap-8 min-h-0">
+        <Link href="/" className="flex gap-3 items-center -mt-1">
           <img
             src="/assets/images/logo.svg"
             alt="logo"
@@ -72,7 +72,7 @@ const LeftSidebar = () => {
           </>
         )}
 
-        <ul className="flex flex-col gap-6">
+        <ul className="flex flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar">
           {filteredSidebarLinks.map((link: INavLink) => {
             const isActive = pathname === link.route;
 
@@ -101,7 +101,7 @@ const LeftSidebar = () => {
       </div>
 
       <Button
-        className="shad-button_ghost"
+        className="shad-button_ghost mt-6"
         onClick={(e) => handleSignOut(e)}>
         <img src="/assets/icons/logout.svg" alt="logout" />
         <p className="small-medium lg:base-medium">Logout</p>

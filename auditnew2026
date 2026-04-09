@@ -1,0 +1,181 @@
+# Jigri Deep App Audit 2026 (Consolidated)
+
+This consolidated file summarizes all deep-audit deliverables created in this pass:
+
+- `JIGRI_FULL_APP_AUDIT.md`
+- `JIGRI_FEATURE_MATRIX.md`
+- `JIGRI_ROLE_PERMISSION_AUDIT.md`
+- `JIGRI_ADMIN_REVIEW.md`
+- `JIGRI_PWA_READINESS.md`
+- `JIGRI_FOUNDATION_RISKS.md`
+
+Supabase Project Ref audited context: `wztqxpcfprghqmqvconk`
+
+---
+
+## A) Product Walkthrough Consolidation
+
+### First-time visitor
+- Can access auth routes and public post/profile/share routes.
+- Social actions are blocked via auth prompts (like/comment/save/follow).
+- Public sharing UX exists and is usable.
+
+### Signed-up normal user
+- Signup/login/forgot/reset/update flows are implemented and working.
+- Onboarding nudges exist on home feed (profile photo, follow users, first post).
+- Social core loop is functional: create post -> engage -> follow -> notifications.
+
+### Active social user
+- Home feed uses followed users plus fallback public mix.
+- Explore and People search flows are implemented.
+- Post details with likes/saves/comments/replies and share available.
+- Saved and liked-content surfaces are present.
+
+### Admin candidate
+- Admin dashboard is present and functional for core ops.
+- Admin can manage admins/users/posts with meaningful controls.
+- But role model is still binary/hardcoded and not enterprise-safe.
+
+---
+
+## B) Full Feature Summary (classified)
+
+## Fully implemented
+- Sign in/out
+- Forgot password + update flows
+- Feed/explore/people/search
+- Create/update/delete own posts
+- Likes/saves/comments/replies/comment likes
+- Follow/unfollow
+- Notifications with realtime insert subscription
+- Profile edit/share
+- Saved page
+- Admin stats + user/post management actions
+
+## Partially implemented
+- Signup reliability hardening (client-heavy checks)
+- Privacy enforcement consistency
+- Suggested user quality/ranking depth
+- Admin governance (role hierarchy, audit logs)
+- Media handling strategy (strict size cap, basic storage strategy)
+
+## Minimal/MVP
+- Share analytics loop
+- Full notification center page
+- Presence sophistication
+
+## Not implemented
+- Verification/blue tick/trust system
+- Moderation report queue/case management
+- PWA manifest/service worker/install flow
+
+## Legacy/Risky
+- Duplicate page/component variants (post/profile forms/details)
+- Legacy react-router residue in Next app codebase
+- Hardcoded initial super-admin email logic
+
+---
+
+## C) Current Roles and Powers
+
+## Roles effectively present
+1. Guest
+2. Authenticated user
+3. Admin (`is_admin`)
+4. Hardcoded initial-admin pseudo-super-admin (email-based)
+
+## Admin can do today
+- Access admin dashboard
+- View platform stats
+- Add/remove admin (with constraints)
+- Activate/deactivate non-admin users
+- View/delete posts globally
+
+## Admin cannot do today
+- True role hierarchy management
+- Full user lifecycle governance (hard delete with compliance trail)
+- Password reset/change on behalf of users
+- Verification issuance workflows
+- Moderation case/report management
+
+---
+
+## D) Super Admin Capability Status Today
+
+**Status: Not truly implemented (no schema-backed super-admin role).**
+
+Current behavior uses hardcoded protected emails and binary `is_admin`, which is not enough for safe multi-role scale.
+
+---
+
+## E) Verification / Trust System Status Today
+
+**Status: Not implemented.**
+
+No verified badge fields, no verification request workflow, no admin approval pipeline, no trust/reputation surface.
+
+---
+
+## F) PWA Readiness Status
+
+**Status: Not PWA-ready.**
+
+- Manifest: missing
+- Service worker: missing
+- Install prompt handling: missing
+- Offline app shell: missing
+- Only partial cache resilience via React Query/browser caching
+
+---
+
+## G) Biggest Strengths
+
+1. Complete social loop already live (posting + engagement + follows + notifications).
+2. Public sharing/profile surfaces support discovery growth.
+3. Admin console exists and has real operational utility.
+4. Good responsive UX across major user routes.
+
+---
+
+## H) Biggest Weaknesses
+
+1. Role/permission model is not mature (binary + hardcoded super-admin logic).
+2. Middleware/route protection posture is permissive; security depends on leaf checks.
+3. Duplicate/legacy code paths increase drift and regression risk.
+4. No moderation/reporting workflow for safety operations.
+
+---
+
+## I) Top Foundation Risks
+
+1. Security hardening gap (roles, policy enforcement, audit trails).
+2. Scalability pressure from client-heavy feed/engagement orchestration.
+3. Technical debt from monolithic files and duplicate implementations.
+4. Missing governance telemetry for admin actions and abuse patterns.
+
+---
+
+## J) Exact Next Best Phase
+
+### Recommended next phase name
+**Phase 4A — Governance, Role-Hardening, and Moderation Foundation**
+
+### Why this phase first
+Because expansion into verification/admin powers requires safe governance primitives before adding visible new trust features.
+
+### Phase 4A objectives
+1. Schema-backed roles (`super_admin`, `admin`, `moderator`, `user`) + permission mapping.
+2. RLS/RPC hardened enforcement for sensitive actions.
+3. Mandatory admin audit logs for every privileged mutation.
+4. Admin API consolidation and legacy-path removal.
+5. Moderation report/case foundation (minimum viable safety console).
+6. Route/middleware policy normalization.
+
+After 4A, proceed to:
+- **Phase 4B — Verification & Trust Layer** (badge workflow, trust signals, application pipeline, admin review UI).
+
+---
+
+## K) Current App Category / Stage
+
+**Current stage: Advanced MVP / Early Beta (strong product core, not yet governance-hardened for scale).**

@@ -1,24 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkAdminAccess } from '../../../../src/lib/supabase/api';
 import { createClient } from '../../../../src/lib/supabase/server';
+import { requireMinRole } from '@/lib/governance/server';
 
 // GET /api/admin/users - List all users
 export async function GET(request: NextRequest) {
   try {
-    // Check admin access
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      return NextResponse.json(
-        { error: 'Access denied. Admin privileges required.' },
-        { status: 403 }
-      );
-    }
+    await requireMinRole('admin')
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
+    const onlyAdmins = searchParams.get('onlyAdmins') === 'true';
     
     const offset = (page - 1) * limit;
 
@@ -31,11 +25,19 @@ export async function GET(request: NextRequest) {
         email,
         image_url,
         bio,
+        role,
         is_admin,
+        is_active,
+        is_deactivated,
+        last_active,
         created_at,
         updated_at
       `, { count: 'exact' })
       .order('created_at', { ascending: false });
+
+    if (onlyAdmins) {
+      query = query.in('role', ['admin', 'super_admin']);
+    }
 
     // Add search filter if provided
     if (search) {
@@ -67,6 +69,12 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Admin users API error:', error);
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'Access denied. Admin privileges required.' },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

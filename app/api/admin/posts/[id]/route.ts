@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkAdminAccess } from '../../../../../src/lib/supabase/api';
 import { createClient } from '../../../../../src/lib/supabase/server';
+import { requireMinRole, logGovernanceAudit } from '@/lib/governance/server';
 
 // DELETE /api/admin/posts/[id] - Delete any post
 export async function DELETE(
@@ -9,14 +9,7 @@ export async function DELETE(
 ) {
   const resolvedParams = await params;
   try {
-    // Check admin access
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      return NextResponse.json(
-        { error: 'Access denied. Admin privileges required.' },
-        { status: 403 }
-      );
-    }
+    await requireMinRole('admin')
 
     const supabase = await createClient();
     
@@ -81,6 +74,15 @@ export async function DELETE(
       );
     }
 
+    await logGovernanceAudit({
+      actionType: 'admin_delete_post',
+      targetType: 'post',
+      targetId: resolvedParams.id,
+      reason: 'Admin post removal',
+      beforeSnapshot: { id: post.id, creator_id: post.creator_id, image_url: post.image_url },
+      afterSnapshot: null,
+    })
+
     return NextResponse.json({
       message: 'Post deleted successfully',
       postId: resolvedParams.id
@@ -88,6 +90,12 @@ export async function DELETE(
 
   } catch (error) {
     console.error('Admin post deletion API error:', error);
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'Access denied. Admin privileges required.' },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

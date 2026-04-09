@@ -800,16 +800,11 @@ export async function searchUsers(searchTerm: string, limit: number = 50) {
 // ADMIN STATISTICS
 // ============================================================
 
-// Initial admin emails - these will be the super admins who can add others
-const INITIAL_ADMIN_EMAILS = [
-  'owner@jigri.app',
-  'admin@jigri.app',
-];
+type AppRole = 'user' | 'moderator' | 'admin' | 'super_admin'
 
-// Check if user is an initial admin (super admin)
-export async function isInitialAdmin(userEmail?: string): Promise<boolean> {
-  if (!userEmail) return false;
-  return INITIAL_ADMIN_EMAILS.includes(userEmail.toLowerCase());
+// Legacy export retained for compatibility. Super-admin is now role-based.
+export async function isInitialAdmin(_userEmail?: string): Promise<boolean> {
+  return false;
 }
 
 // Get all admin users from database
@@ -824,7 +819,7 @@ export async function getAdminUsers(): Promise<User[]> {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('is_admin', true)
+      .or('role.eq.admin,role.eq.super_admin,is_admin.eq.true')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -835,7 +830,7 @@ export async function getAdminUsers(): Promise<User[]> {
   }
 }
 
-// Check if user is admin (either initial admin or database admin)
+// Check if user has governance dashboard access (moderator/admin/super_admin)
 export async function isUserAdmin(userEmail?: string): Promise<boolean> {
   if (!userEmail) {
     console.log('isUserAdmin: No email provided');
@@ -843,35 +838,59 @@ export async function isUserAdmin(userEmail?: string): Promise<boolean> {
   }
   
   console.log('isUserAdmin: Checking admin status for:', userEmail);
-  console.log('isUserAdmin: Initial admin emails:', INITIAL_ADMIN_EMAILS);
-  
-  // Check if initial admin first
-  if (INITIAL_ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
-    console.log('isUserAdmin: User is initial admin');
-    return true;
-  }
 
-  // Check database for admin status
+  // Check database for role/admin status
   try {
-    console.log('isUserAdmin: Checking database for admin status');
+    console.log('isUserAdmin: Checking database for role/admin status');
     const { data, error } = await supabase
       .from('users')
-      .select('is_admin')
+      .select('role, is_admin')
       .eq('email', userEmail.toLowerCase())
       .single();
 
-    console.log('isUserAdmin: Database query result:', { data, error });
+    if (error) {
+      // Not found => definitely not admin
+      if (error.code === 'PGRST116') {
+        return false;
+      }
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
-      console.error('Error checking admin status:', error);
+      // Migration-safe fallback when role column is not yet applied in DB
+      const isMissingRoleColumn =
+        error.code === '42703' ||
+        String((error as any)?.message || '').toLowerCase().includes('role')
+
+      if (isMissingRoleColumn) {
+        const { data: legacyData, error: legacyError } = await supabase
+          .from('users')
+          .select('is_admin')
+          .eq('email', userEmail.toLowerCase())
+          .single()
+
+        if (legacyError) {
+          if (legacyError.code !== 'PGRST116') {
+            console.warn('isUserAdmin legacy fallback failed:', {
+              code: legacyError.code,
+              message: legacyError.message,
+            })
+          }
+          return false
+        }
+
+        return legacyData?.is_admin === true
+      }
+
+      console.warn('isUserAdmin role check failed:', {
+        code: error.code,
+        message: (error as any)?.message,
+      })
       return false;
     }
 
-    const isAdmin = data?.is_admin === true;
-    console.log('isUserAdmin: Final result:', isAdmin);
+    const role = data?.role as AppRole | null | undefined
+    const isAdmin = role === 'moderator' || role === 'admin' || role === 'super_admin' || data?.is_admin === true;
     return isAdmin;
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    console.warn('isUserAdmin unexpected error:', error instanceof Error ? error.message : error);
     return false;
   }
 }
@@ -879,50 +898,17 @@ export async function isUserAdmin(userEmail?: string): Promise<boolean> {
 // Add a new admin user
 export async function addAdminUser(email: string): Promise<boolean> {
   try {
-    console.log('addAdminUser: Starting process for email:', email);
-    
-    // Check if current user has admin access
-    const hasAccess = await checkAdminAccess();
-    console.log('addAdminUser: Admin access check result:', hasAccess);
-    if (!hasAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch('/api/admin/roles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.toLowerCase(), role: 'admin', reason: 'Grant admin access' }),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to add admin user.')
     }
 
-    // Check if user exists in the system
-    console.log('addAdminUser: Searching for user with email:', email.toLowerCase());
-    const { data: existingUser, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .single();
-
-    console.log('addAdminUser: User search result:', { existingUser, userError });
-
-    if (userError && userError.code !== 'PGRST116') {
-      throw userError;
-    }
-
-    if (!existingUser) {
-      throw new Error('User with this email does not exist in the system. They must sign up first.');
-    }
-
-    if (existingUser.is_admin) {
-      throw new Error('User is already an admin.');
-    }
-
-    console.log('addAdminUser: Updating user to admin status, user ID:', existingUser.id);
-    // Update user to admin status
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ is_admin: true })
-      .eq('id', existingUser.id);
-
-    if (updateError) {
-      console.error('addAdminUser: Update error:', updateError);
-      throw updateError;
-    }
-
-    console.log('addAdminUser: Successfully added admin user');
     return true;
   } catch (error) {
     console.error('Error adding admin user:', error);
@@ -933,49 +919,17 @@ export async function addAdminUser(email: string): Promise<boolean> {
 // Remove admin privileges from a user
 export async function removeAdminUser(userId: string): Promise<boolean> {
   try {
-    console.log('removeAdminUser: Starting process for userId:', userId);
-    
-    // Check if current user has admin access
-    const hasAccess = await checkAdminAccess();
-    console.log('removeAdminUser: Admin access check result:', hasAccess);
-    if (!hasAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch(`/api/admin/roles/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'user', reason: 'Revoke admin access' }),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to remove admin user.')
     }
 
-    // Get current user to prevent self-removal
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('removeAdminUser: Current user ID:', user?.id);
-    if (user?.id === userId) {
-      throw new Error('Cannot remove admin privileges from yourself.');
-    }
-
-    // Check if user is initial admin (cannot remove initial admins)
-    const { data: targetUser, error: userError } = await supabase
-      .from('users')
-      .select('email')
-      .eq('id', userId)
-      .single();
-
-    console.log('removeAdminUser: Target user:', { targetUser, userError });
-
-    if (userError) throw userError;
-
-    if (INITIAL_ADMIN_EMAILS.includes(targetUser.email.toLowerCase())) {
-      throw new Error('Cannot remove initial admin privileges.');
-    }
-
-    console.log('removeAdminUser: Updating user to remove admin status');
-    // Update user to remove admin status
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ is_admin: false })
-      .eq('id', userId);
-
-    console.log('removeAdminUser: Update result:', { updateError });
-
-    if (updateError) throw updateError;
-
-    console.log('removeAdminUser: Successfully removed admin user');
     return true;
   } catch (error) {
     console.error('Error removing admin user:', error);
@@ -985,96 +939,30 @@ export async function removeAdminUser(userId: string): Promise<boolean> {
 
 export async function checkAdminAccess(): Promise<boolean> {
   try {
-    console.log('checkAdminAccess: Starting admin access check');
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('checkAdminAccess: Current user:', { id: user?.id, email: user?.email });
     
     if (!user?.email) {
-      console.log('checkAdminAccess: No user email found');
       return false;
     }
     
     const isAdmin = await isUserAdmin(user.email);
-    console.log('checkAdminAccess: isUserAdmin result:', isAdmin);
     return isAdmin;
   } catch (error) {
-    console.error('Error checking admin access:', error);
+    console.warn('checkAdminAccess failed:', error instanceof Error ? error.message : error);
     return false;
   }
 }
 
 export async function getAdminStats() {
   try {
-    // Check admin access first
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch('/api/admin/stats')
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch admin stats')
     }
 
-    // Get total users count
-    const { count: totalUsers, error: usersError } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-
-    if (usersError) throw usersError
-
-    // Get total posts count
-    const { count: totalPosts, error: postsError } = await supabase
-      .from('posts')
-      .select('*', { count: 'exact', head: true })
-
-    if (postsError) throw postsError
-
-    // Get users active today (logged in today)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const todayISO = today.toISOString()
-
-    const { count: activeToday, error: activeTodayError } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
-      .gte('last_active', todayISO)
-
-    // Don't throw error for activeToday - it's optional
-    if (activeTodayError) {
-      console.warn('Error getting active users today:', activeTodayError)
-    }
-
-    // Get total likes count
-    const { count: totalLikes, error: likesError } = await supabase
-      .from('likes')
-      .select('*', { count: 'exact', head: true })
-
-    if (likesError) throw likesError
-
-    // Get total comments count
-    const { count: totalComments, error: commentsError } = await supabase
-      .from('comments')
-      .select('*', { count: 'exact', head: true })
-
-    if (commentsError) throw commentsError
-
-    // Get recent user registrations (last 7 days)
-    const sevenDaysAgo = new Date()
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const sevenDaysAgoISO = sevenDaysAgo.toISOString()
-
-    const { count: newUsers, error: newUsersError } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', sevenDaysAgoISO)
-
-    if (newUsersError) throw newUsersError
-
-    return {
-      totalUsers: totalUsers || 0,
-      totalPosts: totalPosts || 0,
-      activeToday: activeToday || 0,
-      totalLikes: totalLikes || 0,
-      totalComments: totalComments || 0,
-      newUsersThisWeek: newUsers || 0
-    }
+    return payload
   } catch (error) {
     console.error('Error getting admin stats:', error)
     throw error
@@ -2396,58 +2284,16 @@ export async function updateUserPassword(newPassword: string) {
 // Get all users for admin management
 export async function getAdminAllUsers(page: number = 1, limit: number = 10, search: string = '') {
   try {
-    console.log('getAdminAllUsers called with:', { page, limit, search });
-    
-    const hasAdminAccess = await checkAdminAccess();
-    console.log('Admin access check result:', hasAdminAccess);
-    
-    if (!hasAdminAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch(
+      `/api/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
+    )
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch admin users')
     }
 
-    const offset = (page - 1) * limit;
-    
-    let query = supabase
-      .from('users')
-      .select(`
-        id,
-        name,
-        username,
-        email,
-        image_url,
-        bio,
-        is_admin,
-        is_active,
-        is_deactivated,
-        last_active,
-        created_at
-      `, { count: 'exact' })
-      .order('created_at', { ascending: false });
-
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,username.ilike.%${search}%,email.ilike.%${search}%`);
-    }
-
-    query = query.range(offset, offset + limit - 1);
-
-    console.log('Executing query...');
-    const { data, error, count } = await query;
-    
-    if (error) {
-      console.error('Database query error:', error);
-      throw error;
-    }
-
-    console.log('Query successful, found:', count, 'users');
-    return {
-      users: data || [],
-      pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
-    };
+    return payload
   } catch (error) {
     console.error('Error getting all users for admin:', error);
     throw error;
@@ -2457,45 +2303,14 @@ export async function getAdminAllUsers(page: number = 1, limit: number = 10, sea
 // Get user details for admin
 export async function getAdminUserDetails(userId: string) {
   try {
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch(`/api/admin/users/${userId}`)
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch user details')
     }
 
-    const { data: user, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        name,
-        username,
-        email,
-        image_url,
-        bio,
-        is_admin,
-        is_active,
-        is_deactivated,
-        last_active,
-        created_at
-      `)
-      .eq('id', userId)
-      .single();
-
-    if (error) throw error;
-
-    // Get user statistics
-    const [postsResult, followersResult, followingResult] = await Promise.allSettled([
-      supabase.from('posts').select('*', { count: 'exact', head: true }).eq('creator_id', userId),
-      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
-      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId)
-    ]);
-
-    const stats = {
-      postsCount: postsResult.status === 'fulfilled' ? postsResult.value.count || 0 : 0,
-      followersCount: followersResult.status === 'fulfilled' ? followersResult.value.count || 0 : 0,
-      followingCount: followingResult.status === 'fulfilled' ? followingResult.value.count || 0 : 0
-    };
-
-    return { user, stats };
+    return payload;
   } catch (error) {
     console.error('Error getting user details for admin:', error);
     throw error;
@@ -2505,53 +2320,18 @@ export async function getAdminUserDetails(userId: string) {
 // Toggle user activation status (admin only)
 export async function toggleUserActivation(userId: string) {
   try {
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'Admin activation status toggle' }),
+    })
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to toggle user activation')
     }
 
-    // Get current admin user to prevent self-deactivation
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser?.id === userId) {
-      throw new Error('Cannot modify your own account status');
-    }
-
-    // Get current user status
-    const { data: targetUser, error: fetchError } = await supabase
-      .from('users')
-      .select('id, email, is_admin, is_deactivated, is_active')
-      .eq('id', userId)
-      .single();
-
-    if (fetchError || !targetUser) {
-      throw new Error('User not found');
-    }
-
-    // Check if trying to deactivate another admin
-    if (targetUser.is_admin && !targetUser.is_deactivated) {
-      throw new Error('Cannot deactivate another admin user');
-    }
-
-    // Toggle the activation status
-    const newDeactivatedStatus = !targetUser.is_deactivated;
-    const newActiveStatus = !newDeactivatedStatus; // Active is opposite of deactivated
-    
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ 
-        is_deactivated: newDeactivatedStatus,
-        is_active: newActiveStatus
-      })
-      .eq('id', userId);
-
-    if (updateError) throw updateError;
-
-    const action = newDeactivatedStatus ? 'deactivated' : 'activated';
-    return { 
-      success: true, 
-      message: `User ${action} successfully`,
-      isDeactivated: newDeactivatedStatus
-    };
+    return payload
   } catch (error) {
     console.error('Error toggling user activation:', error);
     throw error;
@@ -2582,59 +2362,16 @@ export async function deactivateUser(userId: string) {
 // Get all posts for admin management
 export async function getAdminAllPosts(page: number = 1, limit: number = 10, search: string = '') {
   try {
-    console.log('getAdminAllPosts called with:', { page, limit, search });
-    
-    const hasAdminAccess = await checkAdminAccess();
-    console.log('Admin access check result for posts:', hasAdminAccess);
-    
-    if (!hasAdminAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch(
+      `/api/admin/posts?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
+    )
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch admin posts')
     }
 
-    const offset = (page - 1) * limit;
-    
-    let query = supabase
-      .from('posts')
-      .select(`
-        id,
-        caption,
-        image_url,
-        location,
-        tags,
-        created_at,
-        creator:users!creator_id (
-          id,
-          name,
-          username,
-          image_url
-        )
-      `, { count: 'exact' })
-      .order('created_at', { ascending: false });
-
-    if (search) {
-      query = query.or(`caption.ilike.%${search}%,location.ilike.%${search}%,tags.ilike.%${search}%`);
-    }
-
-    query = query.range(offset, offset + limit - 1);
-
-    console.log('Executing posts query...');
-    const { data, error, count } = await query;
-    
-    if (error) {
-      console.error('Database query error for posts:', error);
-      throw error;
-    }
-
-    console.log('Posts query successful, found:', count, 'posts');
-    return {
-      posts: data || [],
-      pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
-    };
+    return payload;
   } catch (error) {
     console.error('Error getting all posts for admin:', error);
     throw error;
@@ -2644,61 +2381,93 @@ export async function getAdminAllPosts(page: number = 1, limit: number = 10, sea
 // Delete post (admin only)
 export async function adminDeletePost(postId: string) {
   try {
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      throw new Error('Access denied. Admin privileges required.');
+    const response = await fetch(`/api/admin/posts/${postId}`, {
+      method: 'DELETE',
+    })
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to delete post')
     }
 
-    // Check if post exists
-    const { data: post, error: fetchError } = await supabase
-      .from('posts')
-      .select('id, creator_id, image_url')
-      .eq('id', postId)
-      .single();
-
-    if (fetchError || !post) {
-      throw new Error('Post not found');
-    }
-
-    // Delete related data first (comments, likes, saves)
-    const deletePromises = [
-      supabase.from('comments').delete().eq('post_id', postId),
-      supabase.from('likes').delete().eq('post_id', postId),
-      supabase.from('saves').delete().eq('post_id', postId)
-    ];
-
-    try {
-      await Promise.all(deletePromises);
-    } catch (relatedDeleteError) {
-      console.warn('Some related data could not be deleted:', relatedDeleteError);
-    }
-
-    // Delete the post image from storage if it exists
-    if (post.image_url) {
-      try {
-        const fileName = post.image_url.split('/').pop();
-        if (fileName) {
-          await supabase.storage.from('posts').remove([fileName]);
-        }
-      } catch (storageDeleteError) {
-        console.warn('Error deleting image from storage:', storageDeleteError);
-      }
-    }
-
-    // Finally delete the post
-    const { error: deleteError } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', postId);
-
-    if (deleteError) throw deleteError;
-
-    return { success: true, message: 'Post deleted successfully' };
+    return { success: true, message: payload?.message || 'Post deleted successfully' };
   } catch (error) {
     console.error('Error deleting post:', error);
     throw error;
   }
 }
+
+// ============================================================
+// MODERATION / GOVERNANCE
+// ============================================================
+
+export async function getAdminReports(page: number = 1, limit: number = 20, status: string = '') {
+  try {
+    const response = await fetch(
+      `/api/admin/reports?page=${page}&limit=${limit}&status=${encodeURIComponent(status)}`
+    )
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch reports')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error getting admin reports:', error)
+    throw error
+  }
+}
+
+export async function updateAdminReport(
+  reportId: string,
+  input: {
+    status?: 'open' | 'triaged' | 'in_review' | 'resolved' | 'dismissed' | 'escalated'
+    assignToSelf?: boolean
+    reason: string
+    resolutionNote?: string
+  }
+) {
+  try {
+    const response = await fetch(`/api/admin/reports/${reportId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to update report')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error updating admin report:', error)
+    throw error
+  }
+}
+
+export async function getGovernanceAuditLogs(page: number = 1, limit: number = 20) {
+  try {
+    const response = await fetch(`/api/admin/audit?page=${page}&limit=${limit}`)
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch governance audit logs')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error fetching governance audit logs:', error)
+    throw error
+  }
+}
+
+
+
+
+
 
 
 

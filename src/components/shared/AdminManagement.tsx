@@ -16,6 +16,8 @@ const AdminManagement = () => {
   const [removeTarget, setRemoveTarget] = useState<{ id: string; email: string } | null>(null);
   const { toast } = useToast();
   const { user: currentUser } = useUserContext();
+  const currentRole = (currentUser as any)?.role;
+  const isSuperAdmin = currentRole === 'super_admin';
 
   const { data: adminUsers, isLoading: isLoadingAdmins } = useGetAdminUsers();
   const { mutate: addAdmin, isPending: isAddingAdminUser } = useAddAdminUser();
@@ -64,7 +66,7 @@ const AdminManagement = () => {
     });
   };
 
-  const handleRemoveAdmin = (userId: string, userEmail: string) => {
+  const handleRemoveAdmin = (userId: string, userEmail: string, userRole?: string | null) => {
     // Check if trying to remove own admin privileges
     if (currentUser?.id === userId) {
       toast({
@@ -75,12 +77,10 @@ const AdminManagement = () => {
       return;
     }
 
-    // Check if trying to remove initial admin
-    const initialAdmins = ['owner@jigri.app', 'admin@jigri.app'];
-    if (initialAdmins.includes(userEmail.toLowerCase())) {
+    if (userRole === 'super_admin') {
       toast({
         title: "Action Not Allowed",
-        description: "Cannot remove initial admin privileges.",
+        description: "Cannot remove super admin privileges from this panel.",
         variant: "destructive",
       });
       return;
@@ -132,7 +132,8 @@ const AdminManagement = () => {
           <Button
             onClick={() => setIsAddingAdmin(!isAddingAdmin)}
             className="shad-button_primary"
-            disabled={isAddingAdminUser || isRemovingAdmin}
+            disabled={isAddingAdminUser || isRemovingAdmin || !isSuperAdmin}
+            title={isSuperAdmin ? 'Add admin user' : 'Only super admin can add admins'}
           >
             <img 
               src="/assets/icons/add-post.svg" 
@@ -144,6 +145,12 @@ const AdminManagement = () => {
             Add Admin
           </Button>
         </div>
+
+        {!isSuperAdmin && (
+          <p className="text-xs text-light-3 mb-4">
+            Role changes are restricted: only super admins can add/remove admins.
+          </p>
+        )}
 
         {/* Add Admin Form */}
         {isAddingAdmin && (
@@ -231,8 +238,7 @@ const AdminManagement = () => {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {/* Show if initial admin */}
-                    {['owner@jigri.app', 'admin@jigri.app'].includes(admin.email.toLowerCase()) && (
+                    {(admin as any).role === 'super_admin' && (
                       <span className="px-2 py-1 text-xs bg-primary-500/20 text-primary-500 rounded-full border border-primary-500/30">
                         Super Admin
                       </span>
@@ -240,17 +246,19 @@ const AdminManagement = () => {
                     
                     {/* Remove button - disabled for initial admins and current user */}
                     <Button
-                      onClick={() => handleRemoveAdmin(admin.id, admin.email)}
+                      onClick={() => handleRemoveAdmin(admin.id, admin.email, (admin as any).role)}
                       disabled={
                         isRemovingAdmin || 
-                        ['owner@jigri.app', 'admin@jigri.app'].includes(admin.email.toLowerCase()) ||
+                        (admin as any).role === 'super_admin' ||
+                        !isSuperAdmin ||
                         currentUser?.id === admin.id
                       }
                       className="text-red-500 hover:text-red-400 hover:bg-red-500/10 p-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       size="sm"
                       title={
                         currentUser?.id === admin.id ? "Cannot remove yourself" :
-                        ['owner@jigri.app', 'admin@jigri.app'].includes(admin.email.toLowerCase()) ? "Cannot remove super admin" :
+                        (admin as any).role === 'super_admin' ? "Cannot remove super admin" :
+                        !isSuperAdmin ? "Only super admin can remove admins" :
                         "Remove admin privileges"
                       }
                     >

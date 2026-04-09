@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkAdminAccess } from '../../../../src/lib/supabase/api';
 import { createClient } from '../../../../src/lib/supabase/server';
+import { requireMinRole } from '@/lib/governance/server';
 
 // GET /api/admin/posts - List all posts
 export async function GET(request: NextRequest) {
   try {
-    // Check admin access
-    const hasAdminAccess = await checkAdminAccess();
-    if (!hasAdminAccess) {
-      return NextResponse.json(
-        { error: 'Access denied. Admin privileges required.' },
-        { status: 403 }
-      );
-    }
+    await requireMinRole('admin')
 
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
@@ -71,6 +64,12 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Admin posts API error:', error);
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'Access denied. Admin privileges required.' },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

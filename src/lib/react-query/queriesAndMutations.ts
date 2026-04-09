@@ -62,6 +62,9 @@ import {
   toggleUserActivation,
   getAdminAllPosts,
   adminDeletePost,
+  getAdminReports,
+  updateAdminReport,
+  getGovernanceAuditLogs,
 } from "../supabase/api";
 import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
 import { QUERY_KEYS } from "./queryKeys";
@@ -1014,5 +1017,35 @@ export const useAdminDeletePost = () => {
         queryKey: [QUERY_KEYS.GET_ADMIN_STATS],
       });
     },
+  });
+};
+
+export const useGetAdminReports = (page: number = 1, limit: number = 20, status: string = '', options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_ADMIN_REPORTS, page, limit, status],
+    queryFn: () => getAdminReports(page, limit, status),
+    staleTime: 1000 * 60 * 2,
+    enabled: options?.enabled !== false,
+  });
+};
+
+export const useUpdateAdminReport = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reportId, input }: { reportId: string; input: { status?: 'open' | 'triaged' | 'in_review' | 'resolved' | 'dismissed' | 'escalated'; assignToSelf?: boolean; reason: string; resolutionNote?: string } }) =>
+      updateAdminReport(reportId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_REPORTS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_AUDIT_LOGS] });
+    },
+  });
+};
+
+export const useGetGovernanceAuditLogs = (page: number = 1, limit: number = 20, options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_ADMIN_AUDIT_LOGS, page, limit],
+    queryFn: () => getGovernanceAuditLogs(page, limit),
+    staleTime: 1000 * 60 * 2,
+    enabled: options?.enabled !== false,
   });
 };

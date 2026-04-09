@@ -21,6 +21,7 @@ interface AdminUser {
   email: string;
   image_url: string;
   bio: string;
+  role?: 'user' | 'moderator' | 'admin' | 'super_admin' | null;
   is_admin: boolean;
   is_active: boolean;
   is_deactivated: boolean;
@@ -182,7 +183,7 @@ const AdminUserManagement = () => {
     return (
       <>
         <div className="grid gap-4">
-          {usersData.users.map((user: AdminUser, index) => (
+          {usersData.users.map((user: AdminUser, index: number) => (
             <motion.div
               key={user.id}
               initial={{ opacity: 0, y: 20 }}
@@ -200,9 +201,9 @@ const AdminUserManagement = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-light-1">{user.name}</h3>
-                      {user.is_admin && (
+                      {(user.role === 'admin' || user.role === 'super_admin' || user.is_admin) && (
                         <span className="px-2 py-1 text-xs bg-primary-500/20 text-primary-500 rounded-full border border-primary-500/30">
-                          Admin
+                          {user.role === 'super_admin' ? 'Super Admin' : user.role === 'moderator' ? 'Moderator' : 'Admin'}
                         </span>
                       )}
                     </div>
@@ -215,7 +216,7 @@ const AdminUserManagement = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {!user.is_admin && (
+                  {(user.role !== 'super_admin') && (
                     <Button
                       onClick={() => handleToggleActivation(user.id, user.name, user.is_deactivated)}
                       disabled={isToggling}
@@ -313,7 +314,7 @@ const AdminUserManagement = () => {
     return (
       <>
         <div className="grid gap-4">
-          {postsData.posts.map((post: any, index) => (
+          {postsData.posts.map((post: any, index: number) => (
             <motion.div
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
