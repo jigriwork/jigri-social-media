@@ -1,14 +1,14 @@
 # Jigri Exclusivity Deep Audit
 
 ## Scope
-Audit for non-Jigri identity traces (SociaLens/socialens/starter/developer identity/demo remnants), and cleanup/documentation of what remains.
+Audit for non-Jigri identity traces (legacy starter/developer/demo remnants), and cleanup/documentation of what remains.
 
 ---
 
 ## Removed in this pass
 
 1. `README.md`
-   - Contained multiple `socialens` + original developer identity references.
+   - Contained legacy non-Jigri naming + original developer identity references.
    - Removed entirely to prevent starter/public identity leakage.
 
 2. `src/lib/supabase/api-backup.ts`
@@ -52,7 +52,7 @@ Audit for non-Jigri identity traces (SociaLens/socialens/starter/developer ident
 
 ## Runtime-facing exposure assessment
 
-- No active runtime references to `socialens`/`SociaLens` remain in the executed app code paths audited.
+- No active runtime references to legacy non-Jigri app names remain in the executed app code paths audited.
 - Remaining issues are primarily documentation/technical naming quality, not visible end-user branding leakage.
 
 ---
