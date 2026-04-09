@@ -179,7 +179,7 @@ const SharedProfileWrapper = ({ params }: SharedProfileWrapperProps) => {
                 ? "Loading..." 
                 : user && isCurrentlyFollowing 
                   ? "Following" 
-                  : user ? "Follow" : "Sign in to Follow"
+                  : "Follow"
               }
             </p>
           </Button>
@@ -270,9 +270,10 @@ const SharedProfileWrapper = ({ params }: SharedProfileWrapperProps) => {
             ) : userPosts && userPosts.length > 0 ? (
               <GridPostList posts={userPosts} showUser={false} showStats={true} />
             ) : (
-              <p className="text-light-4 text-center w-full mt-10">
-                No posts yet
-              </p>
+              <div className="w-full rounded-xl border border-dark-4 bg-dark-3/20 p-8 text-center">
+                <p className="text-light-3 font-medium">No posts yet</p>
+                <p className="text-light-4 text-sm mt-2">Once new posts are shared, they’ll appear here.</p>
+              </div>
             )
           ) : (
             // Only show liked posts if it's the user's own profile and they're authenticated

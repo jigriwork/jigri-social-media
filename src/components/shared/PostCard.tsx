@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import PostStats from "./PostStats";
 import QuickComment from "./QuickComment";
 import { POST_CATEGORIES } from "@/constants";
+import ConfirmActionModal from "./ConfirmActionModal";
 
 type PostCardProps = {
   post: any; // TODO: Add proper type from Supabase
@@ -17,6 +18,7 @@ type PostCardProps = {
 const PostCard = ({ post }: PostCardProps) => {
   const { user } = useUserContext();
   const [showComments, setShowComments] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { mutate: deletePost } = useDeletePost();
 
   if (!post.creator) return;
@@ -26,9 +28,8 @@ const PostCard = ({ post }: PostCardProps) => {
   };
 
   const handleDeletePost = () => {
-    if (confirm("Are you sure you want to delete this post?")) {
-      deletePost({ postId: post.id });
-    }
+    deletePost({ postId: post.id });
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -81,7 +82,7 @@ const PostCard = ({ post }: PostCardProps) => {
           </Link>
           
           <Button
-            onClick={handleDeletePost}
+            onClick={() => setShowDeleteConfirm(true)}
             variant="ghost"
             className="p-0 h-auto"
           >
@@ -132,6 +133,16 @@ const PostCard = ({ post }: PostCardProps) => {
           />
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={showDeleteConfirm}
+        title="Delete post"
+        description="This post will be removed permanently. This action cannot be undone."
+        confirmLabel="Delete"
+        isDestructive
+        onConfirm={handleDeletePost}
+        onClose={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };

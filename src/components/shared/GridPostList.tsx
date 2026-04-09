@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import PostStats from "./PostStats";
 
@@ -17,6 +18,7 @@ const GridPostList = ({
   showStats = true,
   showComments = true,
 }: GridPostListProps) => {
+  const router = useRouter();
   const { user } = useUserContext();
 
   return (
@@ -51,8 +53,7 @@ const GridPostList = ({
                 userId={user?.id || ""} 
                 showComments={showComments}
                 onCommentClick={() => {
-                  // For grid view, navigate to post detail page for comments
-                  window.location.href = `/posts/${post.id || post.$id}`;
+                  router.push(`/posts/${post.id || post.$id}`);
                 }}
               />
             )}

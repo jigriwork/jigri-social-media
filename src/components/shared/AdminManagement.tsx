@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import Loader from "@/components/shared/Loader";
+import ConfirmActionModal from "@/components/shared/ConfirmActionModal";
 import { useGetAdminUsers, useAddAdminUser, useRemoveAdminUser } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 
 const AdminManagement = () => {
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; email: string } | null>(null);
   const { toast } = useToast();
   const { user: currentUser } = useUserContext();
 
@@ -84,25 +86,29 @@ const AdminManagement = () => {
       return;
     }
 
-    if (window.confirm(`Are you sure you want to remove admin privileges from ${userEmail}?`)) {
-      removeAdmin(userId, {
-        onSuccess: () => {
-          toast({
-            title: "Success",
-            description: `Admin privileges removed from ${userEmail}.`,
-          });
-          // React Query will automatically invalidate and refetch
-        },
-        onError: (error: any) => {
-          console.error('Remove admin error:', error);
-          toast({
-            title: "Error", 
-            description: error?.message || error?.error?.message || "Failed to remove admin user.",
-            variant: "destructive",
-          });
-        },
-      });
-    }
+    setRemoveTarget({ id: userId, email: userEmail });
+  };
+
+  const confirmRemoveAdmin = () => {
+    if (!removeTarget) return;
+
+    removeAdmin(removeTarget.id, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: `Admin privileges removed from ${removeTarget.email}.`,
+        });
+        setRemoveTarget(null);
+      },
+      onError: (error: any) => {
+        console.error('Remove admin error:', error);
+        toast({
+          title: "Error", 
+          description: error?.message || error?.error?.message || "Failed to remove admin user.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   if (isLoadingAdmins) {
@@ -278,6 +284,17 @@ const AdminManagement = () => {
           )}
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={!!removeTarget}
+        title="Remove admin access"
+        description={`Remove admin privileges from ${removeTarget?.email || "this user"}?`}
+        confirmLabel="Remove"
+        isDestructive
+        isLoading={isRemovingAdmin}
+        onConfirm={confirmRemoveAdmin}
+        onClose={() => setRemoveTarget(null)}
+      />
     </motion.div>
   );
 };

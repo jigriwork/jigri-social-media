@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import { 
   useGetUserById, 
@@ -38,6 +39,7 @@ type ProfileWrapperProps = {
 
 const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
   const { user } = useUserContext();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'posts' | 'liked'>('posts');
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   
@@ -87,7 +89,7 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
     if (navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(url);
-        alert("Profile URL copied to clipboard!");
+        toast({ title: "Link copied", description: "Profile link copied to clipboard." });
         return; // Success!
       } catch (error) {
         console.error("Clipboard API failed:", error);
@@ -104,10 +106,14 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
       textArea.select();
       document.execCommand("copy");
       document.body.removeChild(textArea);
-      alert("Profile URL copied to clipboard!");
+      toast({ title: "Link copied", description: "Profile link copied to clipboard." });
     } catch (error) {
       console.error("Legacy copy command failed:", error);
-      alert("Could not copy URL. Please copy it manually.");
+      toast({
+        title: "Copy failed",
+        description: "Could not copy link automatically. Please copy it manually.",
+        variant: "destructive",
+      });
     }
   };
   // ==================================================================
@@ -221,6 +227,15 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
             />
         </div>
 
+        {isOwnProfile && (followersCount || 0) === 0 && (
+          <div className="mt-3 w-full rounded-lg border border-dark-4 bg-dark-3/20 p-3 text-sm text-light-3">
+            Grow your network by following people you know.
+            <Link href="/all-users" className="ml-2 text-primary-500 hover:text-primary-400">
+              Find people
+            </Link>
+          </div>
+        )}
+
         <ActionButtons />
         
         {/* Privacy Settings Section - Only for own profile */}
@@ -261,7 +276,23 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
 
       <div className="w-full max-w-5xl mt-4">
         {activeTab === 'posts' ? (
-          <GridPostList posts={userPosts || []} showUser={false} showComments={false} />
+          userPosts && userPosts.length > 0 ? (
+            <GridPostList posts={userPosts} showUser={false} showComments={false} />
+          ) : (
+            <div className="w-full rounded-xl border border-dark-4 bg-dark-3/20 p-8 text-center">
+              <p className="text-light-3 font-medium">No posts yet</p>
+              {isOwnProfile ? (
+                <>
+                  <p className="text-light-4 text-sm mt-2">Share your first post to get started.</p>
+                  <Link href="/create-post" className="inline-block mt-3 text-primary-500 hover:text-primary-400 text-sm font-medium">
+                    Create your first post
+                  </Link>
+                </>
+              ) : (
+                <p className="text-light-4 text-sm mt-2">Posts shared by this user will appear here.</p>
+              )}
+            </div>
+          )
         ) : (
           currentUser.id === user?.id && <LikedPosts />
         )}

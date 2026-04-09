@@ -1,15 +1,18 @@
 "use client";
 
-// import { useToast } from "@/components/ui/use-toast";
+import Link from "next/link";
 
-import { useGetFollowingFeed, useGetUsers } from "@/lib/react-query/queriesAndMutations";
+import {
+  useGetFollowingFeed,
+  useGetUsers,
+  useGetFollowingCount,
+  useGetUserPosts,
+} from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
-import Loader from "@/components/shared/Loader";
 import PostCard from "@/components/shared/PostCard";
 import UserCard from "@/components/shared/UserCard";
 
 const Home = () => {
-  // const { toast } = useToast();
   const { user } = useUserContext();
 
   const {
@@ -23,8 +26,35 @@ const Home = () => {
     isError: isErrorCreators,
   } = useGetUsers(10);
 
+  const { data: followingCount } = useGetFollowingCount(user?.id || "");
+  const { data: ownPosts } = useGetUserPosts(user?.id || "");
+
   // Filter out current user from creators list
   const otherUsers = creators?.filter((creator: any) => creator.id !== user?.id) || [];
+
+  const onboardingSteps = [
+    {
+      key: "photo",
+      done: !!user?.image_url,
+      label: "Upload profile photo",
+      href: user?.id ? `/update-profile/${user.id}` : "/update-profile",
+    },
+    {
+      key: "follow",
+      done: (followingCount || 0) >= 3,
+      label: "Follow at least 3 people",
+      href: "/all-users",
+    },
+    {
+      key: "post",
+      done: (ownPosts?.length || 0) > 0,
+      label: "Create your first post",
+      href: "/create-post",
+    },
+  ];
+
+  const onboardingCompleted = onboardingSteps.filter((step) => step.done).length;
+  const showOnboarding = !!user?.id && onboardingCompleted < onboardingSteps.length;
 
   if (isErrorPosts || isErrorCreators) {
     return (
@@ -44,8 +74,44 @@ const Home = () => {
       <div className="home-container">
         <div className="home-posts">
           <h2 className="h3-bold md:h2-bold text-left w-full">Following Feed</h2>
+
+          {showOnboarding && (
+            <div className="w-full rounded-xl border border-dark-4 bg-dark-3/30 p-4">
+              <p className="text-sm text-light-2 font-semibold">
+                Getting started ({onboardingCompleted}/{onboardingSteps.length})
+              </p>
+              <ul className="mt-2 space-y-2">
+                {onboardingSteps.map((step) => (
+                  <li key={step.key} className="flex items-center justify-between gap-3">
+                    <p className={`text-sm ${step.done ? "text-light-3" : "text-light-2"}`}>
+                      {step.done ? "✓" : "○"} {step.label}
+                    </p>
+                    {!step.done && (
+                      <Link href={step.href} className="text-xs text-primary-500 hover:text-primary-400">
+                        Continue
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {isPostLoading && !posts ? (
-            <Loader />
+            <div className="w-full space-y-4">
+              {[...Array(3)].map((_, index) => (
+                <div key={index} className="w-full rounded-2xl border border-dark-4 bg-dark-3/20 p-4 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-dark-4" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-3 w-1/3 rounded bg-dark-4" />
+                      <div className="h-2 w-1/4 rounded bg-dark-4" />
+                    </div>
+                  </div>
+                  <div className="mt-4 h-56 w-full rounded-xl bg-dark-4" />
+                </div>
+              ))}
+            </div>
           ) : (
             <ul className="flex flex-col flex-1 gap-9 w-full ">
               {posts && posts.length > 0 ? (
@@ -67,26 +133,26 @@ const Home = () => {
                     Follow other people to see their posts in your feed, or create your first post!
                   </p>
                   <div className="flex gap-3">
-                    <a 
-                      href="/explore" 
+                    <Link
+                      href="/explore"
                       className="text-primary-500 hover:text-primary-400 text-sm font-medium"
                     >
                       Explore Posts
-                    </a>
+                    </Link>
                     <span className="text-light-4">•</span>
-                    <a 
-                      href="/all-users" 
+                    <Link
+                      href="/all-users"
                       className="text-primary-500 hover:text-primary-400 text-sm font-medium"
                     >
                       Find People
-                    </a>
+                    </Link>
                     <span className="text-light-4">•</span>
-                    <a 
-                      href="/create-post" 
+                    <Link
+                      href="/create-post"
                       className="text-primary-500 hover:text-primary-400 text-sm font-medium"
                     >
                       Create Post
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}
@@ -97,7 +163,11 @@ const Home = () => {
       <div className="home-creators">
         <h3 className="h3-bold text-light-1">People You Might Know</h3>
         {isUserLoading && !creators ? (
-          <Loader />
+          <div className="grid 2xl:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="rounded-xl border border-dark-4 bg-dark-3/30 p-4 animate-pulse h-36" />
+            ))}
+          </div>
         ) : (
           <ul className="grid 2xl:grid-cols-2 gap-6">
             {otherUsers && otherUsers.length > 0 ? (

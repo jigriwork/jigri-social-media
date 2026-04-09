@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -12,18 +11,12 @@ import { Button } from "@/components/ui/button";
 import { useSignOutAccount, useCheckAdminAccess } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import Loader from "./Loader";
-import NotificationBell from "./NotificationBell";
 
 const LeftSidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { user, setUser, setIsAuthenticated, isLoading } = useUserContext();
   const { data: hasAdminAccess } = useCheckAdminAccess();
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('LeftSidebar user state:', { user: user?.name, isLoading, isAuthenticated: !!user })
-  }, [user, isLoading])
 
   const { mutate: signOut } = useSignOutAccount();
 
@@ -76,10 +69,6 @@ const LeftSidebar = () => {
                 <p className="small-regular text-light-3">@{user.username}</p>
               </div>
             </Link>
-            {/* Notification Bell in Sidebar */}
-            <div className="mt-4 flex justify-center">
-              <NotificationBell />
-            </div>
           </>
         )}
 

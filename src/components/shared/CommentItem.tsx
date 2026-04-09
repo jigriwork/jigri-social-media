@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import { Comment, likeComment, unlikeComment, deleteComment, getCommentLikeStatus } from "@/lib/supabase/api";
 import { multiFormatDateString } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import CommentForm from "@/components/forms/CommentForm";
 import Image from "next/image";
 import Link from "next/link";
+import ConfirmActionModal from "./ConfirmActionModal";
 
 type CommentItemProps = {
   comment: Comment;
@@ -23,13 +24,14 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Check if user has liked this comment
-  useState(() => {
+  useEffect(() => {
     if (user && comment.id) {
       getCommentLikeStatus(comment.id, user.id).then(setIsLiked);
     }
-  });
+  }, [user, comment.id]);
 
   const handleLike = async () => {
     if (!user || isLiking) return;
@@ -59,8 +61,6 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
   const handleDelete = async () => {
     if (!user || user.id !== comment.user_id || isDeleting) return;
 
-    if (!confirm("Are you sure you want to delete this comment?")) return;
-
     setIsDeleting(true);
     try {
       const success = await deleteComment(comment.id);
@@ -70,6 +70,7 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
     } catch (error) {
       console.error("Error deleting comment:", error);
     } finally {
+      setShowDeleteConfirm(false);
       setIsDeleting(false);
     }
   };
@@ -139,7 +140,7 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
             disabled={!user || isLiking}
             className="text-xs text-light-4 hover:text-primary-500 px-1 py-0 h-auto"
           >
-            {isLiked ? "Unlike" : "Like"}
+            {isLiked ? "Liked" : "Like"}
           </Button>
 
           {level === 0 && (
@@ -157,7 +158,7 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
               className="text-xs text-red-500 hover:text-red-400 px-1 py-0 h-auto"
             >
@@ -206,6 +207,17 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
           </div>
         )}
       </div>
+
+      <ConfirmActionModal
+        isOpen={showDeleteConfirm}
+        title="Delete comment"
+        description="This comment will be removed permanently."
+        confirmLabel="Delete"
+        isDestructive
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onClose={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };

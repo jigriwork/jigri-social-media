@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import Loader from "@/components/shared/Loader";
+import ConfirmActionModal from "@/components/shared/ConfirmActionModal";
 import { 
   useGetAdminAllUsers, 
   useToggleUserActivation,
@@ -31,6 +32,12 @@ const AdminUserManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTab, setSelectedTab] = useState<"users" | "posts">("users");
+  const [activationTarget, setActivationTarget] = useState<{
+    userId: string;
+    userName: string;
+    isCurrentlyDeactivated: boolean;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ postId: string; postCaption: string } | null>(null);
   const { toast } = useToast();
 
   const { 
@@ -96,49 +103,56 @@ const AdminUserManagement = () => {
   };
 
   const handleToggleActivation = (userId: string, userName: string, isCurrentlyDeactivated: boolean) => {
-    const action = isCurrentlyDeactivated ? "activate" : "deactivate";
-    const confirmMessage = isCurrentlyDeactivated 
-      ? `Are you sure you want to activate ${userName}? They will be able to access their account again.`
-      : `Are you sure you want to deactivate ${userName}? They will not be able to log in until reactivated.`;
-    
-    if (confirm(confirmMessage)) {
-      toggleActivation(userId, {
-        onSuccess: (result) => {
-          const resultAction = result.isDeactivated ? "deactivated" : "activated";
-          toast({
-            title: "Success",
-            description: `${userName} has been ${resultAction}.`,
-          });
-        },
-        onError: (error: any) => {
-          toast({
-            title: "Error",
-            description: error.message || `Failed to ${action} user.`,
-            variant: "destructive",
-          });
-        },
-      });
-    }
+    setActivationTarget({ userId, userName, isCurrentlyDeactivated });
+  };
+
+  const confirmToggleActivation = () => {
+    if (!activationTarget) return;
+
+    const action = activationTarget.isCurrentlyDeactivated ? "activate" : "deactivate";
+
+    toggleActivation(activationTarget.userId, {
+      onSuccess: (result) => {
+        const resultAction = result.isDeactivated ? "deactivated" : "activated";
+        toast({
+          title: "Success",
+          description: `${activationTarget.userName} has been ${resultAction}.`,
+        });
+        setActivationTarget(null);
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Error",
+          description: error.message || `Failed to ${action} user.`,
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const handleDeletePost = (postId: string, postCaption: string) => {
-    if (confirm(`Are you sure you want to delete this post: "${postCaption.slice(0, 50)}..."? This action cannot be undone.`)) {
-      deletePost(postId, {
-        onSuccess: () => {
-          toast({
-            title: "Success",
-            description: "Post has been deleted.",
-          });
-        },
-        onError: (error: any) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to delete post.",
-            variant: "destructive",
-          });
-        },
-      });
-    }
+    setDeleteTarget({ postId, postCaption });
+  };
+
+  const confirmDeletePost = () => {
+    if (!deleteTarget) return;
+
+    deletePost(deleteTarget.postId, {
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Post has been deleted.",
+        });
+        setDeleteTarget(null);
+      },
+      onError: (error: any) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete post.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const renderUsers = () => {
@@ -452,6 +466,32 @@ const AdminUserManagement = () => {
         {/* Content */}
         {selectedTab === "users" ? renderUsers() : renderPosts()}
       </div>
+
+      <ConfirmActionModal
+        isOpen={!!activationTarget}
+        title={activationTarget?.isCurrentlyDeactivated ? "Activate user" : "Deactivate user"}
+        description={
+          activationTarget?.isCurrentlyDeactivated
+            ? `Allow ${activationTarget.userName} to access their account again?`
+            : `Deactivate ${activationTarget?.userName || "this user"}? They won’t be able to sign in until reactivated.`
+        }
+        confirmLabel={activationTarget?.isCurrentlyDeactivated ? "Activate" : "Deactivate"}
+        isDestructive={!activationTarget?.isCurrentlyDeactivated}
+        isLoading={isToggling}
+        onConfirm={confirmToggleActivation}
+        onClose={() => setActivationTarget(null)}
+      />
+
+      <ConfirmActionModal
+        isOpen={!!deleteTarget}
+        title="Delete post"
+        description={`Delete this post: "${deleteTarget?.postCaption?.slice(0, 70) || ""}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        isDestructive
+        isLoading={isDeletingPost}
+        onConfirm={confirmDeletePost}
+        onClose={() => setDeleteTarget(null)}
+      />
     </motion.div>
   );
 };

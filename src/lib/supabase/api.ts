@@ -2,7 +2,6 @@
 
 import { createClient } from './client'
 import { Database } from './database.types'
-import { NotificationService } from '../utils/notificationService'
 
 export type User = Database['public']['Tables']['users']['Row']
 export type Post = Database['public']['Tables']['posts']['Row'] & {
@@ -1406,30 +1405,6 @@ export async function likePost(postId: string, userId: string) {
   try {
     console.log('Liking post:', { postId, userId })
     
-    // First, get the post details to create notification for post owner
-    const { data: post, error: postError } = await supabase
-      .from('posts')
-      .select('creator_id, creator:users!posts_creator_id_fkey(id, name, username, image_url)')
-      .eq('id', postId)
-      .single()
-
-    if (postError) {
-      console.error('Error fetching post for notification:', postError)
-      throw postError
-    }
-
-    // Get the liker's details for the notification
-    const { data: liker, error: likerError } = await supabase
-      .from('users')
-      .select('id, name, username, image_url')
-      .eq('id', userId)
-      .single()
-
-    if (likerError) {
-      console.error('Error fetching liker details:', likerError)
-      throw likerError
-    }
-    
     const { data, error } = await supabase
       .from('likes')
       .insert([
@@ -1449,16 +1424,6 @@ export async function likePost(postId: string, userId: string) {
     }
     
     console.log('Like created successfully:', data)
-
-    // Create like notification (don't await to avoid blocking the response)
-    const notificationService = NotificationService.getInstance()
-    notificationService.createLikeNotification(
-      postId,
-      post.creator_id,
-      userId,
-      liker.name || liker.username || 'Someone',
-      liker.image_url || '/assets/icons/profile-placeholder.svg'
-    ).catch(err => console.error('Error creating like notification:', err))
     
     return data
   } catch (error) {
@@ -2610,6 +2575,7 @@ export async function adminDeletePost(postId: string) {
     throw error;
   }
 }
+
 
 
 

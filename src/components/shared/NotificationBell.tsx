@@ -1,11 +1,11 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/SupabaseAuthContext";
-// @ts-ignore
 import { createClient } from "@/lib/supabase/client";
+
 const supabase = createClient();
 
 type Notification = {
@@ -15,40 +15,82 @@ type Notification = {
   message: string;
   user_id: string;
   from_user_id: string;
-  from_user_name: string;
-  from_user_avatar?: string;
-  avatar?: string;
   action_url?: string;
   read?: boolean;
   created_at: string;
+  user?: { id: string; name: string; username: string; image_url?: string };
+};
+
+type GroupedNotification = Notification & {
+  count: number;
 };
 
 const NotificationBell = () => {
+  const router = useRouter();
   const { user } = useUserContext();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const groupedNotifications = useMemo<GroupedNotification[]>(() => {
+    const grouped = new Map<string, GroupedNotification>();
+
+    for (const item of notifications) {
+      const key = `${item.type}|${item.from_user_id}|${item.action_url || ""}`;
+      const existing = grouped.get(key);
+
+      if (!existing) {
+        grouped.set(key, { ...item, count: 1 });
+      } else {
+        const existingDate = new Date(existing.created_at).getTime();
+        const currentDate = new Date(item.created_at).getTime();
+        const latest = currentDate > existingDate ? item : existing;
+
+        grouped.set(key, {
+          ...latest,
+          count: existing.count + 1,
+          read: Boolean(existing.read && item.read),
+        });
+      }
+    }
+
+    return [...grouped.values()].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [notifications]);
+
+  const fetchNotifications = async (withLoader = false) => {
+    if (!user?.id) return;
+    if (withLoader) setIsLoading(true);
+
+    try {
+      const res = await supabase
+        .from("notifications")
+        .select("*, user:users!notifications_from_user_id_fkey(id, name, username, image_url)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      const data = (res.data as Notification[] | null) || [];
+      setNotifications(data);
+      setUnreadCount(data.filter((n) => !n.read).length);
+      return data;
+    } finally {
+      if (withLoader) setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!user?.id) return;
-    const channelName = `notifications:${user.id}:${Date.now()}`;
-    // Subscribe to new notifications for the current user
+    fetchNotifications(true);
+
     const channel = supabase
-      .channel(channelName)
+      .channel(`notifications:${user.id}`)
       .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-        async () => {
-          // Fetch latest notifications in real time
-          const res = await supabase
-            .from('notifications')
-            .select('*, user:users!notifications_from_user_id_fkey(id, name, username, image_url)')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-          const data = res.data as (Notification & { user?: { id: string; name: string; username: string; image_url?: string } })[] | null;
-          setNotifications(data || []);
-          setUnreadCount((data || []).filter((n: Notification) => !n.read).length);
-        }
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => fetchNotifications(false)
       )
       .subscribe();
 
@@ -57,116 +99,75 @@ const NotificationBell = () => {
     };
   }, [user?.id]);
 
-  // Fetch initial notifications with debug log
-  useEffect(() => {
-    if (!user?.id) return;
-      supabase
-        .from('notifications')
-        .select('*, user:users!notifications_from_user_id_fkey(id, name, username, image_url)') // Join users table on from_user_id
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .then((res) => {
-          console.log('Notification debug (join):', res.data); // Debug log for join query
-          const data = res.data as (Notification & { user?: { id: string; name: string; username: string; image_url?: string } })[] | null;
-          setNotifications(data || []);
-          setUnreadCount((data || []).filter((n: Notification) => !n.read).length);
-        });
-  }, [user?.id]);
-
   const handleBellClick = async () => {
-    const newDropdownState = !showDropdown;
-    setShowDropdown(newDropdownState);
-    if (newDropdownState && user?.id) {
-      // Fetch latest notifications when opening dropdown
-      const res = await supabase
-        .from('notifications')
-        .select('*, user:users!notifications_from_user_id_fkey(id, name, username, image_url)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      const data = res.data as (Notification & { user?: { id: string; name: string; username: string; image_url?: string } })[] | null;
-      setNotifications(data || []);
-      setUnreadCount((data || []).filter((n: Notification) => !n.read).length);
-    }
-    // Mark all as read in the database
-    if (user?.id && notifications.length > 0) {
-      const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-      if (unreadIds.length > 0) {
-        await supabase
-          .from('notifications')
-          .update({ read: true })
-          .in('id', unreadIds)
-          .eq('user_id', user.id);
-      }
+    const nextOpen = !showDropdown;
+    setShowDropdown(nextOpen);
+
+    if (!nextOpen || !user?.id) return;
+
+    const latestNotifications = (await fetchNotifications(true)) || notifications;
+
+    const unreadIds = latestNotifications.filter((n) => !n.read).map((n) => n.id);
+    if (unreadIds.length > 0) {
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .in("id", unreadIds)
+        .eq("user_id", user.id);
     }
     setUnreadCount(0);
   };
 
+  const onNotificationClick = (notification: GroupedNotification) => {
+    setShowDropdown(false);
+    router.push(notification.action_url || `/profile/${notification.from_user_id}`);
+  };
+
   return (
     <div className="relative">
-      {/* Modern Bell Button */}
-      <motion.button 
+      <motion.button
         className="relative p-3 rounded-xl bg-dark-3/50 hover:bg-dark-2/70 border border-dark-4/50 hover:border-dark-4 transition-all duration-200 group"
         onClick={handleBellClick}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        {/* Bell Icon with Animation */}
-        <motion.div
-          animate={unreadCount > 0 ? { rotate: [0, -10, 10, -10, 0] } : {}}
-          transition={{ duration: 0.5, repeat: unreadCount > 0 ? Infinity : 0, repeatDelay: 3 }}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          className="text-light-2 group-hover:text-light-1 transition-colors"
         >
-          <svg 
-            width="20" 
-            height="20" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            className="text-light-2 group-hover:text-light-1 transition-colors"
-          >
-            <path 
-              d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-            <path 
-              d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            />
-          </svg>
-        </motion.div>
+          <path
+            d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
 
-        {/* Modern Badge */}
         <AnimatePresence>
           {unreadCount > 0 && (
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              className="absolute -top-1 -right-1 flex items-center justify-center"
+              className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center border-2 border-dark-1"
             >
-              {/* Pulsing Background */}
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="absolute inset-0 bg-red-500 rounded-full"
-              />
-              {/* Badge Content */}
-              <div className="relative bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 border-2 border-dark-1">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </div>
+              {unreadCount > 99 ? "99+" : unreadCount}
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Hover Glow Effect */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-500/0 to-primary-600/0 group-hover:from-primary-500/10 group-hover:to-primary-600/10 transition-all duration-300" />
       </motion.button>
 
-      {/* Modern Dropdown */}
       <AnimatePresence>
         {showDropdown && (
           <motion.div
@@ -174,111 +175,82 @@ const NotificationBell = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-80 max-w-[calc(100vw-2rem)] bg-dark-2/95 backdrop-blur-lg border border-dark-4/50 rounded-2xl shadow-2xl z-50 overflow-hidden 
-              fixed top-20 left-[15%] -translate-x-1/2
-              sm:absolute sm:top-full sm:mt-2 sm:left-0 sm:right-auto sm:translate-x-0"
+            className="w-80 max-w-[calc(100vw-2rem)] bg-dark-2/95 backdrop-blur-lg border border-dark-4/50 rounded-2xl shadow-2xl z-50 overflow-hidden fixed top-20 left-[15%] -translate-x-1/2 sm:absolute sm:top-full sm:mt-2 sm:left-0 sm:translate-x-0"
           >
-            {/* Header */}
             <div className="p-4 border-b border-dark-4/50 bg-gradient-to-r from-dark-2 to-dark-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-light-1 flex items-center gap-2">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-primary-500">
-                    <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Notifications
-                </h3>
-                {notifications.filter(n => !n.read).length > 0 && (
+                <h3 className="font-semibold text-light-1">Notifications</h3>
+                {unreadCount > 0 && (
                   <span className="text-xs bg-primary-500/20 text-primary-400 px-2 py-1 rounded-full">
-                    {notifications.filter(n => !n.read).length} new
+                    {unreadCount} new
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Notifications List */}
             <div className="max-h-96 overflow-y-auto custom-scrollbar">
-              {notifications.length === 0 ? (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="p-8 text-center"
-                >
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-dark-3 flex items-center justify-center">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-light-4">
-                        <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+              {isLoading ? (
+                <div className="p-4 space-y-3">
+                  {[...Array(4)].map((_, index) => (
+                    <div key={index} className="flex items-center gap-3 animate-pulse">
+                      <div className="w-10 h-10 rounded-full bg-dark-4" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 rounded bg-dark-4 w-3/4" />
+                        <div className="h-2 rounded bg-dark-4 w-1/2" />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-light-3 text-sm">No notifications yet</p>
-                      <p className="text-light-4 text-xs mt-1">We'll notify you when something happens!</p>
-                    </div>
-                  </div>
-                </motion.div>
+                  ))}
+                </div>
+              ) : groupedNotifications.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-light-3 text-sm">No notifications yet</p>
+                  <p className="text-light-4 text-xs mt-1">We’ll keep you updated here.</p>
+                </div>
               ) : (
                 <div className="divide-y divide-dark-4/30">
-                  {notifications.map((n: any, index: number) => (
-                    <motion.div
+                  {groupedNotifications.map((n, index) => (
+                    <motion.button
                       key={n.id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`p-4 hover:bg-dark-3/30 transition-colors cursor-pointer ${
-                        !n.read ? 'bg-primary-500/5 border-l-2 border-l-primary-500' : ''
+                      transition={{ delay: index * 0.03 }}
+                      className={`w-full text-left p-4 hover:bg-dark-3/30 transition-colors ${
+                        !n.read ? "bg-primary-500/5 border-l-2 border-l-primary-500" : ""
                       }`}
+                      onClick={() => onNotificationClick(n)}
                     >
                       <div className="flex items-start gap-3">
-                        {/* Avatar */}
-                        <div className="flex-shrink-0">
-                          <img
-                            src={n.user?.image_url || "/assets/icons/profile-placeholder.svg"}
-                            alt={n.user?.username || "User"}
-                            className="w-10 h-10 rounded-full object-cover border border-dark-4"
-                          />
-                        </div>
-                        
-                        {/* Content */}
+                        <img
+                          src={n.user?.image_url || "/assets/icons/profile-placeholder.svg"}
+                          alt={n.user?.username || "User"}
+                          className="w-10 h-10 rounded-full object-cover border border-dark-4"
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm text-light-1">
                             {n.user?.username && (
                               <span className="font-semibold text-primary-400">{n.user.username}</span>
                             )}
-                            {n.user?.username ? ' ' : ''}
+                            {n.user?.username ? " " : ""}
                             <span className="text-light-2">{n.message}</span>
-                          </div>
-                          
-                          <div className="flex items-center justify-between mt-2">
-                            <p className="text-xs text-light-4">
-                              {new Date(n.created_at).toLocaleString([], { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
-                            </p>
-                            {!n.read && (
-                              <div className="w-2 h-2 bg-primary-500 rounded-full" />
+                            {n.count > 1 && (
+                              <span className="ml-2 text-xs text-primary-400">+{n.count - 1} more</span>
                             )}
                           </div>
+                          <p className="text-xs text-light-4 mt-1">
+                            {new Date(n.created_at).toLocaleString([], {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
                         </div>
                       </div>
-                    </motion.div>
+                    </motion.button>
                   ))}
                 </div>
               )}
             </div>
-
-            {/* Footer (if needed) */}
-            {notifications.length > 0 && (
-              <div className="p-3 border-t border-dark-4/50 bg-dark-3/30">
-                <button 
-                  className="w-full text-xs text-light-3 hover:text-light-1 transition-colors"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  Close notifications
-                </button>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

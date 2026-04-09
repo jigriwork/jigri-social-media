@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { multiFormatDateString } from "@/lib/utils";
 import AuthPromptModal from "./AuthPromptModal";
 import Link from "next/link";
+import ConfirmActionModal from "./ConfirmActionModal";
 
 type QuickCommentProps = {
   postId: string;
@@ -39,6 +40,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
   const [isUpdatingComment, setIsUpdatingComment] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [authAction, setAuthAction] = useState("");
+  const [deleteTargetCommentId, setDeleteTargetCommentId] = useState<string | null>(null);
 
   // Fetch comments when component mounts
   useEffect(() => {
@@ -183,9 +185,6 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
   const handleDeleteComment = async (commentId: string) => {
     if (!user) return;
     
-    const confirmDelete = window.confirm("Are you sure you want to delete this comment?");
-    if (!confirmDelete) return;
-    
     try {
       const success = await deleteComment(commentId);
       
@@ -195,6 +194,8 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
       }
     } catch (error) {
       console.error("Error deleting comment:", error);
+    } finally {
+      setDeleteTargetCommentId(null);
     }
   };
 
@@ -308,7 +309,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
           </div>
         ) : comments.length === 0 ? (
           <div className="text-center py-4">
-            <p className="text-light-4 text-sm">No comments yet. Be the first to comment!</p>
+            <p className="text-light-4 text-sm">No comments yet. Start the conversation.</p>
           </div>
         ) : (
           <>
@@ -413,7 +414,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                             : 'text-light-4 hover:text-primary-500'
                         }`}
                       >
-                        {likedComments.has(commentItem.id) ? 'Unlike' : 'Like'}
+                        {likedComments.has(commentItem.id) ? 'Liked' : 'Like'}
                       </Button>
 
                       <Button
@@ -447,7 +448,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteComment(commentItem.id)}
+                            onClick={() => setDeleteTargetCommentId(commentItem.id)}
                             className="text-xs text-light-4 hover:text-red-500 px-1 py-0 h-auto"
                           >
                             Delete
@@ -592,7 +593,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                                     : 'text-light-4 hover:text-primary-500'
                                 }`}
                               >
-                                {likedComments.has(reply.id) ? 'Unlike' : 'Like'}
+                                {likedComments.has(reply.id) ? 'Liked' : 'Like'}
                               </Button>
 
                               {/* Edit and Delete buttons for replies - only show if reply belongs to current user */}
@@ -610,7 +611,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleDeleteComment(reply.id)}
+                                    onClick={() => setDeleteTargetCommentId(reply.id)}
                                     className="text-xs text-light-4 hover:text-red-500 px-1 py-0 h-auto"
                                   >
                                     Delete
@@ -620,11 +621,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                             </div>
                           </div>
                         ))}
-                        {commentItem.replies.length > 2 && (
-                          <button className="text-xs text-primary-500 hover:text-primary-400 ml-6">
-                            View {commentItem.replies.length - 2} more replies
-                          </button>
-                        )}
+                        {commentItem.replies.length > 2 && null}
                       </div>
                     )}
                   </div>
@@ -657,6 +654,20 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
         isOpen={showAuthPrompt}
         onClose={() => setShowAuthPrompt(false)}
         action={authAction}
+      />
+
+      <ConfirmActionModal
+        isOpen={!!deleteTargetCommentId}
+        title="Delete comment"
+        description="This comment will be removed permanently."
+        confirmLabel="Delete"
+        isDestructive
+        onConfirm={() => {
+          if (deleteTargetCommentId) {
+            handleDeleteComment(deleteTargetCommentId);
+          }
+        }}
+        onClose={() => setDeleteTargetCommentId(null)}
       />
     </div>
   );
