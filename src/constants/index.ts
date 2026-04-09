@@ -46,6 +46,10 @@ export const sidebarLinks = [
     is_deactivated: null,
     last_active: null,
     privacy_setting: "public" as const,
+    is_verified: false,
+    verification_badge_type: null,
+    verification_status: "none" as const,
+    verification_updated_at: null,
   };
 
   export const PRIVACY_SETTINGS = [
