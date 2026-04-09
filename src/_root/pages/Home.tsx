@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import {
   useGetFollowingFeed,
-  useGetUsers,
+  useGetSuggestedUsers,
   useGetFollowingCount,
   useGetUserPosts,
 } from "@/lib/react-query/queriesAndMutations";
@@ -24,13 +24,14 @@ const Home = () => {
     data: creators,
     isPending: isUserLoading,
     isError: isErrorCreators,
-  } = useGetUsers(10);
+  } = useGetSuggestedUsers(10);
 
   const { data: followingCount } = useGetFollowingCount(user?.id || "");
   const { data: ownPosts } = useGetUserPosts(user?.id || "");
 
   // Filter out current user from creators list
-  const otherUsers = creators?.filter((creator: any) => creator.id !== user?.id) || [];
+  const suggestedUsers = creators?.filter((creator: any) => creator.id !== user?.id) || [];
+  const missedPosts = (posts || []).slice(3, 6);
 
   const onboardingSteps = [
     {
@@ -115,11 +116,34 @@ const Home = () => {
           ) : (
             <ul className="flex flex-col flex-1 gap-9 w-full ">
               {posts && posts.length > 0 ? (
-                posts.map((post: any) => (
-                  <li key={post.id} className="flex justify-center w-full">
-                    <PostCard post={post} />
-                  </li>
-                ))
+                <>
+                  {posts.map((post: any, index: number) => (
+                    <li key={post.id} className="flex justify-center w-full">
+                      <PostCard post={post} />
+                      {index === 2 && missedPosts.length > 0 && (
+                        <div className="mt-4 w-full rounded-xl border border-dark-4 bg-dark-3/20 p-4">
+                          <p className="text-sm font-semibold text-light-2">You might have missed this</p>
+                          <div className="mt-3 space-y-2">
+                            {missedPosts.map((missed: any) => (
+                              <Link
+                                key={`missed-${missed.id}`}
+                                href={`/posts/${missed.id}`}
+                                className="block rounded-lg border border-dark-4/60 bg-dark-4/20 px-3 py-2 hover:border-primary-500/40"
+                              >
+                                <p className="text-xs text-light-2 line-clamp-1">
+                                  {missed.caption || "New post"}
+                                </p>
+                                <p className="text-[11px] text-light-4 mt-1">
+                                  by @{missed.creator?.username || "user"}
+                                </p>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
                   <div className="w-16 h-16 rounded-full bg-dark-3 flex items-center justify-center mb-4">
@@ -132,7 +156,7 @@ const Home = () => {
                   <p className="text-light-4 text-sm mb-4 max-w-sm">
                     Follow other people to see their posts in your feed, or create your first post!
                   </p>
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 flex-wrap justify-center">
                     <Link
                       href="/explore"
                       className="text-primary-500 hover:text-primary-400 text-sm font-medium"
@@ -153,6 +177,17 @@ const Home = () => {
                     >
                       Create Post
                     </Link>
+                    {suggestedUsers.length > 0 && (
+                      <>
+                        <span className="text-light-4">•</span>
+                        <Link
+                          href="/explore"
+                          className="text-primary-500 hover:text-primary-400 text-sm font-medium"
+                        >
+                          View recent activity
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -161,7 +196,7 @@ const Home = () => {
         </div>
       </div>
       <div className="home-creators">
-        <h3 className="h3-bold text-light-1">People You Might Know</h3>
+        <h3 className="h3-bold text-light-1">Suggested Users</h3>
         {isUserLoading && !creators ? (
           <div className="grid 2xl:grid-cols-2 gap-6">
             {[...Array(4)].map((_, index) => (
@@ -170,14 +205,14 @@ const Home = () => {
           </div>
         ) : (
           <ul className="grid 2xl:grid-cols-2 gap-6">
-            {otherUsers && otherUsers.length > 0 ? (
-              otherUsers.map((creator: any) => (
+            {suggestedUsers && suggestedUsers.length > 0 ? (
+              suggestedUsers.map((creator: any) => (
                 <li key={creator?.id}>
                   <UserCard user={creator} />
                 </li>
               ))
             ) : (
-              <p className="text-light-4">No other users yet</p>
+              <p className="text-light-4">No suggestions right now. Check again soon.</p>
             )}
           </ul>
         )}

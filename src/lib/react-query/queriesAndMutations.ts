@@ -28,6 +28,7 @@ import {
   updateUser,
   deletePost,
   getUsers,
+  getSuggestedUsers,
   searchPosts,
   getPublicUserById,
   getPublicUserPosts,
@@ -404,6 +405,14 @@ export const useGetUsers = (limit?: number) => {
   return useQuery({
     queryKey: [QUERY_KEYS.GET_USERS],
     queryFn: () => getUsers(limit),
+  });
+};
+
+export const useGetSuggestedUsers = (limit: number = 8) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_SUGGESTED_USERS, limit],
+    queryFn: () => getSuggestedUsers(limit),
+    staleTime: 1000 * 60 * 2,
   });
 };
 
@@ -863,7 +872,8 @@ export const useCreateComment = () => {
               variables.userId,
               user.name || user.username || 'Unknown User',
               user.image_url || '',
-              variables.content
+              variables.content,
+              Boolean(variables.parentId)
             );
             
             // Invalidate notifications for the post owner

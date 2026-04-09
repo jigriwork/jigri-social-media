@@ -25,6 +25,17 @@ type GroupedNotification = Notification & {
   count: number;
 };
 
+const getImportance = (type: string) => {
+  if (type === "follow" || type === "comment") return "high";
+  return "normal";
+};
+
+const getUrgencyLabel = (type: string) => {
+  if (type === "comment") return "Someone replied to you";
+  if (type === "follow") return "Someone followed you";
+  return "You have new activity";
+};
+
 const NotificationBell = () => {
   const router = useRouter();
   const { user } = useUserContext();
@@ -226,6 +237,11 @@ const NotificationBell = () => {
                           className="w-10 h-10 rounded-full object-cover border border-dark-4"
                         />
                         <div className="flex-1 min-w-0">
+                          {getImportance(n.type) === "high" && (
+                            <p className="text-[11px] font-semibold text-primary-400 mb-1">
+                              {getUrgencyLabel(n.type)}
+                            </p>
+                          )}
                           <div className="text-sm text-light-1">
                             {n.user?.username && (
                               <span className="font-semibold text-primary-400">{n.user.username}</span>

@@ -695,6 +695,84 @@ export async function getUsers(limit?: number) {
   }
 }
 
+export async function getSuggestedUsers(limit: number = 8) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Fallback for unauthenticated users: return recent/active users
+    if (!user) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('is_active', { ascending: false })
+        .order('last_active', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data || [];
+    }
+
+    const [{ data: followsData }, { data: usersData, error: usersError }] = await Promise.all([
+      supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id),
+      supabase
+        .from('users')
+        .select('*')
+        .neq('id', user.id)
+        .order('is_active', { ascending: false })
+        .order('last_active', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(150)
+    ]);
+
+    if (usersError) throw usersError;
+
+    const followedIds = new Set((followsData || []).map((f: any) => f.following_id));
+    const candidateUsers = (usersData || []).filter((u: any) => !followedIds.has(u.id));
+
+    if (candidateUsers.length === 0) return [];
+
+    const candidateIds = candidateUsers.map((u: any) => u.id);
+    const recentWindow = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: recentPosts } = await supabase
+      .from('posts')
+      .select('creator_id, created_at')
+      .in('creator_id', candidateIds)
+      .gte('created_at', recentWindow)
+      .limit(1000);
+
+    const activityByUser = new Map<string, number>();
+    (recentPosts || []).forEach((post: any) => {
+      const prev = activityByUser.get(post.creator_id) || 0;
+      activityByUser.set(post.creator_id, prev + 1);
+    });
+
+    const scored = candidateUsers
+      .map((u: any) => {
+        const lastActiveMs = u?.last_active ? new Date(u.last_active).getTime() : 0;
+        const activeHoursAgo = lastActiveMs ? (Date.now() - lastActiveMs) / (1000 * 60 * 60) : 9999;
+        const recencyScore = Math.max(0, 72 - activeHoursAgo) / 12; // 0..6
+        const activeScore = u?.is_active ? 4 : 0;
+        const postsScore = (activityByUser.get(u.id) || 0) * 1.5;
+        return {
+          ...u,
+          _engagementScore: activeScore + postsScore + recencyScore,
+        };
+      })
+      .sort((a: any, b: any) => b._engagementScore - a._engagementScore)
+      .slice(0, limit);
+
+    return scored;
+  } catch (error) {
+    console.error('Error getting suggested users:', error);
+    return [];
+  }
+}
+
 export async function searchUsers(searchTerm: string, limit: number = 50) {
   try {
     if (!searchTerm || searchTerm.trim().length === 0) {
@@ -1243,8 +1321,6 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    const offset = (page - 1) * limit
-
     // First, get the list of followed user IDs
     const { data: followsData } = await supabase
       .from('follows')
@@ -1253,8 +1329,8 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
     
     const followedUserIds = followsData?.map(follow => follow.following_id) || []
 
-    // Get all posts from followed users and own posts (without privacy filtering in query)
-    let query = supabase
+    // 1) Followed + own posts bucket
+    let followedQuery = supabase
       .from('posts')
       .select(`
         *,
@@ -1263,23 +1339,43 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
         saves(user_id)
       `)
       .order('created_at', { ascending: false })
+      .limit(200)
 
     if (followedUserIds.length > 0) {
-      // Get own posts and posts from followed users
-      query = query.or(`creator_id.eq.${user.id},creator_id.in.(${followedUserIds.join(',')})`)
+      followedQuery = followedQuery.or(`creator_id.eq.${user.id},creator_id.in.(${followedUserIds.join(',')})`)
     } else {
-      // User doesn't follow anyone: only get own posts
-      query = query.eq('creator_id', user.id)
+      followedQuery = followedQuery.eq('creator_id', user.id)
     }
 
-    const { data, error } = await query
+    const { data: followedData, error } = await followedQuery
 
     if (error) throw error
-    
-    // Client-side privacy filtering
-    const filteredData = data?.filter(post => {
+
+    // 2) Global recent public posts bucket (excluding followed + own)
+    const excludedIds = [user.id, ...followedUserIds]
+    const { data: globalRaw } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        creator:users(*),
+        likes(user_id),
+        saves(user_id)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(250)
+
+    const globalData = (globalRaw || []).filter((post: any) => {
       const creator = post.creator;
-      
+      if (!creator) return false;
+      if (excludedIds.includes(creator.id)) return false;
+      return creator.privacy_setting === 'public';
+    });
+
+    // Client-side privacy filtering for followed bucket
+    const followedFiltered = (followedData || []).filter((post: any) => {
+      const creator = post.creator;
+      if (!creator) return false;
+    
       // Always show own posts
       if (creator.id === user.id) return true;
       
@@ -1295,28 +1391,56 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
       return true;
     }) || [];
 
-    // Apply pagination after filtering
-    const paginatedData = filteredData.slice(offset, offset + limit);
-    
-    // Add comment counts to posts
-    if (paginatedData.length > 0) {
-      const postsWithCommentCounts = await Promise.all(
-        paginatedData.map(async (post) => {
-          const { count } = await supabase
-            .from('comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post.id)
-          
-          return {
-            ...post,
-            _count: {
-              comments: count || 0
-            }
-          }
-        })
-      )
-      return postsWithCommentCounts
+    // Add comment counts for ranking + card stats in one pass
+    const allCandidatePosts = [...followedFiltered, ...globalData];
+    const uniquePostIds = Array.from(new Set(allCandidatePosts.map((p: any) => p.id)));
+
+    let commentCountMap = new Map<string, number>();
+    if (uniquePostIds.length > 0) {
+      const { data: commentsData } = await supabase
+        .from('comments')
+        .select('post_id')
+        .in('post_id', uniquePostIds)
+        .limit(5000);
+
+      commentCountMap = (commentsData || []).reduce((map: Map<string, number>, row: any) => {
+        map.set(row.post_id, (map.get(row.post_id) || 0) + 1);
+        return map;
+      }, new Map<string, number>());
     }
+
+    const withScore = (post: any) => {
+      const likes = post.likes?.length || 0;
+      const comments = commentCountMap.get(post.id) || 0;
+      const hoursAgo = Math.max(0, (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60));
+      const recencyFactor = Math.max(0, 72 - hoursAgo) / 6; // 0..12
+      const score = likes + comments * 2 + recencyFactor;
+      return {
+        ...post,
+        _count: { comments },
+        _engagementScore: score,
+      };
+    };
+
+    const followedRanked = followedFiltered.map(withScore).sort((a: any, b: any) => b._engagementScore - a._engagementScore);
+    const globalRanked = globalData.map(withScore).sort((a: any, b: any) => b._engagementScore - a._engagementScore);
+
+    // Followed-first, with a controlled global mix so feed stays alive
+    const followedTarget = Math.max(8, Math.floor(limit * 0.7));
+    const mixedFirstPage = [
+      ...followedRanked.slice(0, followedTarget),
+      ...globalRanked.slice(0, Math.max(0, limit - followedTarget)),
+      ...followedRanked.slice(followedTarget),
+      ...globalRanked.slice(Math.max(0, limit - followedTarget)),
+    ];
+
+    // Deduplicate and paginate
+    const deduped = mixedFirstPage.filter((post: any, index: number, arr: any[]) =>
+      arr.findIndex((p: any) => p.id === post.id) === index
+    );
+
+    const offset = (page - 1) * limit;
+    const paginatedData = deduped.slice(offset, offset + limit);
     
     return paginatedData
   } catch (error) {
@@ -2575,6 +2699,7 @@ export async function adminDeletePost(postId: string) {
     throw error;
   }
 }
+
 
 
 

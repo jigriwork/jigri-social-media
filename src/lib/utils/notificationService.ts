@@ -96,6 +96,36 @@ export class NotificationService {
     this.listeners.delete(listener);
   }
 
+  private async hasRecentDuplicateNotification(
+    userId: string,
+    type: DbNotification['type'],
+    fromUserId: string,
+    actionUrl?: string,
+    withinMinutes: number = 20
+  ): Promise<boolean> {
+    try {
+      const since = new Date(Date.now() - withinMinutes * 60 * 1000).toISOString();
+      let query = this.supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', type)
+        .eq('from_user_id', fromUserId)
+        .gte('created_at', since)
+        .limit(1);
+
+      if (actionUrl) {
+        query = query.eq('action_url', actionUrl);
+      }
+
+      const { data, error } = await query;
+      if (error) return false;
+      return !!data && data.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   // Create notification when someone creates a new post
   async createNewPostNotifications(postId: string, creatorId: string, creatorName: string, creatorAvatar: string, postCaption: string) {
     try {
@@ -141,13 +171,22 @@ export class NotificationService {
       // Don't notify if user likes their own post
       if (postOwnerId === likerUserId) return;
 
+      const actionUrl = `/posts/${postId}`;
+      const isDuplicate = await this.hasRecentDuplicateNotification(
+        postOwnerId,
+        'like',
+        likerUserId,
+        actionUrl
+      );
+      if (isDuplicate) return;
+
       const notification = {
         user_id: postOwnerId,
         type: 'like' as const,
-        title: 'New Like',
+        title: 'You have new activity',
         message: `${likerName} liked your post`,
         avatar: likerAvatar,
-        action_url: `/posts/${postId}`,
+        action_url: actionUrl,
         from_user_id: likerUserId,
         from_user_name: likerName,
         from_user_avatar: likerAvatar,
@@ -167,13 +206,22 @@ export class NotificationService {
   // Create notification when someone follows a user
   async createFollowNotification(followedUserId: string, followerUserId: string, followerName: string, followerAvatar: string) {
     try {
+      const actionUrl = `/profile/${followerUserId}`;
+      const isDuplicate = await this.hasRecentDuplicateNotification(
+        followedUserId,
+        'follow',
+        followerUserId,
+        actionUrl
+      );
+      if (isDuplicate) return;
+
       const notification = {
         user_id: followedUserId,
         type: 'follow' as const,
-        title: 'New Follower',
-        message: `${followerName} started following you`,
+        title: 'Someone followed you',
+        message: `${followerName} followed you`,
         avatar: followerAvatar,
-        action_url: `/profile/${followerUserId}`,
+        action_url: actionUrl,
         from_user_id: followerUserId,
         from_user_name: followerName,
         from_user_avatar: followerAvatar,
@@ -191,18 +239,37 @@ export class NotificationService {
   }
 
   // Create notification when someone comments on a post
-  async createCommentNotification(postId: string, postOwnerId: string, commenterUserId: string, commenterName: string, commenterAvatar: string, commentText: string) {
+  async createCommentNotification(
+    postId: string,
+    postOwnerId: string,
+    commenterUserId: string,
+    commenterName: string,
+    commenterAvatar: string,
+    commentText: string,
+    isReply: boolean = false
+  ) {
     try {
       // Don't notify if user comments on their own post
       if (postOwnerId === commenterUserId) return;
 
+      const actionUrl = `/posts/${postId}`;
+      const isDuplicate = await this.hasRecentDuplicateNotification(
+        postOwnerId,
+        'comment',
+        commenterUserId,
+        actionUrl
+      );
+      if (isDuplicate) return;
+
       const notification = {
         user_id: postOwnerId,
         type: 'comment' as const,
-        title: 'New Comment',
-        message: `${commenterName} commented: ${this.truncateText(commentText, 50)}`,
+        title: isReply ? 'Someone replied to you' : 'You have new activity',
+        message: isReply
+          ? `${commenterName} replied: ${this.truncateText(commentText, 50)}`
+          : `${commenterName} commented: ${this.truncateText(commentText, 50)}`,
         avatar: commenterAvatar,
-        action_url: `/posts/${postId}`,
+        action_url: actionUrl,
         from_user_id: commenterUserId,
         from_user_name: commenterName,
         from_user_avatar: commenterAvatar,

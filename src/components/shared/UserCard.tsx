@@ -5,13 +5,30 @@ import { useUserContext } from "@/context/SupabaseAuthContext";
 
 type UserCardProps = {
   user: any; // TODO: Add proper Supabase user type
+  showActivity?: boolean;
 };
 
-const UserCard = ({ user }: UserCardProps) => {
+const getActivityLabel = (user: any) => {
+  if (!user) return null;
+  if (user.is_active) return "Active now";
+
+  if (!user.last_active) return "Active recently";
+
+  const lastActive = new Date(user.last_active).getTime();
+  if (Number.isNaN(lastActive)) return "Active recently";
+
+  const hoursAgo = (Date.now() - lastActive) / (1000 * 60 * 60);
+  if (hoursAgo <= 24) return "Active recently";
+  if (hoursAgo <= 24 * 7) return "Active this week";
+  return "Active recently";
+};
+
+const UserCard = ({ user, showActivity = true }: UserCardProps) => {
   const { user: currentUser } = useUserContext();
   const { data: isCurrentlyFollowing, isLoading: isFollowingLoading } = useIsFollowing(user.id);
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
+  const activityLabel = getActivityLabel(user);
   
   const handleFollowToggle = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking the button
@@ -41,6 +58,9 @@ const UserCard = ({ user }: UserCardProps) => {
         <p className="small-regular text-light-3 text-center line-clamp-1">
           @{user.username}
         </p>
+        {showActivity && activityLabel && (
+          <p className="text-[11px] text-primary-400 text-center">{activityLabel}</p>
+        )}
       </div>
 
       {!isOwnProfile && (
