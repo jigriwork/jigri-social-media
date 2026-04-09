@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         is_admin,
         created_at,
         updated_at
-      `)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
     // Add search filter if provided

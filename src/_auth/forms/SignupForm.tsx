@@ -47,7 +47,6 @@ const SignupForm = () => {
   })
 
   const { mutateAsync: createUserAccount, isPending: isCreatingAccount } = useCreateUserAccount();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { mutateAsync: _signInAccount, isPending: isSigningInUser } = useSignInAccount();
 
   // Real-time availability checking
@@ -194,7 +193,7 @@ const SignupForm = () => {
         Create a new account
       </h2>
       <p className="text-light-3 text-xs text-center mb-2 sm:text-sm sm:mb-3">
-        To use SociaLens, Please enter your details
+        To use Jigri, Please enter your details
       </p>
 
       <form

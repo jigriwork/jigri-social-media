@@ -109,25 +109,25 @@ export class NotificationSound {
 
   private isSoundEnabled(): boolean {
     if (typeof window === 'undefined') return false;
-    const enabled = localStorage.getItem('socialens_sound_notifications');
+    const enabled = localStorage.getItem('jigri_sound_notifications');
     return enabled !== 'false'; // Default to enabled unless explicitly disabled
   }
 
   private getVolumeLevel(): number {
     if (typeof window === 'undefined') return 0.1;
-    const volume = localStorage.getItem('socialens_notification_volume');
+    const volume = localStorage.getItem('jigri_notification_volume');
     return volume ? parseFloat(volume) : 0.1; // Default to 10% volume
   }
 
   setSoundEnabled(enabled: boolean) {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('socialens_sound_notifications', enabled.toString());
+      localStorage.setItem('jigri_sound_notifications', enabled.toString());
     }
   }
 
   setVolumeLevel(volume: number) {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('socialens_notification_volume', Math.max(0, Math.min(1, volume)).toString());
+      localStorage.setItem('jigri_notification_volume', Math.max(0, Math.min(1, volume)).toString());
     }
   }
 

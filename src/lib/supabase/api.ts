@@ -215,7 +215,7 @@ export async function signInUser(user: { email: string; password: string }) {
           // Sign them out immediately
           await supabase.auth.signOut();
           
-          const deactivatedError = new Error('Your account has been deactivated. If you believe this was done in error, please contact support at support@socialens.in for assistance.');
+          const deactivatedError = new Error('Your account has been deactivated. If you believe this was done in error, please contact support at support@jigri.app for assistance.');
           deactivatedError.name = 'AccountDeactivatedError';
           throw deactivatedError;
         }
@@ -725,9 +725,8 @@ export async function searchUsers(searchTerm: string, limit: number = 50) {
 
 // Initial admin emails - these will be the super admins who can add others
 const INITIAL_ADMIN_EMAILS = [
-  'admin@socialens.com',
-  'maazajaz1234@gmail.com', // Your email here
-  'test@admin.com',
+  'owner@jigri.app',
+  'admin@jigri.app',
 ];
 
 // Check if user is an initial admin (super admin)
@@ -957,7 +956,8 @@ export async function getAdminStats() {
     const { count: activeToday, error: activeTodayError } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
-      .gte('last_sign_in_at', todayISO)
+      .eq('is_active', true)
+      .gte('last_active', todayISO)
 
     // Don't throw error for activeToday - it's optional
     if (activeTodayError) {
@@ -2589,7 +2589,7 @@ export async function adminDeletePost(postId: string) {
       try {
         const fileName = post.image_url.split('/').pop();
         if (fileName) {
-          await supabase.storage.from('files').remove([fileName]);
+          await supabase.storage.from('posts').remove([fileName]);
         }
       } catch (storageDeleteError) {
         console.warn('Error deleting image from storage:', storageDeleteError);
@@ -2610,5 +2610,7 @@ export async function adminDeletePost(postId: string) {
     throw error;
   }
 }
+
+
 
 

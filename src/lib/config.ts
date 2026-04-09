@@ -7,7 +7,7 @@ export const config = {
     appUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
   },
   production: {
-    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://socialens.in',
+    appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
 }
 

@@ -31,9 +31,10 @@ const NotificationBell = () => {
 
   useEffect(() => {
     if (!user?.id) return;
+    const channelName = `notifications:${user.id}:${Date.now()}`;
     // Subscribe to new notifications for the current user
     const channel = supabase
-      .channel('notifications')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
@@ -50,6 +51,7 @@ const NotificationBell = () => {
         }
       )
       .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
     };

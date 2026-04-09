@@ -55,7 +55,7 @@ export async function DELETE(
         const fileName = post.image_url.split('/').pop();
         if (fileName) {
           const { error: storageError } = await supabase.storage
-            .from('files')
+            .from('posts')
             .remove([fileName]);
           
           if (storageError) {

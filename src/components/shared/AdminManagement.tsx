@@ -74,7 +74,7 @@ const AdminManagement = () => {
     }
 
     // Check if trying to remove initial admin
-    const initialAdmins = ['admin@socialens.com', 'maazajaz1234@gmail.com', 'test@admin.com'];
+    const initialAdmins = ['owner@jigri.app', 'admin@jigri.app'];
     if (initialAdmins.includes(userEmail.toLowerCase())) {
       toast({
         title: "Action Not Allowed",
@@ -226,7 +226,7 @@ const AdminManagement = () => {
                   
                   <div className="flex items-center gap-2">
                     {/* Show if initial admin */}
-                    {['admin@socialens.com', 'maazajaz1234@gmail.com', 'test@admin.com'].includes(admin.email.toLowerCase()) && (
+                    {['owner@jigri.app', 'admin@jigri.app'].includes(admin.email.toLowerCase()) && (
                       <span className="px-2 py-1 text-xs bg-primary-500/20 text-primary-500 rounded-full border border-primary-500/30">
                         Super Admin
                       </span>
@@ -237,14 +237,14 @@ const AdminManagement = () => {
                       onClick={() => handleRemoveAdmin(admin.id, admin.email)}
                       disabled={
                         isRemovingAdmin || 
-                        ['admin@socialens.com', 'maazajaz1234@gmail.com', 'test@admin.com'].includes(admin.email.toLowerCase()) ||
+                        ['owner@jigri.app', 'admin@jigri.app'].includes(admin.email.toLowerCase()) ||
                         currentUser?.id === admin.id
                       }
                       className="text-red-500 hover:text-red-400 hover:bg-red-500/10 p-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       size="sm"
                       title={
                         currentUser?.id === admin.id ? "Cannot remove yourself" :
-                        ['admin@socialens.com', 'maazajaz1234@gmail.com', 'test@admin.com'].includes(admin.email.toLowerCase()) ? "Cannot remove super admin" :
+                        ['owner@jigri.app', 'admin@jigri.app'].includes(admin.email.toLowerCase()) ? "Cannot remove super admin" :
                         "Remove admin privileges"
                       }
                     >

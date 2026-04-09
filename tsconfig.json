@@ -9,7 +9,6 @@
     ],
     "module": "ESNext",
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
@@ -37,7 +36,9 @@
     ]
   },
   "include": [
+    "next-env.d.ts",
     ".next/types/**/*.ts",
+    "app",
     "src",
     "out/types/**/*.ts"
   ],

@@ -1,18 +1,19 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-
-// Use the regular client - if service role is available, use it, otherwise use anon
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(request: NextRequest) {
+  let supabase
+  try {
+    supabase = createAdminClient()
+  } catch {
+    return NextResponse.json(
+      {
+        error: 'Supabase configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+      },
+      { status: 500 }
+    )
+  }
+
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('userId')
 
@@ -48,7 +49,30 @@ export async function GET(request: NextRequest) {
         .limit(1)
 
       if (!postError && postData && postData[0] && postData[0].creator) {
-        const creator = postData[0].creator as any
+        const creatorRaw = postData[0].creator as
+          | {
+              id: string
+              name: string
+              username: string
+              image_url: string | null
+              bio: string | null
+              created_at: string
+            }
+          | Array<{
+              id: string
+              name: string
+              username: string
+              image_url: string | null
+              bio: string | null
+              created_at: string
+            }>
+
+        const creator = Array.isArray(creatorRaw) ? creatorRaw[0] : creatorRaw
+
+        if (!creator) {
+          throw new Error('Creator data not available')
+        }
+
         userData = {
           id: creator.id,
           name: creator.name,

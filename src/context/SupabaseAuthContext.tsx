@@ -96,8 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize from localStorage on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const cachedUser = localStorage.getItem('socialens_user')
-      const cachedAuth = localStorage.getItem('socialens_auth')
+      const cachedUser = localStorage.getItem('jigri_user')
+      const cachedAuth = localStorage.getItem('jigri_auth')
       
       if (cachedUser && cachedAuth === 'true') {
         try {
@@ -106,8 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true)
         } catch (error) {
           console.error('Error parsing cached user:', error)
-          localStorage.removeItem('socialens_user')
-          localStorage.removeItem('socialens_auth')
+          localStorage.removeItem('jigri_user')
+          localStorage.removeItem('jigri_auth')
         }
       }
     }
@@ -122,8 +122,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(true)
         // Cache user data in localStorage for persistence
         if (typeof window !== 'undefined') {
-          localStorage.setItem('socialens_user', JSON.stringify(currentAccount))
-          localStorage.setItem('socialens_auth', 'true')
+          localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
+          localStorage.setItem('jigri_auth', 'true')
         }
         return true
       } else {
@@ -133,8 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
           setIsAuthenticated(false)
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('socialens_user')
-            localStorage.removeItem('socialens_auth')
+            localStorage.removeItem('jigri_user')
+            localStorage.removeItem('jigri_auth')
           }
         }
       }
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await checkAuthUser()
         } else {
           // If no session but we have cached data, keep it but mark as loading
-          const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('socialens_user') : null
+          const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('jigri_user') : null
           if (!cachedUser) {
             setUser(null)
             setIsAuthenticated(false)
@@ -209,8 +209,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   setUser(currentAccount)
                   setIsAuthenticated(true)
                   if (typeof window !== 'undefined') {
-                    localStorage.setItem('socialens_user', JSON.stringify(currentAccount))
-                    localStorage.setItem('socialens_auth', 'true')
+                    localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
+                    localStorage.setItem('jigri_auth', 'true')
                   }
                 }
               } catch (error) {
@@ -218,8 +218,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
             } else {
               // Check if we have cached user data first
-              const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('socialens_user') : null
-              const cachedAuth = typeof window !== 'undefined' ? localStorage.getItem('socialens_auth') : null
+              const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('jigri_user') : null
+              const cachedAuth = typeof window !== 'undefined' ? localStorage.getItem('jigri_auth') : null
               
               if (cachedUser && cachedAuth === 'true') {
                 try {
@@ -229,8 +229,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   setIsLoading(false) // Important: Don't trigger loading state
                 } catch (error) {
                   console.error('Error parsing cached user:', error)
-                  localStorage.removeItem('socialens_user')
-                  localStorage.removeItem('socialens_auth')
+                  localStorage.removeItem('jigri_user')
+                  localStorage.removeItem('jigri_auth')
                   console.log('Cached data corrupted, fetching fresh user data')
                   await checkAuthUser()
                 }
@@ -250,8 +250,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(currentAccount)
                 setIsAuthenticated(true)
                 if (typeof window !== 'undefined') {
-                  localStorage.setItem('socialens_user', JSON.stringify(currentAccount))
-                  localStorage.setItem('socialens_auth', 'true')
+                  localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
+                  localStorage.setItem('jigri_auth', 'true')
                 }
               }
             } catch (error) {
@@ -264,8 +264,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(false)
           setIsLoading(false)
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('socialens_user')
-            localStorage.removeItem('socialens_auth')
+            localStorage.removeItem('jigri_user')
+            localStorage.removeItem('jigri_auth')
           }
         }
         // For other events, don't automatically clear state
@@ -303,8 +303,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(currentAccount)
                 setIsAuthenticated(true)
                 if (typeof window !== 'undefined') {
-                  localStorage.setItem('socialens_user', JSON.stringify(currentAccount))
-                  localStorage.setItem('socialens_auth', 'true')
+                  localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
+                  localStorage.setItem('jigri_auth', 'true')
                 }
               }
             }
@@ -316,8 +316,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setIsAuthenticated(false)
               setIsLoading(false)
               if (typeof window !== 'undefined') {
-                localStorage.removeItem('socialens_user')
-                localStorage.removeItem('socialens_auth')
+                localStorage.removeItem('jigri_user')
+                localStorage.removeItem('jigri_auth')
               }
             }
           }
@@ -350,8 +350,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   setUser(currentAccount)
                   setIsAuthenticated(true)
                   if (typeof window !== 'undefined') {
-                    localStorage.setItem('socialens_user', JSON.stringify(currentAccount))
-                    localStorage.setItem('socialens_auth', 'true')
+                    localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
+                    localStorage.setItem('jigri_auth', 'true')
                   }
                 }
               }
@@ -363,8 +363,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setIsAuthenticated(false)
                 setIsLoading(false)
                 if (typeof window !== 'undefined') {
-                  localStorage.removeItem('socialens_user')
-                  localStorage.removeItem('socialens_auth')
+                  localStorage.removeItem('jigri_user')
+                  localStorage.removeItem('jigri_auth')
                 }
               }
             }

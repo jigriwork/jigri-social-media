@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '../../src/lib/supabase/client';
 import * as z from 'zod';
 
 import { Button } from '../../src/components/ui/button';
@@ -32,7 +32,7 @@ export default function UpdatePassword() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   const form = useForm<UpdatePasswordFormData>({
     resolver: zodResolver(UpdatePasswordSchema),

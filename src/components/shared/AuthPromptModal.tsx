@@ -62,7 +62,7 @@ const AuthPromptModal = ({ isOpen, onClose, action }: AuthPromptModalProps) => {
             You need to be signed in to {action}.
           </p>
           <p className="text-light-3 text-sm">
-            Join SociaLens to interact with posts and connect with others!
+            Join Jigri to interact with posts and connect with others!
           </p>
         </div>
 

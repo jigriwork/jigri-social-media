@@ -6,7 +6,7 @@ UPDATE users
 SET 
   is_active = true,
   last_active = now()
-WHERE email = 'maazajaz1234@gmail.com';  -- Replace with actual user email
+WHERE email = 'owner@yourdomain.com';  -- Replace with actual user email
 
 -- Simulate user who just left (will show as "Just left")
 UPDATE users 
