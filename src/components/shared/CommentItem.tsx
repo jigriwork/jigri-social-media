@@ -9,6 +9,7 @@ import CommentForm from "@/components/forms/CommentForm";
 import Image from "next/image";
 import Link from "next/link";
 import ConfirmActionModal from "./ConfirmActionModal";
+import VerificationBadge from "./VerificationBadge";
 
 type CommentItemProps = {
   comment: Comment;
@@ -108,6 +109,11 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
             >
               {comment.user.name}
             </Link>
+            <VerificationBadge
+              isVerified={comment.user?.is_verified}
+              badgeType={comment.user?.verification_badge_type}
+              size={13}
+            />
             <span className="text-xs text-light-4">
               @{comment.user.username}
             </span>

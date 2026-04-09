@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 import { useIsFollowing, useFollowUser, useUnfollowUser } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
+import VerificationBadge from "@/components/shared/VerificationBadge";
 
 type UserCardProps = {
   user: any; // TODO: Add proper Supabase user type
@@ -52,9 +53,16 @@ const UserCard = ({ user, showActivity = true }: UserCardProps) => {
       />
 
       <div className="flex-center flex-col gap-1">
-        <p className="base-medium text-light-1 text-center line-clamp-1">
-          {user.name}
-        </p>
+        <div className="flex items-center gap-1 max-w-full">
+          <p className="base-medium text-light-1 text-center line-clamp-1">
+            {user.name}
+          </p>
+          <VerificationBadge
+            isVerified={user.is_verified}
+            badgeType={user.verification_badge_type}
+            size={14}
+          />
+        </div>
         <p className="small-regular text-light-3 text-center line-clamp-1">
           @{user.username}
         </p>

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Loader from "@/components/shared/Loader";
 import AdminManagement from "@/components/shared/AdminManagement";
 import AdminUserManagement from "@/components/shared/AdminUserManagement";
+import AdminVerificationTrust from "@/components/shared/AdminVerificationTrust";
 import { useGetAdminStats, useCheckAdminAccess } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 
@@ -278,6 +279,9 @@ const AdminDashboard = () => {
         
         {/* User & Content Management Section */}
         <AdminUserManagement />
+
+        {/* Verification & Trust Section */}
+        <AdminVerificationTrust />
       </div>
     </div>
   );

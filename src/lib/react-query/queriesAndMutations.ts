@@ -65,6 +65,12 @@ import {
   getAdminReports,
   updateAdminReport,
   getGovernanceAuditLogs,
+  getMyVerificationApplications,
+  submitVerificationApplication,
+  updateMyVerificationApplication,
+  getAdminVerificationApplications,
+  getAdminVerificationApplicationDetails,
+  updateAdminVerificationApplication,
 } from "../supabase/api";
 import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
 import { QUERY_KEYS } from "./queryKeys";
@@ -1049,3 +1055,105 @@ export const useGetGovernanceAuditLogs = (page: number = 1, limit: number = 20, 
     enabled: options?.enabled !== false,
   });
 };
+
+export const useGetMyVerificationApplications = (options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_MY_VERIFICATION_APPLICATIONS],
+    queryFn: getMyVerificationApplications,
+    staleTime: 1000 * 30,
+    enabled: options?.enabled !== false,
+  })
+}
+
+export const useSubmitVerificationApplication = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: {
+      applicationType: 'person' | 'creator' | 'organization'
+      requestedBadgeType: 'verified' | 'official'
+      evidencePayload?: Record<string, any>
+    }) => submitVerificationApplication(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_MY_VERIFICATION_APPLICATIONS] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_CURRENT_USER] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_VERIFICATION_APPLICATIONS] })
+    },
+  })
+}
+
+export const useUpdateMyVerificationApplication = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      applicationId,
+      input,
+    }: {
+      applicationId: string
+      input: {
+        action: 'withdraw' | 'resubmit'
+        evidencePayload?: Record<string, any>
+      }
+    }) => updateMyVerificationApplication(applicationId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_MY_VERIFICATION_APPLICATIONS] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_CURRENT_USER] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_VERIFICATION_APPLICATIONS] })
+    },
+  })
+}
+
+export const useGetAdminVerificationApplications = (
+  page: number = 1,
+  limit: number = 20,
+  status: string = 'all',
+  reviewer: string = 'all',
+  options?: { enabled?: boolean }
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_ADMIN_VERIFICATION_APPLICATIONS, page, limit, status, reviewer],
+    queryFn: () => getAdminVerificationApplications(page, limit, status, reviewer),
+    staleTime: 1000 * 30,
+    enabled: options?.enabled !== false,
+  })
+}
+
+export const useGetAdminVerificationApplicationDetails = (
+  applicationId: string,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_ADMIN_VERIFICATION_APPLICATION_DETAILS, applicationId],
+    queryFn: () => getAdminVerificationApplicationDetails(applicationId),
+    staleTime: 1000 * 30,
+    enabled: !!applicationId && options?.enabled !== false,
+  })
+}
+
+export const useUpdateAdminVerificationApplication = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      applicationId,
+      input,
+    }: {
+      applicationId: string
+      input: {
+        status: 'under_review' | 'approved' | 'rejected' | 'needs_resubmission' | 'revoked' | 'withdrawn'
+        reason?: string
+        reviewNotes?: string
+        badgeType?: 'verified' | 'official'
+        forceOverride?: boolean
+      }
+    }) => updateAdminVerificationApplication(applicationId, input),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_VERIFICATION_APPLICATIONS] })
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_ADMIN_VERIFICATION_APPLICATION_DETAILS, variables.applicationId],
+      })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_AUDIT_LOGS] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USERS] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_RECENT_POSTS] })
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED] })
+    },
+  })
+}

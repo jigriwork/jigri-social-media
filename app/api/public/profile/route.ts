@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Try to get user data - this will work if RLS allows it or we have service role
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, name, username, email, image_url, bio, created_at')
+      .select('id, name, username, email, image_url, bio, created_at, is_verified, verification_badge_type, verification_status, verification_updated_at')
       .eq('id', userId)
       .single()
 
@@ -42,7 +42,11 @@ export async function GET(request: NextRequest) {
             username,
             image_url,
             bio,
-            created_at
+            created_at,
+            is_verified,
+            verification_badge_type,
+            verification_status,
+            verification_updated_at
           )
         `)
         .eq('creator_id', userId)
@@ -57,6 +61,10 @@ export async function GET(request: NextRequest) {
               image_url: string | null
               bio: string | null
               created_at: string
+              is_verified: boolean
+              verification_badge_type: 'verified' | 'official' | null
+              verification_status: 'none' | 'pending' | 'verified' | 'revoked'
+              verification_updated_at: string | null
             }
           | Array<{
               id: string
@@ -65,6 +73,10 @@ export async function GET(request: NextRequest) {
               image_url: string | null
               bio: string | null
               created_at: string
+              is_verified: boolean
+              verification_badge_type: 'verified' | 'official' | null
+              verification_status: 'none' | 'pending' | 'verified' | 'revoked'
+              verification_updated_at: string | null
             }>
 
         const creator = Array.isArray(creatorRaw) ? creatorRaw[0] : creatorRaw
@@ -80,6 +92,10 @@ export async function GET(request: NextRequest) {
           image_url: creator.image_url,
           bio: creator.bio,
           created_at: creator.created_at,
+          is_verified: creator.is_verified,
+          verification_badge_type: creator.verification_badge_type,
+          verification_status: creator.verification_status,
+          verification_updated_at: creator.verification_updated_at,
           email: '' // Don't expose email through this method
         }
       } else {
@@ -91,7 +107,11 @@ export async function GET(request: NextRequest) {
           email: '',
           image_url: null,
           bio: 'Profile information is currently unavailable',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          is_verified: false,
+          verification_badge_type: null,
+          verification_status: 'none',
+          verification_updated_at: null,
         }
       }
     }
@@ -105,7 +125,10 @@ export async function GET(request: NextRequest) {
           id,
           name,
           username,
-          image_url
+          image_url,
+          is_verified,
+          verification_badge_type,
+          verification_status
         ),
         likes:likes!likes_post_id_fkey (
           user_id

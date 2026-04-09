@@ -81,6 +81,18 @@ CREATE TABLE IF NOT EXISTS public.verification_applications (
   active BOOLEAN NOT NULL DEFAULT true
 );
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'verification_applications_evidence_payload_object_check'
+  ) THEN
+    ALTER TABLE public.verification_applications
+      ADD CONSTRAINT verification_applications_evidence_payload_object_check
+      CHECK (jsonb_typeof(evidence_payload) = 'object');
+  END IF;
+END $$;
+
 -- One active verification application per user.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_verification_applications_one_active_per_user
   ON public.verification_applications(applicant_user_id)
@@ -117,9 +129,9 @@ CREATE POLICY "Users can create own verification applications" ON public.verific
   FOR INSERT WITH CHECK (auth.uid() = applicant_user_id);
 
 DROP POLICY IF EXISTS "Users can update own pending verification applications" ON public.verification_applications;
-CREATE POLICY "Users can update own pending verification applications" ON public.verification_applications
-  FOR UPDATE USING (auth.uid() = applicant_user_id)
-  WITH CHECK (auth.uid() = applicant_user_id);
+CREATE POLICY "Users cannot directly update verification applications" ON public.verification_applications
+  FOR UPDATE USING (false)
+  WITH CHECK (false);
 
 DROP POLICY IF EXISTS "Admins can manage verification applications" ON public.verification_applications;
 CREATE POLICY "Admins can manage verification applications" ON public.verification_applications
@@ -154,6 +166,8 @@ CREATE INDEX IF NOT EXISTS idx_verification_applications_created_at
   ON public.verification_applications(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_verification_applications_applicant
   ON public.verification_applications(applicant_user_id);
+CREATE INDEX IF NOT EXISTS idx_verification_applications_applicant_status
+  ON public.verification_applications(applicant_user_id, status);
 
 CREATE INDEX IF NOT EXISTS idx_verification_events_application
   ON public.verification_application_events(application_id);

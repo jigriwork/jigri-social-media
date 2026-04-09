@@ -18,6 +18,7 @@ import { multiFormatDateString } from "@/lib/utils";
 import AuthPromptModal from "./AuthPromptModal";
 import Link from "next/link";
 import ConfirmActionModal from "./ConfirmActionModal";
+import VerificationBadge from "./VerificationBadge";
 
 type QuickCommentProps = {
   postId: string;
@@ -338,6 +339,11 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                         >
                           {commentItem.user.name}
                         </Link>
+                        <VerificationBadge
+                          isVerified={commentItem.user?.is_verified}
+                          badgeType={commentItem.user?.verification_badge_type}
+                          size={13}
+                        />
                         <span className="text-xs text-light-4">
                           @{commentItem.user.username}
                         </span>
@@ -517,6 +523,11 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                                   >
                                     {reply.user.name}
                                   </Link>
+                                  <VerificationBadge
+                                    isVerified={reply.user?.is_verified}
+                                    badgeType={reply.user?.verification_badge_type}
+                                    size={12}
+                                  />
                                   <span className="text-xs text-light-4">
                                     @{reply.user.username}
                                   </span>

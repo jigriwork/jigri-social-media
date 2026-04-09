@@ -37,6 +37,9 @@ export enum QUERY_KEYS {
   GET_ADMIN_ALL_POSTS = "getAdminAllPosts",
   GET_ADMIN_REPORTS = "getAdminReports",
   GET_ADMIN_AUDIT_LOGS = "getAdminAuditLogs",
+  GET_MY_VERIFICATION_APPLICATIONS = "getMyVerificationApplications",
+  GET_ADMIN_VERIFICATION_APPLICATIONS = "getAdminVerificationApplications",
+  GET_ADMIN_VERIFICATION_APPLICATION_DETAILS = "getAdminVerificationApplicationDetails",
   
   // NOTIFICATION KEYS
   GET_NOTIFICATIONS = "getNotifications",

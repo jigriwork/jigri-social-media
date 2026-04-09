@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import PostStats from "./PostStats";
+import VerificationBadge from "./VerificationBadge";
 
 type GridPostListProps = {
   posts: any[]; // Posts array from Supabase
@@ -44,7 +45,14 @@ const GridPostList = ({
                   alt="creator"
                   className="w-8 h-8 rounded-full"
                 />
-                <p className="line-clamp-1">{post.creator?.name}</p>
+                <div className="flex items-center gap-1 min-w-0">
+                  <p className="line-clamp-1">{post.creator?.name}</p>
+                  <VerificationBadge
+                    isVerified={post.creator?.is_verified}
+                    badgeType={post.creator?.verification_badge_type}
+                    size={13}
+                  />
+                </div>
               </div>
             )}
             {showStats && (

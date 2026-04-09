@@ -10,6 +10,7 @@ import PostStats from "./PostStats";
 import QuickComment from "./QuickComment";
 import { POST_CATEGORIES } from "@/constants";
 import ConfirmActionModal from "./ConfirmActionModal";
+import VerificationBadge from "./VerificationBadge";
 
 type PostCardProps = {
   post: any; // TODO: Add proper type from Supabase
@@ -48,9 +49,16 @@ const PostCard = ({ post }: PostCardProps) => {
           </Link>
 
           <div className="flex flex-col">
-            <p className="base-medium lg:body-bold text-light-1">
-              {post.creator.name}
-            </p>
+            <div className="flex items-center gap-1">
+              <p className="base-medium lg:body-bold text-light-1">
+                {post.creator.name}
+              </p>
+              <VerificationBadge
+                isVerified={post.creator?.is_verified}
+                badgeType={post.creator?.verification_badge_type}
+                size={14}
+              />
+            </div>
             <div className="flex-center gap-2 text-light-3">
               <p className="subtle-semibold lg:small-regular ">
                 {multiFormatDateString(post.created_at)}

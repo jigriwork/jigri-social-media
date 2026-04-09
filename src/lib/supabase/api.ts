@@ -26,6 +26,7 @@ export type Comment = Database['public']['Tables']['comments']['Row'] & {
   }
 }
 export type CommentLike = Database['public']['Tables']['comment_likes']['Row']
+export type VerificationApplication = Database['public']['Tables']['verification_applications']['Row']
 
 const supabase = createClient()
 
@@ -1941,7 +1942,10 @@ export async function createComment(comment: {
           id,
           name,
           username,
-          image_url
+          image_url,
+          is_verified,
+          verification_badge_type,
+          verification_status
         ),
         likes:comment_likes (
           user_id
@@ -1967,7 +1971,10 @@ export async function getPostComments(postId: string): Promise<Comment[]> {
           id,
           name,
           username,
-          image_url
+          image_url,
+          is_verified,
+          verification_badge_type,
+          verification_status
         ),
         likes:comment_likes (
           user_id
@@ -2013,7 +2020,10 @@ export async function getCommentReplies(commentId: string): Promise<Comment[]> {
           id,
           name,
           username,
-          image_url
+          image_url,
+          is_verified,
+          verification_badge_type,
+          verification_status
         ),
         likes:comment_likes (
           user_id
@@ -2052,7 +2062,10 @@ export async function updateComment(commentId: string, content: string): Promise
           id,
           name,
           username,
-          image_url
+          image_url,
+          is_verified,
+          verification_badge_type,
+          verification_status
         ),
         likes:comment_likes (
           user_id
@@ -2463,6 +2476,145 @@ export async function getGovernanceAuditLogs(page: number = 1, limit: number = 2
     throw error
   }
 }
+
+// ============================================================
+// VERIFICATION / TRUST
+// ============================================================
+
+export async function getMyVerificationApplications() {
+  try {
+    const response = await fetch('/api/verification')
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch verification applications')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error fetching verification applications:', error)
+    throw error
+  }
+}
+
+export async function submitVerificationApplication(input: {
+  applicationType: 'person' | 'creator' | 'organization'
+  requestedBadgeType: 'verified' | 'official'
+  evidencePayload?: Record<string, any>
+}) {
+  try {
+    const response = await fetch('/api/verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to submit verification application')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error submitting verification application:', error)
+    throw error
+  }
+}
+
+export async function updateMyVerificationApplication(
+  applicationId: string,
+  input: {
+    action: 'withdraw' | 'resubmit'
+    evidencePayload?: Record<string, any>
+  }
+) {
+  try {
+    const response = await fetch(`/api/verification/${applicationId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to update verification application')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error updating verification application:', error)
+    throw error
+  }
+}
+
+export async function getAdminVerificationApplications(
+  page: number = 1,
+  limit: number = 20,
+  status: string = 'all',
+  reviewer: string = 'all'
+) {
+  try {
+    const response = await fetch(
+      `/api/admin/verification?page=${page}&limit=${limit}&status=${encodeURIComponent(status)}&reviewer=${encodeURIComponent(reviewer)}`
+    )
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch admin verification queue')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error fetching admin verification queue:', error)
+    throw error
+  }
+}
+
+export async function getAdminVerificationApplicationDetails(applicationId: string) {
+  try {
+    const response = await fetch(`/api/admin/verification/${applicationId}`)
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch verification application details')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error fetching verification application details:', error)
+    throw error
+  }
+}
+
+export async function updateAdminVerificationApplication(
+  applicationId: string,
+  input: {
+    status: 'under_review' | 'approved' | 'rejected' | 'needs_resubmission' | 'revoked' | 'withdrawn'
+    reason?: string
+    reviewNotes?: string
+    badgeType?: 'verified' | 'official'
+    forceOverride?: boolean
+  }
+) {
+  try {
+    const response = await fetch(`/api/admin/verification/${applicationId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to update verification application')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error updating verification application:', error)
+    throw error
+  }
+}
+
 
 
 

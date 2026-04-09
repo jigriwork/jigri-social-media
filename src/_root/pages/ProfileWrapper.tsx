@@ -18,6 +18,8 @@ import {
 import Loader from "@/components/shared/Loader";
 import GridPostList from "@/components/shared/GridPostList";
 import LinkifiedText from "@/components/shared/LinkifiedText";
+import VerificationBadge from "@/components/shared/VerificationBadge";
+import VerificationApplicationPanel from "@/components/shared/VerificationApplicationPanel";
 import LikedPosts from "./LikedPosts";
 import PrivacySettings from "@/components/shared/PrivacySettings";
 
@@ -158,9 +160,16 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
             <h1 className="text-left text-xl sm:text-2xl font-bold">
               {currentUser.name}
             </h1>
-            <p className="text-sm text-light-3 text-left">
-              @{currentUser.username}
-            </p>
+            <div className="flex items-center gap-1 mt-1">
+              <p className="text-sm text-light-3 text-left">
+                @{currentUser.username}
+              </p>
+              <VerificationBadge
+                isVerified={currentUser.is_verified}
+                badgeType={currentUser.verification_badge_type}
+                size={16}
+              />
+            </div>
 
             <div className="flex gap-4 sm:gap-6 mt-3">
               <StatBlock value={isPostsLoading ? "..." : userPosts?.length || 0} label="Posts" />
@@ -188,6 +197,7 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
         )}
 
         <ActionButtons />
+        {isOwnProfile && <VerificationApplicationPanel />}
       </div>
 
       {/* Privacy Settings Component */}
