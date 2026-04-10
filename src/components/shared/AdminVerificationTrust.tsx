@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   useGetAdminVerificationApplications,
   useGetAdminVerificationApplicationDetails,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import Loader from "@/components/shared/Loader";
+import { Textarea } from "@/components/ui/textarea";
 
 type ReviewActionStatus =
   | "under_review"
@@ -40,6 +40,7 @@ const AdminVerificationTrust = () => {
   const [reason, setReason] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
   const [badgeType, setBadgeType] = useState<"verified" | "official">("verified");
+  const [actionError, setActionError] = useState("");
 
   const { data: queueData, isLoading: isQueueLoading } = useGetAdminVerificationApplications(page, 12, status, "all");
   const { data: detailData, isLoading: isDetailLoading } = useGetAdminVerificationApplicationDetails(selectedId, {
@@ -57,12 +58,19 @@ const AdminVerificationTrust = () => {
     return ["rejected", "needs_resubmission", "revoked"];
   }, []);
 
+  useEffect(() => {
+    setActionError("");
+  }, [selectedId, status]);
+
   const onAction = (nextStatus: ReviewActionStatus, forceOverride: boolean = false) => {
     if (!selectedId) return;
 
     if (requiredReason.includes(nextStatus) && !reason.trim()) {
+      setActionError("Reason is required for reject, revoke, or resubmission request.");
       return;
     }
+
+    setActionError("");
 
     updateMutation.mutate({
       applicationId: selectedId,
@@ -186,13 +194,30 @@ const AdminVerificationTrust = () => {
                   <p className="text-xs text-light-3">Resubmissions: {selected.resubmission_count || 0}</p>
                 </div>
 
-                <Input value={reviewNotes} onChange={(e) => setReviewNotes(e.target.value)} placeholder="Review notes (optional)" />
-                <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required for reject/revoke/resubmission)" />
+                <div className="rounded-md border border-dark-4 bg-dark-4/20 p-2 text-xs text-light-3">
+                  <p><span className="text-light-2 font-semibold">Reject:</span> deny request before any verification is granted.</p>
+                  <p><span className="text-light-2 font-semibold">Revoke verification:</span> remove existing verified/official badge from an already approved account.</p>
+                </div>
+
+                <Textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  placeholder="Review notes for the applicant (optional)"
+                  className="min-h-[96px] bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4"
+                />
+                <Textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Reason for reject / revoke / resubmission request"
+                  className="min-h-[96px] bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4"
+                />
+
+                {actionError ? <p className="text-xs text-red-400">{actionError}</p> : null}
 
                 <select
                   value={badgeType}
                   onChange={(e) => setBadgeType(e.target.value as "verified" | "official")}
-                  className="h-10 rounded-md bg-dark-4 px-3 text-sm text-light-1 w-full"
+                  className="h-10 rounded-md bg-dark-4 border border-dark-4 px-3 text-sm text-light-1 w-full"
                 >
                   <option value="verified">Verified</option>
                   <option value="official">Official</option>
@@ -211,8 +236,13 @@ const AdminVerificationTrust = () => {
                   <Button size="sm" variant="outline" onClick={() => onAction("rejected")} disabled={!canFinalize || updateMutation.isPending}>
                     Reject
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onAction("revoked")} disabled={!canFinalize || updateMutation.isPending}>
-                    Revoke
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onAction("revoked")}
+                    disabled={!canFinalize || updateMutation.isPending || selected.status !== "approved"}
+                  >
+                    Remove verification (revoke)
                   </Button>
                   {canOverride && (
                     <Button size="sm" variant="outline" onClick={() => onAction("approved", true)} disabled={updateMutation.isPending}>

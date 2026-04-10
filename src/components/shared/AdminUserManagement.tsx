@@ -10,9 +10,13 @@ import ConfirmActionModal from "@/components/shared/ConfirmActionModal";
 import { 
   useGetAdminAllUsers, 
   useToggleUserActivation,
+  useUpdateAdminUserProfile,
+  useResetAdminUserPassword,
+  useDeleteAdminUserAccount,
   useGetAdminAllPosts,
   useAdminDeletePost
 } from "@/lib/react-query/queriesAndMutations";
+import { useUserContext } from "@/context/SupabaseAuthContext";
 
 interface AdminUser {
   id: string;
@@ -25,11 +29,14 @@ interface AdminUser {
   is_admin: boolean;
   is_active: boolean;
   is_deactivated: boolean;
-  last_active: string;
+  last_active: string | null;
   created_at: string;
 }
 
 const AdminUserManagement = () => {
+  const { user: currentUser } = useUserContext();
+  const currentRole = (currentUser as any)?.role || 'user';
+  const isSuperAdmin = currentRole === 'super_admin';
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTab, setSelectedTab] = useState<"users" | "posts">("users");
@@ -56,6 +63,9 @@ const AdminUserManagement = () => {
   });
 
   const { mutate: toggleActivation, isPending: isToggling } = useToggleUserActivation();
+  const { mutate: updateUserProfile, isPending: isUpdatingUser } = useUpdateAdminUserProfile();
+  const { mutate: resetUserPassword, isPending: isResettingPassword } = useResetAdminUserPassword();
+  const { mutate: deleteUserAccount, isPending: isDeletingUser } = useDeleteAdminUserAccount();
   const { mutate: deletePost, isPending: isDeletingPost } = useAdminDeletePost();
 
   // Helper function to get user status with smart logic
@@ -64,21 +74,24 @@ const AdminUserManagement = () => {
       return { color: 'bg-red-500', label: 'Deactivated', textColor: 'text-red-400' };
     }
 
+    if (user.is_active) {
+      return { color: 'bg-green-500', label: 'Online', textColor: 'text-green-400' };
+    }
+
     if (!user.last_active || user.last_active === null) {
-      return { color: 'bg-gray-500', label: 'Never active', textColor: 'text-gray-400' };
+      return { color: 'bg-gray-500', label: 'Recently active', textColor: 'text-gray-400' };
     }
 
     const lastActive = new Date(user.last_active);
+    if (Number.isNaN(lastActive.getTime())) {
+      return { color: 'bg-gray-500', label: 'Recently active', textColor: 'text-gray-400' };
+    }
     const now = new Date();
     const timeDiff = now.getTime() - lastActive.getTime();
     const minutesDiff = timeDiff / (1000 * 60);
 
-    // Online: Active within last 5 minutes AND is_active flag is true
-    if (user.is_active && minutesDiff <= 5) {
-      return { color: 'bg-green-500', label: 'Online', textColor: 'text-green-400' };
-    } 
     // Recently active: Within last 15 minutes
-    else if (minutesDiff <= 15) {
+    if (minutesDiff <= 15) {
       return { color: 'bg-green-400', label: 'Just left', textColor: 'text-green-300' };
     }
     // Away: 15 minutes to 1 hour
@@ -133,6 +146,68 @@ const AdminUserManagement = () => {
 
   const handleDeletePost = (postId: string, postCaption: string) => {
     setDeleteTarget({ postId, postCaption });
+  };
+
+  const handleEditUser = (target: AdminUser) => {
+    if (!isSuperAdmin) {
+      toast({ title: "Access denied", description: "Only super admin can edit user profile", variant: "destructive" });
+      return;
+    }
+
+    const name = window.prompt("Edit name", target.name) || target.name;
+    const username = (window.prompt("Edit username", target.username) || target.username).toLowerCase();
+    const bio = window.prompt("Edit bio", target.bio || "") || "";
+    const role = (window.prompt("Role: user/moderator/admin/super_admin", (target.role || 'user')) || (target.role || 'user')) as any;
+
+    updateUserProfile(
+      {
+        userId: target.id,
+        input: { name, username, bio, role, reason: 'Profile edit from admin users list' },
+      },
+      {
+        onSuccess: () => toast({ title: "Updated", description: "User profile updated" }),
+        onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to update user", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleResetPassword = (target: AdminUser) => {
+    if (!isSuperAdmin) {
+      toast({ title: "Access denied", description: "Only super admin can reset passwords", variant: "destructive" });
+      return;
+    }
+
+    const newPassword = window.prompt(`Set new password for @${target.username} (min 8 chars)`);
+    if (!newPassword) return;
+
+    resetUserPassword(
+      {
+        userId: target.id,
+        input: { newPassword, reason: 'Super admin reset password from user management panel' },
+      },
+      {
+        onSuccess: () => toast({ title: "Password reset", description: `Password reset for ${target.name}` }),
+        onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to reset password", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleDeleteUser = (target: AdminUser) => {
+    if (!isSuperAdmin) {
+      toast({ title: "Access denied", description: "Only super admin can delete users", variant: "destructive" });
+      return;
+    }
+
+    const confirmDelete = window.confirm(`Delete user @${target.username}? This cannot be undone.`);
+    if (!confirmDelete) return;
+
+    deleteUserAccount(
+      { userId: target.id, reason: 'Super admin delete user from user management panel' },
+      {
+        onSuccess: () => toast({ title: "Deleted", description: `User ${target.name} deleted` }),
+        onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to delete user", variant: "destructive" }),
+      }
+    );
   };
 
   const confirmDeletePost = () => {
@@ -216,6 +291,21 @@ const AdminUserManagement = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                    {isSuperAdmin && (
+                      <Button size="sm" variant="outline" disabled={isUpdatingUser} onClick={() => handleEditUser(user)}>
+                        Edit
+                      </Button>
+                    )}
+                    {isSuperAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isResettingPassword}
+                        onClick={() => handleResetPassword(user)}
+                      >
+                        Reset password
+                      </Button>
+                    )}
                   {(user.role !== 'super_admin') && (
                     <Button
                       onClick={() => handleToggleActivation(user.id, user.name, user.is_deactivated)}
@@ -235,6 +325,18 @@ const AdminUserManagement = () => {
                       ) : (
                         "Deactivate"
                       )}
+                    </Button>
+                  )}
+
+                  {isSuperAdmin && user.role !== 'super_admin' && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={isDeletingUser}
+                      onClick={() => handleDeleteUser(user)}
+                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                    >
+                      Delete user
                     </Button>
                   )}
                   
@@ -415,7 +517,7 @@ const AdminUserManagement = () => {
       <div className="bg-dark-2/50 rounded-xl p-6 border border-dark-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-light-1">Content Management</h3>
+          <h3 className="text-xl font-semibold text-light-1">Admin Management</h3>
           
           {/* Tab Switcher */}
           <div className="flex bg-dark-3/30 rounded-lg p-1">

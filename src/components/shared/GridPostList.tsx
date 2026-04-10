@@ -27,11 +27,17 @@ const GridPostList = ({
       {posts.map((post) => (
         <li key={post.id || post.$id} className="relative min-w-80 h-80">
           <Link href={`/posts/${post.id || post.$id}`} className="grid-post_link">
-            <img
-              src={post.image_url || post.imageUrl}
-              alt="post"
-              className="h-full w-full object-cover"
-            />
+            {post.image_url || post.imageUrl ? (
+              <img
+                src={post.image_url || post.imageUrl}
+                alt="post"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full bg-dark-3 p-4 flex items-center justify-center text-center">
+                <p className="small-medium text-light-2 line-clamp-5">{post.caption || "Text post"}</p>
+              </div>
+            )}
           </Link>
 
           <div className="grid-post_user">
@@ -50,6 +56,7 @@ const GridPostList = ({
                   <VerificationBadge
                     isVerified={post.creator?.is_verified}
                     badgeType={post.creator?.verification_badge_type}
+                    role={post.creator?.role}
                     size={13}
                   />
                 </div>

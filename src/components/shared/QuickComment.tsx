@@ -341,6 +341,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                         </Link>
                         <VerificationBadge
                           isVerified={commentItem.user?.is_verified}
+                          role={(commentItem.user as any)?.role}
                           badgeType={commentItem.user?.verification_badge_type}
                           size={13}
                         />
@@ -526,6 +527,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                                   <VerificationBadge
                                     isVerified={reply.user?.is_verified}
                                     badgeType={reply.user?.verification_badge_type}
+                                    role={(reply.user as any)?.role}
                                     size={12}
                                   />
                                   <span className="text-xs text-light-4">

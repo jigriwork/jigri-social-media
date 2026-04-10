@@ -14,6 +14,11 @@ import Loader from "@/components/shared/Loader";
 import PostStats from "@/components/shared/PostStats";
 import GridPostList from "@/components/shared/GridPostList";
 import Comments from "@/components/shared/Comments";
+import LinkifiedText from "@/components/shared/LinkifiedText";
+import VerificationBadge from "@/components/shared/VerificationBadge";
+import { POST_CATEGORIES } from "@/constants";
+
+const normalizeTag = (tag: string) => tag.replace(/^#/, "");
 
 const PostDetails = () => {
   const navigate = useNavigate();
@@ -59,11 +64,20 @@ const PostDetails = () => {
         <Loader />
       ) : (
         <div className="post_details-card">
-          <img
-            src={post?.image_url}
-            alt="creator"
-            className="post_details-img"
-          />
+          {post?.image_url ? (
+            <img
+              src={post?.image_url}
+              alt="post media"
+              className="post_details-img"
+            />
+          ) : (
+            <div className="w-full md:w-[42%] flex items-start justify-start bg-dark-3 p-6 lg:p-8 min-h-[220px] rounded-l-[30px] border-r border-dark-4/60">
+              <div className="w-full max-w-none">
+                <div className="mb-3 text-xs uppercase tracking-wide text-light-4">Text post</div>
+                <LinkifiedText text={post?.caption || ""} className="text-light-1 text-base lg:text-lg leading-7 whitespace-pre-wrap break-words text-left" />
+              </div>
+            </div>
+          )}
 
           <div className="post_details-info">
             <div className="flex-between w-full">
@@ -82,14 +96,32 @@ const PostDetails = () => {
                   <p className="base-medium lg:body-bold text-light-1">
                     {post?.creator.name}
                   </p>
+                  <VerificationBadge
+                    isVerified={post?.creator?.is_verified}
+                    badgeType={post?.creator?.verification_badge_type}
+                    role={post?.creator?.role}
+                    size={14}
+                  />
                   <div className="flex-center gap-2 text-light-3">
                     <p className="subtle-semibold lg:small-regular ">
                       {multiFormatDateString(post?.$createdAt)}
                     </p>
-                    •
-                    <p className="subtle-semibold lg:small-regular">
-                      {post?.location}
-                    </p>
+                    {post?.location && (
+                      <>
+                        •
+                        <Link to={`/explore?search=${encodeURIComponent(post.location)}`} className="subtle-semibold lg:small-regular hover:text-primary-500">
+                          {post?.location}
+                        </Link>
+                      </>
+                    )}
+                    {post?.category && (
+                      <>
+                        •
+                        <span className="subtle-semibold lg:small-regular text-primary-500 capitalize">
+                          {POST_CATEGORIES.find((cat) => cat.value === post.category)?.label || post.category}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </Link>
@@ -125,16 +157,21 @@ const PostDetails = () => {
             <hr className="border w-full border-dark-4/80" />
 
             <div className="flex flex-col flex-1 w-full small-medium lg:base-regular">
-              <p>{post?.caption}</p>
-              <ul className="flex gap-1 mt-2">
-                {post?.tags.map((tag: string, index: string) => (
-                  <li
-                    key={`${tag}${index}`}
-                    className="text-light-3 small-regular">
-                    #{tag}
-                  </li>
-                ))}
-              </ul>
+              {post?.image_url ? <LinkifiedText text={post?.caption || ""} /> : null}
+              {!!post?.tags?.length && (
+                <ul className="flex gap-1 mt-2 flex-wrap">
+                  {post?.tags.map((tag: string, index: string) => (
+                    <li key={`${tag}${index}`}>
+                      <Link
+                        to={`/explore?search=${encodeURIComponent(`#${normalizeTag(tag)}`)}`}
+                        className="text-light-3 small-regular hover:text-primary-500"
+                      >
+                        #{normalizeTag(tag)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="w-full">

@@ -167,6 +167,7 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
               <VerificationBadge
                 isVerified={currentUser.is_verified}
                 badgeType={currentUser.verification_badge_type}
+                role={currentUser.role}
                 size={16}
               />
             </div>

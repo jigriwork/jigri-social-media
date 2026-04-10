@@ -9,6 +9,51 @@ function addDaysIso(days: number) {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
 }
 
+function sanitizeEvidencePayload(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {}
+  }
+
+  const source = value as Record<string, unknown>
+  const allowedKeys = [
+    'document_type',
+    'document_country',
+    'reference_id',
+    'reference_url',
+    'document_url',
+    'document_name',
+    'notes',
+    'official_category',
+    'official_title',
+  ]
+  const sanitized: Record<string, unknown> = {}
+
+  for (const key of allowedKeys) {
+    const nextValue = source[key]
+    if (typeof nextValue === 'string') {
+      sanitized[key] = nextValue.trim().slice(0, 400)
+    }
+  }
+
+  return sanitized
+}
+
+function hasRequiredSupportingEvidence(payload: Record<string, unknown>) {
+  const referenceId = typeof payload.reference_id === 'string' ? payload.reference_id.trim() : ''
+  const referenceUrl = typeof payload.reference_url === 'string' ? payload.reference_url.trim() : ''
+  return Boolean(referenceId || referenceUrl)
+}
+
+function hasOfficialDocument(payload: Record<string, unknown>) {
+  const documentUrl = typeof payload.document_url === 'string' ? payload.document_url.trim() : ''
+  return Boolean(documentUrl)
+}
+
+function hasOfficialCategory(payload: Record<string, unknown>) {
+  const officialCategory = typeof payload.official_category === 'string' ? payload.official_category.trim() : ''
+  return Boolean(officialCategory)
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -27,7 +72,7 @@ export async function PATCH(
 
     const body = await request.json().catch(() => ({} as any))
     const action = body?.action as 'withdraw' | 'resubmit' | undefined
-    const evidencePayload = body?.evidencePayload
+    const evidencePayload = sanitizeEvidencePayload(body?.evidencePayload)
 
     if (!action || (action !== 'withdraw' && action !== 'resubmit')) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
@@ -112,9 +157,39 @@ export async function PATCH(
     }
 
     const nextEvidence =
-      evidencePayload && typeof evidencePayload === 'object' && !Array.isArray(evidencePayload)
-        ? (evidencePayload as Record<string, unknown>)
+      Object.keys(evidencePayload).length > 0
+        ? evidencePayload
         : existing.evidence_payload
+
+    if (!hasRequiredSupportingEvidence(nextEvidence || {})) {
+      return NextResponse.json(
+        { error: 'Supporting document reference is required (reference ID or reference URL).' },
+        { status: 400 }
+      )
+    }
+
+    if (existing.application_type !== 'person' && existing.requested_badge_type === 'official') {
+      return NextResponse.json(
+        { error: 'Only person applications can request the official badge.' },
+        { status: 400 }
+      )
+    }
+
+    if (existing.requested_badge_type === 'official') {
+      if (!hasOfficialCategory(nextEvidence || {})) {
+        return NextResponse.json(
+          { error: 'Please select the official role/category for this application.' },
+          { status: 400 }
+        )
+      }
+
+      if (!hasOfficialDocument(nextEvidence || {})) {
+        return NextResponse.json(
+          { error: 'Official badge applications require a document upload.' },
+          { status: 400 }
+        )
+      }
+    }
 
     const { data: updated, error: updateError } = await adminClient
       .from('verification_applications')

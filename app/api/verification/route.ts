@@ -20,7 +20,17 @@ function sanitizeEvidencePayload(value: unknown) {
   }
 
   const source = value as Record<string, unknown>
-  const allowedKeys = ['document_type', 'document_country', 'reference_id', 'reference_url', 'notes']
+  const allowedKeys = [
+    'document_type',
+    'document_country',
+    'reference_id',
+    'reference_url',
+    'document_url',
+    'document_name',
+    'notes',
+    'official_category',
+    'official_title',
+  ]
   const sanitized: Record<string, unknown> = {}
 
   for (const key of allowedKeys) {
@@ -31,6 +41,22 @@ function sanitizeEvidencePayload(value: unknown) {
   }
 
   return sanitized
+}
+
+function hasRequiredSupportingEvidence(payload: Record<string, unknown>) {
+  const referenceId = typeof payload.reference_id === 'string' ? payload.reference_id.trim() : ''
+  const referenceUrl = typeof payload.reference_url === 'string' ? payload.reference_url.trim() : ''
+  return Boolean(referenceId || referenceUrl)
+}
+
+function hasOfficialDocument(payload: Record<string, unknown>) {
+  const documentUrl = typeof payload.document_url === 'string' ? payload.document_url.trim() : ''
+  return Boolean(documentUrl)
+}
+
+function hasOfficialCategory(payload: Record<string, unknown>) {
+  const officialCategory = typeof payload.official_category === 'string' ? payload.official_category.trim() : ''
+  return Boolean(officialCategory)
 }
 
 export async function GET() {
@@ -83,6 +109,36 @@ export async function POST(request: NextRequest) {
 
     if (!isValidBadgeType(requestedBadgeType)) {
       return NextResponse.json({ error: 'Invalid requested badge type' }, { status: 400 })
+    }
+
+    if (!hasRequiredSupportingEvidence(evidencePayload)) {
+      return NextResponse.json(
+        { error: 'Supporting document reference is required (reference ID or reference URL).' },
+        { status: 400 }
+      )
+    }
+
+    if (applicationType !== 'person' && requestedBadgeType === 'official') {
+      return NextResponse.json(
+        { error: 'Only person applications can request the official badge.' },
+        { status: 400 }
+      )
+    }
+
+    if (requestedBadgeType === 'official') {
+      if (!hasOfficialCategory(evidencePayload)) {
+        return NextResponse.json(
+          { error: 'Please select the official role/category for this application.' },
+          { status: 400 }
+        )
+      }
+
+      if (!hasOfficialDocument(evidencePayload)) {
+        return NextResponse.json(
+          { error: 'Official badge applications require a document upload.' },
+          { status: 400 }
+        )
+      }
     }
 
     const adminClient = createAdminClient()

@@ -11,6 +11,11 @@ import Loader from "../../../src/components/shared/Loader";
 import PostStats from "../../../src/components/shared/PostStats";
 import Comments from "../../../src/components/shared/Comments";
 import Link from "next/link";
+import LinkifiedText from "../../../src/components/shared/LinkifiedText";
+import VerificationBadge from "../../../src/components/shared/VerificationBadge";
+import { POST_CATEGORIES } from "../../../src/constants";
+
+const normalizeTag = (tag: string) => tag.replace(/^#/, "");
 
 interface PostDetailPageProps {
   params: Promise<{ id: string }>;
@@ -73,40 +78,72 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
       </div>
 
       <div className="post_details-card">
-        <img
-          src={post.image_url || "/assets/icons/profile-placeholder.svg"}
-          alt="creator"
-          className="post_details-img"
-        />
+        {post.image_url ? (
+          <img
+            src={post.image_url}
+            alt="post media"
+            className="post_details-img"
+          />
+        ) : (
+          <div className="w-full md:w-[42%] flex items-start justify-start bg-dark-3 p-6 lg:p-8 min-h-[220px] rounded-l-[30px] border-r border-dark-4/60">
+            <div className="w-full max-w-none">
+              <div className="mb-3 text-xs uppercase tracking-wide text-light-4">Text post</div>
+              <LinkifiedText text={post.caption} className="text-light-1 text-base lg:text-lg leading-7 whitespace-pre-wrap break-words text-left" />
+            </div>
+          </div>
+        )}
 
         <div className="post_details-info">
           <div className="flex-between w-full">
-            <Link
-              href={`/profile/${post.creator.id}`}
-              className="flex items-center gap-3">
-              <img
-                src={
-                  post.creator?.image_url ||
-                  "/assets/icons/profile-placeholder.svg"
-                }
-                alt="creator"
-                className="w-8 h-8 lg:w-12 lg:h-12 rounded-full"
-              />
-              <div className="flex gap-1 flex-col">
+            <div className="flex items-center gap-3">
+              <Link href={`/profile/${post.creator.id}`}>
+                <img
+                  src={
+                    post.creator?.image_url ||
+                    "/assets/icons/profile-placeholder.svg"
+                  }
+                  alt="creator"
+                  className="w-8 h-8 lg:w-12 lg:h-12 rounded-full"
+                />
+              </Link>
+              <div className="flex gap-1 flex-col min-w-0">
+                <Link href={`/profile/${post.creator.id}`} className="flex items-center gap-2">
                 <p className="base-medium lg:body-bold text-light-1">
                   {post.creator.name}
                 </p>
+                <VerificationBadge
+                  isVerified={post.creator?.is_verified}
+                  badgeType={post.creator?.verification_badge_type}
+                  role={post.creator?.role}
+                  size={14}
+                />
+                </Link>
                 <div className="flex-center gap-2 text-light-3">
                   <p className="subtle-semibold lg:small-regular ">
                     {multiFormatDateString(post.created_at)}
                   </p>
-                  •
-                  <p className="subtle-semibold lg:small-regular">
-                    {post.location}
-                  </p>
+                  {post.location && (
+                    <>
+                      •
+                      <Link
+                        href={`/explore?search=${encodeURIComponent(post.location)}`}
+                        className="subtle-semibold lg:small-regular hover:text-primary-500"
+                      >
+                        {post.location}
+                      </Link>
+                    </>
+                  )}
+                  {post.category && (
+                    <>
+                      •
+                      <span className="subtle-semibold lg:small-regular text-primary-500 capitalize">
+                        {POST_CATEGORIES.find((cat) => cat.value === post.category)?.label || post.category}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
-            </Link>
+            </div>
 
             <div className="flex-center gap-4">
               {user && user.id === post.creator.id && (
@@ -138,16 +175,22 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
           <hr className="border w-full border-dark-4/80" />
 
           <div className="flex flex-col flex-1 w-full small-medium lg:base-regular">
-            <p>{post.caption}</p>
-            <ul className="flex gap-1 mt-2">
-              {post.tags?.map((tag: string, index: number) => (
-                <li
-                  key={`${tag}${index}`}
-                  className="text-light-3 small-regular">
-                  #{tag}
-                </li>
-              ))}
-            </ul>
+            {!post.image_url && null}
+            {post.image_url ? <LinkifiedText text={post.caption} /> : null}
+            {!!post.tags?.length && (
+              <ul className="flex gap-1 mt-2 flex-wrap">
+                {post.tags?.map((tag: string, index: number) => (
+                  <li key={`${tag}${index}`}>
+                    <Link
+                      href={`/explore?search=${encodeURIComponent(`#${normalizeTag(tag)}`)}`}
+                      className="text-light-3 small-regular hover:text-primary-500"
+                    >
+                      #{normalizeTag(tag)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="w-full">

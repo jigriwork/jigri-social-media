@@ -112,6 +112,7 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
             <VerificationBadge
               isVerified={comment.user?.is_verified}
               badgeType={comment.user?.verification_badge_type}
+              role={(comment.user as any)?.role}
               size={13}
             />
             <span className="text-xs text-light-4">

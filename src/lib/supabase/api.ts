@@ -1039,8 +1039,11 @@ export async function createPost(post: {
     // Convert tags string to array
     let tagsArray: string[] | null = null
     if (post.tags) {
-      // Split the tags string by comma and trim whitespace
-      tagsArray = post.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0)
+      // Split tags by spaces or commas and normalize leading #
+      tagsArray = post.tags
+        .split(/[\s,]+/)
+        .map((tag: string) => tag.trim().replace(/^#/, ''))
+        .filter((tag: string) => tag.length > 0)
     }
     
     // Log the exact data being inserted
@@ -1615,6 +1618,39 @@ export async function uploadFile(file: File, bucket: string) {
   }
 }
 
+export async function uploadVerificationDocument(file: File) {
+  try {
+    const fileExt = file.name.split('.').pop() || 'bin'
+    const safeBaseName = file.name
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[^a-zA-Z0-9-_]/g, '-')
+      .slice(0, 60)
+    const fileName = `verification-documents/${Date.now()}-${safeBaseName}.${fileExt}`
+
+    const { error } = await supabase.storage
+      .from('posts')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      })
+
+    if (error) throw error
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('posts')
+      .getPublicUrl(fileName)
+
+    return {
+      url: publicUrl,
+      name: file.name,
+      path: fileName,
+    }
+  } catch (error) {
+    console.error('Error uploading verification document:', error)
+    throw error
+  }
+}
+
 export async function deleteFile(url: string, bucket: string) {
   try {
     // Extract filename from URL
@@ -1638,6 +1674,7 @@ export async function deleteFile(url: string, bucket: string) {
 
 export async function searchPosts(searchTerm: string) {
   try {
+    const normalized = searchTerm.trim().replace(/^#/, '')
     const { data, error } = await supabase
       .from('posts')
       .select(`
@@ -1646,7 +1683,7 @@ export async function searchPosts(searchTerm: string) {
         likes(user_id),
         saves(user_id)
       `)
-      .or(`caption.ilike.%${searchTerm}%,tags.cs.{${searchTerm}}`)
+      .or(`caption.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,tags.cs.{${normalized}}`)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -2351,6 +2388,126 @@ export async function toggleUserActivation(userId: string) {
   }
 }
 
+export async function updateAdminUserProfile(
+  userId: string,
+  input: {
+    name: string
+    username: string
+    bio?: string
+    role: 'user' | 'moderator' | 'admin' | 'super_admin'
+    reason?: string
+  }
+) {
+  try {
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_profile',
+        ...input,
+        reason: input.reason || 'Super admin profile update from admin panel',
+      }),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to update user profile')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error updating admin user profile:', error)
+    throw error
+  }
+}
+
+export async function setAdminUserVerification(
+  userId: string,
+  input: {
+    isVerified: boolean
+    badgeType?: 'verified' | 'official'
+    reason?: string
+  }
+) {
+  try {
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'set_verification',
+        ...input,
+        reason: input.reason || 'Admin verification action from user management panel',
+      }),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to update verification badge')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error setting admin user verification:', error)
+    throw error
+  }
+}
+
+export async function resetAdminUserPassword(
+  userId: string,
+  input: {
+    newPassword: string
+    reason?: string
+  }
+) {
+  try {
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'reset_password',
+        newPassword: input.newPassword,
+        reason: input.reason || 'Super admin password reset from admin users panel',
+      }),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to reset user password')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error resetting admin user password:', error)
+    throw error
+  }
+}
+
+export async function deleteAdminUserAccount(
+  userId: string,
+  reason: string = 'Super admin delete user from admin users panel'
+) {
+  try {
+    const response = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete_user',
+        reason,
+      }),
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to delete user')
+    }
+
+    return payload
+  } catch (error) {
+    console.error('Error deleting admin user account:', error)
+    throw error
+  }
+}
+
 // Legacy function for backward compatibility - now uses toggleUserActivation
 export async function deactivateUser(userId: string) {
   try {
@@ -2614,6 +2771,11 @@ export async function updateAdminVerificationApplication(
     throw error
   }
 }
+
+
+
+
+
 
 
 

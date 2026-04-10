@@ -16,6 +16,13 @@ import { Textarea, Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 import { useCreatePost, useUpdatePost } from "@/lib/react-query/queriesAndMutations";
 import { POST_CATEGORIES } from "@/constants";
 
+const normalizeTagInput = (value: string) =>
+  value
+    .split(/[,\s]+/)
+    .map((tag) => tag.trim().replace(/^#/, ""))
+    .filter(Boolean)
+    .join(" ");
+
 type PostFormProps = {
   post?: any; // TODO: Add proper Supabase Post type
   action: "Create" | "Update";
@@ -60,6 +67,8 @@ const PostForm = ({ post, action }: PostFormProps) => {
       if (post && action === "Update") {
         const updatedPost = await updatePost({
           ...value,
+          location: value.location?.trim() || "",
+          tags: normalizeTagInput(value.tags),
           postId: post.id,
           imageUrl: post.image_url,
         });
@@ -81,6 +90,8 @@ const PostForm = ({ post, action }: PostFormProps) => {
       console.log('PostForm - About to create post with userId:', user.id)
       const newPost = await createPost({
         ...value,
+        location: value.location?.trim() || "",
+        tags: normalizeTagInput(value.tags),
         userId: user.id,
       });
 
@@ -114,11 +125,12 @@ const PostForm = ({ post, action }: PostFormProps) => {
           name="caption"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="shad-form_label">Caption</FormLabel>
+              <FormLabel className="shad-form_label">Post Text</FormLabel>
               <FormControl>
                 <Textarea
+                  placeholder="Write your post here. You can publish text only, or add a photo too."
                   className="shad-textarea custom-scrollbar"
-                  style={{ height: '80px', minHeight: '80px' }}
+                  style={{ height: '120px', minHeight: '120px' }}
                   {...field}
                 />
               </FormControl>
@@ -132,7 +144,7 @@ const PostForm = ({ post, action }: PostFormProps) => {
           name="file"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="shad-form_label">Add Photos</FormLabel>
+              <FormLabel className="shad-form_label">Add Photo (Optional)</FormLabel>
               <FormControl>
                 <FileUploader
                   fieldChange={field.onChange}
@@ -149,9 +161,9 @@ const PostForm = ({ post, action }: PostFormProps) => {
           name="location"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="shad-form_label">Add Location</FormLabel>
+              <FormLabel className="shad-form_label">Add Location (Optional)</FormLabel>
               <FormControl>
-                <Input type="text" className="shad-input" {...field} />
+                <Input placeholder="City, place, or event" type="text" className="shad-input" {...field} />
               </FormControl>
               <FormMessage className="shad-form_message" />
             </FormItem>
@@ -164,11 +176,11 @@ const PostForm = ({ post, action }: PostFormProps) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="shad-form_label">
-                Add Tags (separated by comma " , ")
+                Hashtags
               </FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Art, Expression, Learn"
+                  placeholder="#art #expression #learn or art expression learn"
                   type="text"
                   className="shad-input"
                   {...field}
@@ -185,7 +197,7 @@ const PostForm = ({ post, action }: PostFormProps) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="shad-form_label">Category *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="shad-input">
                     <SelectValue placeholder="Select a category" />

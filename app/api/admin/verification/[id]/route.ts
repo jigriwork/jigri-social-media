@@ -14,6 +14,16 @@ type AppStatus =
 
 const REASON_REQUIRED_ACTIONS = new Set<AppStatus>(['rejected', 'revoked', 'needs_resubmission'])
 
+function isAppointedVerificationReviewer(email?: string | null) {
+  const raw = process.env.VERIFICATION_REVIEWER_EMAILS || ''
+  if (!email || !raw) return false
+  const allowList = raw
+    .split(',')
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean)
+  return allowList.includes(email.toLowerCase())
+}
+
 function statusToAuditAction(status: AppStatus) {
   switch (status) {
     case 'approved':
@@ -34,7 +44,7 @@ function isStatusTransitionAllowed(from: AppStatus, to: AppStatus) {
     draft: ['submitted', 'withdrawn'],
     submitted: ['under_review', 'withdrawn', 'approved', 'rejected', 'needs_resubmission'],
     under_review: ['approved', 'rejected', 'needs_resubmission', 'withdrawn'],
-    approved: ['revoked'],
+    approved: ['revoked', 'rejected'],
     rejected: ['submitted'],
     revoked: [],
     needs_resubmission: ['submitted', 'withdrawn'],
@@ -165,8 +175,22 @@ export async function PATCH(
       )
     }
 
-    if (nextStatus === 'revoked' && actor.role !== 'admin' && actor.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Only admin or super admin can revoke verification' }, { status: 403 })
+    if (
+      nextStatus === 'approved' ||
+      nextStatus === 'rejected' ||
+      nextStatus === 'revoked'
+    ) {
+      const canFinalize = actor.role === 'super_admin' || isAppointedVerificationReviewer(actor.email)
+      if (!canFinalize) {
+        return NextResponse.json(
+          { error: 'Only super admin or appointed verification reviewer can finalize decisions' },
+          { status: 403 }
+        )
+      }
+    }
+
+    if (nextStatus === 'revoked' && actor.role !== 'super_admin' && !isAppointedVerificationReviewer(actor.email)) {
+      return NextResponse.json({ error: 'Only super admin or appointed verification reviewer can revoke verification' }, { status: 403 })
     }
 
     if ((nextStatus === 'approved' || nextStatus === 'revoked') && actor.role === 'admin' && body?.forceOverride === true) {
@@ -238,7 +262,10 @@ export async function PATCH(
         .update({
           is_verified: false,
           verification_badge_type: null,
-          verification_status: nextStatus === 'withdrawn' ? 'none' : 'pending',
+          verification_status:
+            nextStatus === 'needs_resubmission'
+              ? 'pending'
+              : 'none',
           verification_updated_at: nowIso,
         })
         .eq('id', applicantUserId)

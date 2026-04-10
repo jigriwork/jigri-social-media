@@ -60,6 +60,7 @@ const UserCard = ({ user, showActivity = true }: UserCardProps) => {
           <VerificationBadge
             isVerified={user.is_verified}
             badgeType={user.verification_badge_type}
+            role={user.role}
             size={14}
           />
         </div>

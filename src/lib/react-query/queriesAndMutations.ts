@@ -60,6 +60,10 @@ import {
   getAdminUserDetails,
   deactivateUser,
   toggleUserActivation,
+  updateAdminUserProfile,
+  setAdminUserVerification,
+  resetAdminUserPassword,
+  deleteAdminUserAccount,
   getAdminAllPosts,
   adminDeletePost,
   getAdminReports,
@@ -135,8 +139,13 @@ export const useUpdatePost = () => {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({ postId, tags, ...postData }: IUpdatePost) => {
-        // Convert tags string to array for API
-        const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
+        // Convert hashtags separated by spaces or commas to array for API
+        const tagsArray = tags
+          ? tags
+              .split(/[\s,]+/)
+              .map(tag => tag.trim().replace(/^#/, ''))
+              .filter(tag => tag.length > 0)
+          : [];
         return updatePost(postId, { 
           ...postData, 
           tags: tagsArray.length > 0 ? tagsArray : undefined 
@@ -442,10 +451,15 @@ export const useGetAdminStats = () => {
 };
 
 export const useCheckAdminAccess = () => {
+  const { user, isAuthenticated } = useUserContext();
+
   return useQuery({
-    queryKey: [QUERY_KEYS.CHECK_ADMIN_ACCESS],
+    queryKey: [QUERY_KEYS.CHECK_ADMIN_ACCESS, user?.id || "anonymous"],
     queryFn: checkAdminAccess,
+    enabled: isAuthenticated,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 0,
+    retry: 1,
   });
 };
 
@@ -989,6 +1003,91 @@ export const useDeactivateUser = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_ADMIN_STATS],
       });
+    },
+  });
+};
+
+export const useUpdateAdminUserProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      input,
+    }: {
+      userId: string;
+      input: {
+        name: string;
+        username: string;
+        bio?: string;
+        role: 'user' | 'moderator' | 'admin' | 'super_admin';
+        reason?: string;
+      };
+    }) => updateAdminUserProfile(userId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_ALL_USERS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_USER_DETAILS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USERS] });
+    },
+  });
+};
+
+export const useSetAdminUserVerification = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      input,
+    }: {
+      userId: string;
+      input: {
+        isVerified: boolean;
+        badgeType?: 'verified' | 'official';
+        reason?: string;
+      };
+    }) => setAdminUserVerification(userId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_ALL_USERS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_USER_DETAILS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USERS] });
+    },
+  });
+};
+
+export const useResetAdminUserPassword = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      input,
+    }: {
+      userId: string;
+      input: {
+        newPassword: string;
+        reason?: string;
+      };
+    }) => resetAdminUserPassword(userId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_ALL_USERS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_USER_DETAILS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_AUDIT_LOGS] });
+    },
+  });
+};
+
+export const useDeleteAdminUserAccount = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, reason }: { userId: string; reason?: string }) =>
+      deleteAdminUserAccount(userId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_ALL_USERS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_USER_DETAILS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_STATS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_ADMIN_AUDIT_LOGS] });
     },
   });
 };

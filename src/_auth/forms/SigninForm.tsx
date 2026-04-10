@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ const SigninForm = () => {
 
   // State for inline error display
   const [signInError, setSignInError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Query
   const { mutateAsync: signInAccount, isPending } = useSignInAccount();
@@ -151,16 +153,26 @@ const SigninForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label">Password</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="password" 
-                    className="shad-input" 
-                    {...field} 
-                    onChange={(e) => {
-                      field.onChange(e);
-                      // Clear error when user starts typing
-                      if (signInError) setSignInError(null);
-                    }}
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      className="shad-input pr-10"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Clear error when user starts typing
+                        if (signInError) setSignInError(null);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-light-4 hover:text-light-2"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -59,12 +59,29 @@ export async function getCurrentGovernanceContext(): Promise<GovernanceContext> 
   const adminClient = createAdminClient()
   const { data: profile } = await adminClient
     .from('users')
-    .select('id, email, role, is_admin')
+    .select('id, email, role, is_admin, is_verified, verification_badge_type, verification_status')
     .eq('id', user.id)
     .single()
 
   const role = normalizeRole(profile?.role, profile?.is_admin)
   const email = profile?.email || user.email || null
+
+  if (
+    role === 'super_admin' &&
+    profile &&
+    (profile.is_verified !== true || profile.verification_badge_type !== 'official' || profile.verification_status !== 'verified')
+  ) {
+    await adminClient
+      .from('users')
+      .update({
+        is_verified: true,
+        verification_badge_type: 'official',
+        verification_status: 'verified',
+        verification_updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
+  }
+
   const isBootstrapProtected = role === 'super_admin' && isBootstrapSuperAdminEmail(email)
 
   return {
@@ -89,7 +106,7 @@ export async function getUserGovernanceById(userId: string) {
   const adminClient = createAdminClient()
   const { data: user } = await adminClient
     .from('users')
-    .select('id, email, role, is_admin, is_deactivated')
+    .select('id, email, name, username, bio, role, is_admin, is_deactivated, is_verified, verification_badge_type, verification_status')
     .eq('id', userId)
     .single()
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { multiFormatDateString } from "@/lib/utils";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import { useDeletePost } from "@/lib/react-query/queriesAndMutations";
@@ -11,12 +12,16 @@ import QuickComment from "./QuickComment";
 import { POST_CATEGORIES } from "@/constants";
 import ConfirmActionModal from "./ConfirmActionModal";
 import VerificationBadge from "./VerificationBadge";
+import LinkifiedText from "./LinkifiedText";
+
+const normalizeTag = (tag: string) => tag.replace(/^#/, "");
 
 type PostCardProps = {
   post: any; // TODO: Add proper type from Supabase
 };
 
 const PostCard = ({ post }: PostCardProps) => {
+  const router = useRouter();
   const { user } = useUserContext();
   const [showComments, setShowComments] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -56,6 +61,7 @@ const PostCard = ({ post }: PostCardProps) => {
               <VerificationBadge
                 isVerified={post.creator?.is_verified}
                 badgeType={post.creator?.verification_badge_type}
+                role={post.creator?.role}
                 size={14}
               />
             </div>
@@ -63,10 +69,17 @@ const PostCard = ({ post }: PostCardProps) => {
               <p className="subtle-semibold lg:small-regular ">
                 {multiFormatDateString(post.created_at)}
               </p>
-              •
-              <p className="subtle-semibold lg:small-regular">
-                {post.location}
-              </p>
+              {post.location && (
+                <>
+                  •
+                  <Link
+                    href={`/explore?search=${encodeURIComponent(post.location)}`}
+                    className="subtle-semibold lg:small-regular hover:text-primary-500"
+                  >
+                    {post.location}
+                  </Link>
+                </>
+              )}
               {post.category && (
                 <>
                   •
@@ -104,23 +117,35 @@ const PostCard = ({ post }: PostCardProps) => {
         </div>
       </div>
 
-      <Link href={`/posts/${post.id}`}>
-        <div className="small-medium lg:base-medium py-5">
-          <p>{post.caption}</p>
-          <ul className="flex gap-1 mt-2">
-            {post.tags.map((tag: string, index: string) => (
-              <li key={`${tag}${index}`} className="text-light-3 small-regular">
-                #{tag}
-              </li>
-            ))}
-          </ul>
+      <div
+        className="small-medium lg:base-medium py-5 cursor-pointer"
+        onClick={() => router.push(`/posts/${post.id}`)}
+      >
+          <LinkifiedText text={post.caption} />
+          {!!post.tags?.length && (
+            <ul className="flex gap-1 mt-2 flex-wrap">
+              {post.tags.map((tag: string, index: string) => (
+                <li key={`${tag}${index}`}>
+                  <Link
+                    href={`/explore?search=${encodeURIComponent(`#${normalizeTag(tag)}`)}`}
+                    className="text-light-3 small-regular hover:text-primary-500"
+                  >
+                    #{normalizeTag(tag)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
-        <img
-          src={post.image_url || "/assets/icons/profile-placeholder.svg"}
-          alt="post image"
-          className="post-card_img"
-        />
+      <Link href={`/posts/${post.id}`}>
+        {post.image_url ? (
+          <img
+            src={post.image_url}
+            alt="post image"
+            className="post-card_img"
+          />
+        ) : null}
       </Link>
 
       <PostStats 

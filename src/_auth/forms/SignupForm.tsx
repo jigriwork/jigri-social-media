@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useCreateUserAccount, useSignInAccount } from "@/lib/react-query/queriesAndMutations"
 import { useState, useEffect } from "react"
 import { checkEmailOrUsernameExists } from "@/lib/supabase/api"
+import { Eye, EyeOff } from "lucide-react"
 
 
 const SignupForm = () => {
@@ -33,6 +34,7 @@ const SignupForm = () => {
     email: 'idle',
     username: 'idle'
   })
+  const [showPassword, setShowPassword] = useState(false)
 
   // 1. Define your form.
   const form = useForm<z.infer<typeof SignupValidation>>({
@@ -250,7 +252,21 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label text-sm">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" className="shad-input h-10" {...field} />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      className="shad-input h-10 pr-10"
+                      {...field}
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-light-4 hover:text-light-2"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -264,7 +280,11 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label text-sm">Confirm Password</FormLabel>
                 <FormControl>
-                  <Input type="password" className="shad-input h-10" {...field} />
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    className="shad-input h-10"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
