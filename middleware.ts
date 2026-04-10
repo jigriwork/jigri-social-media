@@ -32,14 +32,20 @@ export async function middleware(request: NextRequest) {
     pathname === route || pathname.startsWith(route + '/')
   )
 
-  // For now, allow all routes to be accessed publicly
-  // The authentication checks will be handled at the component level
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.includes('auth-token'))
+
   if (isPublicRoute) {
     return NextResponse.next()
   }
 
-  // For protected routes, we'll let the components handle the auth state
-  // This allows for better UX where users can see content but get prompted to auth for interactions
+  if (!hasAuthCookie) {
+    const signInUrl = new URL('/sign-in', request.url)
+    signInUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(signInUrl)
+  }
+
   return NextResponse.next()
 }
 

@@ -16,28 +16,28 @@ const LABEL_BY_TYPE: Record<'verified' | 'official', string> = {
   official: 'Official',
 }
 
-function OfficialLikeBadge({
+function ImageBadge({
   size,
   className,
   title,
-  symbol = '★',
+  src,
+  alt,
 }: {
   size: number
   className?: string
   title: string
-  symbol?: string
+  src: string
+  alt: string
 }) {
   return (
-    <span
+    <img
+      src={src}
+      alt={alt}
       title={title}
-      className={clsx(
-        'inline-flex items-center justify-center rounded-full bg-amber-400 text-black font-bold shrink-0',
-        className
-      )}
-      style={{ width: size, height: size, fontSize: Math.max(8, Math.floor(size * 0.65)) }}
-    >
-      {symbol}
-    </span>
+      width={size}
+      height={size}
+      className={clsx('inline-block shrink-0', className)}
+    />
   )
 }
 
@@ -49,13 +49,26 @@ export default function VerificationBadge({
   className,
   titlePrefix,
 }: VerificationBadgeProps) {
-  if (role === 'super_admin') {
+  if (role === 'super_admin' || role === 'admin') {
     return (
-      <OfficialLikeBadge
+      <ImageBadge
         size={size}
         className={className}
-        title={titlePrefix ? `${titlePrefix} Super admin` : 'Super admin'}
-        symbol="★"
+        title={titlePrefix ? `${titlePrefix} Admin verified` : 'Admin verified'}
+        src="/assets/icons/adminverification.svg"
+        alt="Admin verified"
+      />
+    )
+  }
+
+  if (role === 'moderator') {
+    return (
+      <ImageBadge
+        size={size}
+        className={className}
+        title={titlePrefix ? `${titlePrefix} Team member` : 'Team member'}
+        src="/assets/icons/teamverification.svg"
+        alt="Team member"
       />
     )
   }
@@ -67,22 +80,23 @@ export default function VerificationBadge({
 
   if (resolvedType === 'official') {
     return (
-      <OfficialLikeBadge
+      <ImageBadge
         size={size}
         className={className}
         title={titlePrefix ? `${titlePrefix} ${label}` : label}
+        src="/assets/icons/officialverified.svg"
+        alt={label}
       />
     )
   }
 
   return (
-    <img
+    <ImageBadge
+      size={size}
+      className={className}
+      title={titlePrefix ? `${titlePrefix} ${label}` : label}
       src="/assets/icons/verified.svg"
       alt={label}
-      title={titlePrefix ? `${titlePrefix} ${label}` : label}
-      width={size}
-      height={size}
-      className={clsx('inline-block shrink-0', className)}
     />
   )
 }

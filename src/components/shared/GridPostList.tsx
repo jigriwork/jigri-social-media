@@ -34,8 +34,9 @@ const GridPostList = ({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="h-full w-full bg-dark-3 p-4 flex items-center justify-center text-center">
-                <p className="small-medium text-light-2 line-clamp-5">{post.caption || "Text post"}</p>
+              <div className="h-full w-full bg-dark-3 p-4 flex flex-col items-start justify-start text-left border border-dark-4 rounded-xl">
+                <div className="mb-2 text-[11px] uppercase tracking-wide text-light-4">Thread / text post</div>
+                <p className="small-medium text-light-2 line-clamp-6 whitespace-pre-wrap break-words w-full">{post.caption || "Text post"}</p>
               </div>
             )}
           </Link>

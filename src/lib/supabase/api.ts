@@ -480,6 +480,7 @@ export async function getPublicUserPosts(userId: string) {
           id,
           name,
           username,
+          role,
           image_url
         ),
         likes:likes!likes_post_id_fkey (
@@ -583,6 +584,7 @@ export async function getPublicPostById(postId: string) {
           id,
           name,
           username,
+          role,
           image_url
         ),
         likes:likes!likes_post_id_fkey (
@@ -1620,31 +1622,20 @@ export async function uploadFile(file: File, bucket: string) {
 
 export async function uploadVerificationDocument(file: File) {
   try {
-    const fileExt = file.name.split('.').pop() || 'bin'
-    const safeBaseName = file.name
-      .replace(/\.[^/.]+$/, '')
-      .replace(/[^a-zA-Z0-9-_]/g, '-')
-      .slice(0, 60)
-    const fileName = `verification-documents/${Date.now()}-${safeBaseName}.${fileExt}`
+    const formData = new FormData()
+    formData.append('file', file)
 
-    const { error } = await supabase.storage
-      .from('posts')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      })
+    const response = await fetch('/api/verification/document', {
+      method: 'POST',
+      body: formData,
+    })
 
-    if (error) throw error
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('posts')
-      .getPublicUrl(fileName)
-
-    return {
-      url: publicUrl,
-      name: file.name,
-      path: fileName,
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to upload verification document')
     }
+
+    return payload
   } catch (error) {
     console.error('Error uploading verification document:', error)
     throw error
@@ -1979,6 +1970,7 @@ export async function createComment(comment: {
           id,
           name,
           username,
+          role,
           image_url,
           is_verified,
           verification_badge_type,
@@ -2008,6 +2000,7 @@ export async function getPostComments(postId: string): Promise<Comment[]> {
           id,
           name,
           username,
+          role,
           image_url,
           is_verified,
           verification_badge_type,
@@ -2057,6 +2050,7 @@ export async function getCommentReplies(commentId: string): Promise<Comment[]> {
           id,
           name,
           username,
+          role,
           image_url,
           is_verified,
           verification_badge_type,
@@ -2099,6 +2093,7 @@ export async function updateComment(commentId: string, content: string): Promise
           id,
           name,
           username,
+          role,
           image_url,
           is_verified,
           verification_badge_type,
@@ -2771,6 +2766,9 @@ export async function updateAdminVerificationApplication(
     throw error
   }
 }
+
+
+
 
 
 

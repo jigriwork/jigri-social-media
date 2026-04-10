@@ -274,11 +274,11 @@
   }
 
   .shad-input {
-    @apply h-12 bg-dark-4 border-none placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-offset-1 ring-offset-light-3 !important;
+    @apply h-12 bg-dark-4 border border-dark-4 text-light-1 placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ring-offset-dark-1 !important;
   }
 
   .shad-textarea {
-    @apply h-36 bg-dark-3 rounded-xl border-none focus-visible:ring-1 focus-visible:ring-offset-1 ring-offset-light-3 !important;
+    @apply h-36 bg-dark-3 rounded-xl border border-dark-4 text-light-1 placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ring-offset-dark-1 !important;
   }
 
   /* Button */

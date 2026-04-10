@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useUserContext } from '../context/SupabaseAuthContext';
 import { useUserActivity } from '../hooks/useUserActivity';
 import Topbar from '../components/shared/Topbar';
@@ -15,6 +15,7 @@ interface ClientLayoutWrapperProps {
 const ClientLayoutWrapper = ({ children }: ClientLayoutWrapperProps) => {
   const [isClient, setIsClient] = useState(false);
   const { isAuthenticated, isLoading } = useUserContext();
+  const router = useRouter();
   
   // Track user activity when authenticated
   useUserActivity();
@@ -28,21 +29,19 @@ const ClientLayoutWrapper = ({ children }: ClientLayoutWrapperProps) => {
   }
 
   if (!isAuthenticated) {
-    window.location.href = '/sign-in';
+    router.replace('/sign-in');
     return null;
   }
 
   return (
-    <BrowserRouter>
-      <div className="w-full md:flex">
-        <LeftSidebar />
-        <section className="flex flex-1 h-full">
-          {children}
-        </section>
-        <Topbar />
-        <Bottombar />
-      </div>
-    </BrowserRouter>
+    <div className="w-full md:flex">
+      <LeftSidebar />
+      <section className="flex flex-1 h-full">
+        {children}
+      </section>
+      <Topbar />
+      <Bottombar />
+    </div>
   );
 };
 

@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { QueryProvider } from '../../src/lib/react-query/QueryProvider';
-import { AuthProvider, useUserContext } from '../../src/context/SupabaseAuthContext';
+import { useUserContext } from '../../src/context/SupabaseAuthContext';
 import Topbar from '../../src/components/shared/Topbar';
 import LeftSidebar from '../../src/components/shared/LeftSidebar';
 import Bottombar from '../../src/components/shared/Bottombar';
-import { Toaster } from '../../src/components/ui/toaster';
 import { useRouter } from 'next/navigation';
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -57,13 +55,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <QueryProvider>
-      <AuthProvider>
-        <AuthenticatedLayout>
-          {children}
-        </AuthenticatedLayout>
-        <Toaster />
-      </AuthProvider>
-    </QueryProvider>
+    <AuthenticatedLayout>
+      {children}
+    </AuthenticatedLayout>
   );
 }

@@ -110,24 +110,12 @@ export const useCreatePost = () => {
         queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED],
       });
       
-      // Create notifications for followers when a new post is created
       if (data && variables.userId) {
         try {
-          const user = await getCurrentUser();
-          if (user) {
-            await notificationService.createNewPostNotifications(
-              data.id,
-              variables.userId,
-              user.name || user.username || 'Unknown User',
-              user.image_url || '',
-              variables.caption || 'New post'
-            );
-            
-            // Invalidate notifications for all followers of the post creator
-            queryClient.invalidateQueries({
-              queryKey: [QUERY_KEYS.GET_NOTIFICATIONS],
-            });
-          }
+          await notificationService.createNewPostNotifications(data.id);
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEYS.GET_NOTIFICATIONS],
+          });
         } catch (error) {
           console.error('Error creating new post notifications:', error);
         }
@@ -223,21 +211,10 @@ export const useLikePost = () => {
           queryKey: [QUERY_KEYS.GET_CURRENT_USER],
         });
         
-        // Create like notification
         try {
           const post = await getPostById(variables.postId);
-          const user = await getCurrentUser();
-          
-          if (post && user && post.creator?.id !== variables.userId) {
-            await notificationService.createLikeNotification(
-              variables.postId,
-              post.creator.id,
-              variables.userId,
-              user.name || user.username || 'Unknown User',
-              user.image_url || ''
-            );
-            
-            // Invalidate notifications for the post owner
+          await notificationService.createLikeNotification(variables.postId);
+          if (post?.creator?.id) {
             queryClient.invalidateQueries({
               queryKey: [QUERY_KEYS.GET_NOTIFICATIONS, post.creator.id],
             });
@@ -652,15 +629,9 @@ export const useFollowUser = () => {
       }
     },
     onSuccess: async (_, userId) => {
-      // Create notification for the followed user
       if (user) {
         try {
-          await notificationService.createFollowNotification(
-            userId,
-            user.id,
-            user.name,
-            user.image_url || ''
-          );
+          await notificationService.createFollowNotification(userId);
         } catch (error) {
           console.error('Failed to create follow notification:', error);
         }
@@ -882,19 +853,12 @@ export const useCreateComment = () => {
         queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED],
       });
       
-      // Create comment notification for post owner
       if (data && variables.userId) {
         try {
           const post = await getPostById(variables.postId);
-          const user = await getCurrentUser();
-          
-          if (post && user && post.creator?.id !== variables.userId) {
+          if (post && post.creator?.id !== variables.userId) {
             await notificationService.createCommentNotification(
               variables.postId,
-              post.creator.id,
-              variables.userId,
-              user.name || user.username || 'Unknown User',
-              user.image_url || '',
               variables.content,
               Boolean(variables.parentId)
             );

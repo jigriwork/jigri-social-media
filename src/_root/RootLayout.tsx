@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import Topbar from "@/components/shared/Topbar";
 import LeftSidebar from "@/components/shared/LeftSidebar";
@@ -9,13 +9,15 @@ import Bottombar from "@/components/shared/Bottombar";
 
 const RootLayout = () => {
   const { isAuthenticated, isLoading } = useUserContext();
+  const router = useRouter();
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/sign-in" replace />;
+    router.replace('/sign-in');
+    return null;
   }
 
   return (
@@ -24,7 +26,7 @@ const RootLayout = () => {
       <LeftSidebar />
 
       <section className="flex flex-1 h-full">
-        <Outlet />
+        <div className="w-full" />
       </section>
 
       <Bottombar />

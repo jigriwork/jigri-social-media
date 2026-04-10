@@ -38,6 +38,8 @@ const PostCard = ({ post }: PostCardProps) => {
     setShowDeleteConfirm(false);
   };
 
+  const isTextOnlyPost = !post.image_url;
+
   return (
     <div className="post-card">
       <div className="flex-between">
@@ -121,7 +123,10 @@ const PostCard = ({ post }: PostCardProps) => {
         className="small-medium lg:base-medium py-5 cursor-pointer"
         onClick={() => router.push(`/posts/${post.id}`)}
       >
-          <LinkifiedText text={post.caption} />
+          <LinkifiedText
+            text={post.caption}
+            className={isTextOnlyPost ? "text-light-1 text-base leading-7 whitespace-pre-wrap break-words" : ""}
+          />
           {!!post.tags?.length && (
             <ul className="flex gap-1 mt-2 flex-wrap">
               {post.tags.map((tag: string, index: string) => (
@@ -138,15 +143,26 @@ const PostCard = ({ post }: PostCardProps) => {
           )}
         </div>
 
-      <Link href={`/posts/${post.id}`}>
-        {post.image_url ? (
+      {post.image_url ? (
+        <Link href={`/posts/${post.id}`}>
           <img
             src={post.image_url}
             alt="post image"
             className="post-card_img"
           />
-        ) : null}
-      </Link>
+        </Link>
+      ) : (
+        <div
+          className="w-full rounded-2xl border border-dark-4 bg-dark-3/40 p-5 cursor-pointer"
+          onClick={() => router.push(`/posts/${post.id}`)}
+        >
+          <div className="mb-2 text-xs uppercase tracking-wide text-light-4">Thread / text post</div>
+          <LinkifiedText
+            text={post.caption}
+            className="text-light-1 text-base lg:text-lg leading-7 whitespace-pre-wrap break-words"
+          />
+        </div>
+      )}
 
       <PostStats 
         post={post} 

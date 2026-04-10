@@ -96,143 +96,45 @@ export class NotificationService {
     this.listeners.delete(listener);
   }
 
-  private async hasRecentDuplicateNotification(
-    userId: string,
-    type: DbNotification['type'],
-    fromUserId: string,
-    actionUrl?: string,
-    withinMinutes: number = 20
-  ): Promise<boolean> {
-    try {
-      const since = new Date(Date.now() - withinMinutes * 60 * 1000).toISOString();
-      let query = this.supabase
-        .from('notifications')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('type', type)
-        .eq('from_user_id', fromUserId)
-        .gte('created_at', since)
-        .limit(1);
+  private async sendNotificationEvent(payload: Record<string, unknown>) {
+    const response = await fetch('/api/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-      if (actionUrl) {
-        query = query.eq('action_url', actionUrl);
-      }
-
-      const { data, error } = await query;
-      if (error) return false;
-      return !!data && data.length > 0;
-    } catch {
-      return false;
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      throw new Error(errorPayload?.error || 'Failed to create notification');
     }
+
+    return response.json().catch(() => ({}));
   }
 
   // Create notification when someone creates a new post
-  async createNewPostNotifications(postId: string, creatorId: string, creatorName: string, creatorAvatar: string, postCaption: string) {
+  async createNewPostNotifications(postId: string) {
     try {
-      // Get all followers of the post creator
-      const { data: followers, error: followersError } = await this.supabase
-        .from('follows')
-        .select('follower_id')
-        .eq('following_id', creatorId);
-
-      if (followersError) throw followersError;
-
-      if (followers && followers.length > 0) {
-        // Create notifications for all followers
-        const notifications = followers.map(follower => ({
-          user_id: follower.follower_id,
-          type: 'new_post' as const,
-          title: 'New Post',
-          message: `${creatorName} shared a new post: ${this.truncateText(postCaption, 50)}`,
-          avatar: creatorAvatar,
-          action_url: `/posts/${postId}`,
-          from_user_id: creatorId,
-          from_user_name: creatorName,
-          from_user_avatar: creatorAvatar,
-          read: false,
-        }));
-
-        const { error: insertError } = await this.supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (insertError) throw insertError;
-
-        console.log(`Created ${notifications.length} new post notifications`);
-      }
+      await this.sendNotificationEvent({ eventType: 'new_post', postId });
     } catch (error) {
       console.error('Error creating new post notifications:', error);
     }
   }
 
   // Create notification when someone likes a post
-  async createLikeNotification(postId: string, postOwnerId: string, likerUserId: string, likerName: string, likerAvatar: string) {
+  async createLikeNotification(postId: string) {
     try {
-      // Don't notify if user likes their own post
-      if (postOwnerId === likerUserId) return;
-
-      const actionUrl = `/posts/${postId}`;
-      const isDuplicate = await this.hasRecentDuplicateNotification(
-        postOwnerId,
-        'like',
-        likerUserId,
-        actionUrl
-      );
-      if (isDuplicate) return;
-
-      const notification = {
-        user_id: postOwnerId,
-        type: 'like' as const,
-        title: 'You have new activity',
-        message: `${likerName} liked your post`,
-        avatar: likerAvatar,
-        action_url: actionUrl,
-        from_user_id: likerUserId,
-        from_user_name: likerName,
-        from_user_avatar: likerAvatar,
-        read: false,
-      };
-
-      const { error } = await this.supabase
-        .from('notifications')
-        .insert([notification]);
-
-      if (error) throw error;
+      await this.sendNotificationEvent({ eventType: 'like', postId });
     } catch (error) {
       console.error('Error creating like notification:', error);
     }
   }
 
   // Create notification when someone follows a user
-  async createFollowNotification(followedUserId: string, followerUserId: string, followerName: string, followerAvatar: string) {
+  async createFollowNotification(followedUserId: string) {
     try {
-      const actionUrl = `/profile/${followerUserId}`;
-      const isDuplicate = await this.hasRecentDuplicateNotification(
-        followedUserId,
-        'follow',
-        followerUserId,
-        actionUrl
-      );
-      if (isDuplicate) return;
-
-      const notification = {
-        user_id: followedUserId,
-        type: 'follow' as const,
-        title: 'Someone followed you',
-        message: `${followerName} followed you`,
-        avatar: followerAvatar,
-        action_url: actionUrl,
-        from_user_id: followerUserId,
-        from_user_name: followerName,
-        from_user_avatar: followerAvatar,
-        read: false,
-      };
-
-      const { error } = await this.supabase
-        .from('notifications')
-        .insert([notification]);
-
-      if (error) throw error;
+      await this.sendNotificationEvent({ eventType: 'follow', followedUserId });
     } catch (error) {
       console.error('Error creating follow notification:', error);
     }
@@ -241,46 +143,11 @@ export class NotificationService {
   // Create notification when someone comments on a post
   async createCommentNotification(
     postId: string,
-    postOwnerId: string,
-    commenterUserId: string,
-    commenterName: string,
-    commenterAvatar: string,
     commentText: string,
     isReply: boolean = false
   ) {
     try {
-      // Don't notify if user comments on their own post
-      if (postOwnerId === commenterUserId) return;
-
-      const actionUrl = `/posts/${postId}`;
-      const isDuplicate = await this.hasRecentDuplicateNotification(
-        postOwnerId,
-        'comment',
-        commenterUserId,
-        actionUrl
-      );
-      if (isDuplicate) return;
-
-      const notification = {
-        user_id: postOwnerId,
-        type: 'comment' as const,
-        title: isReply ? 'Someone replied to you' : 'You have new activity',
-        message: isReply
-          ? `${commenterName} replied: ${this.truncateText(commentText, 50)}`
-          : `${commenterName} commented: ${this.truncateText(commentText, 50)}`,
-        avatar: commenterAvatar,
-        action_url: actionUrl,
-        from_user_id: commenterUserId,
-        from_user_name: commenterName,
-        from_user_avatar: commenterAvatar,
-        read: false,
-      };
-
-      const { error } = await this.supabase
-        .from('notifications')
-        .insert([notification]);
-
-      if (error) throw error;
+      await this.sendNotificationEvent({ eventType: 'comment', postId, commentText, isReply });
     } catch (error) {
       console.error('Error creating comment notification:', error);
     }
@@ -333,10 +200,6 @@ export class NotificationService {
     }
   }
 
-  private truncateText(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  }
 }
 
 export const notificationService = NotificationService.getInstance();
