@@ -4,13 +4,14 @@ import Link from "next/link";
 
 import {
   useGetFollowingFeed,
-  useGetSuggestedUsers,
   useGetFollowingCount,
   useGetUserPosts,
 } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import PostCard from "@/components/shared/PostCard";
-import UserCard from "@/components/shared/UserCard";
+import FeedFilter from "@/components/shared/FeedFilter";
+import NotificationBell from "@/components/shared/NotificationBell";
+import { useState, useMemo } from "react";
 
 const Home = () => {
   const { user } = useUserContext();
@@ -20,17 +21,21 @@ const Home = () => {
     isPending: isPostLoading,
     isError: isErrorPosts,
   } = useGetFollowingFeed();
-  const {
-    data: creators,
-    isPending: isUserLoading,
-    isError: isErrorCreators,
-  } = useGetSuggestedUsers(10);
 
   const { data: followingCount } = useGetFollowingCount(user?.id || "");
   const { data: ownPosts } = useGetUserPosts(user?.id || "");
 
-  // Filter out current user from creators list
-  const suggestedUsers = creators?.filter((creator: any) => creator.id !== user?.id) || [];
+  const [activeFilter, setActiveFilter] = useState("all");
+
+  const filteredPosts = useMemo(() => {
+    if (!posts) return [];
+    if (activeFilter === "all") return posts;
+    if (activeFilter === "pics") return posts.filter((p: any) => !!p.image_url);
+    if (activeFilter === "notes") return posts.filter((p: any) => !p.image_url);
+    if (activeFilter === "clips") return posts.filter((p: any) => p.video_url || false);
+    return posts;
+  }, [posts, activeFilter]);
+
   const missedPosts = (posts || []).slice(3, 6);
 
   const onboardingSteps = [
@@ -57,14 +62,11 @@ const Home = () => {
   const onboardingCompleted = onboardingSteps.filter((step) => step.done).length;
   const showOnboarding = !!user?.id && onboardingCompleted < onboardingSteps.length;
 
-  if (isErrorPosts || isErrorCreators) {
+  if (isErrorPosts) {
     return (
       <div className="flex flex-1">
         <div className="home-container">
-          <p className="body-medium text-light-1">Something bad happened</p>
-        </div>
-        <div className="home-creators">
-          <p className="body-medium text-light-1">Something bad happened</p>
+          <p className="body-medium text-light-1">Something went wrong while loading the feed.</p>
         </div>
       </div>
     );
@@ -74,7 +76,15 @@ const Home = () => {
     <div className="flex flex-row flex-1 w-full">
       <div className="home-container">
         <div className="home-posts">
-          <h2 className="h3-bold md:h2-bold text-left w-full">Following Feed</h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-8">
+            <h2 className="h3-bold md:h2-bold text-left bg-gradient-to-r from-white to-light-4 bg-clip-text text-transparent">Following Feed</h2>
+            <div className="flex items-center gap-4">
+              <FeedFilter activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+              <div className="hidden md:block">
+                <NotificationBell />
+              </div>
+            </div>
+          </div>
 
           {showOnboarding && (
             <div className="w-full rounded-xl border border-dark-4 bg-dark-3/30 p-4">
@@ -114,10 +124,10 @@ const Home = () => {
               ))}
             </div>
           ) : (
-            <ul className="flex flex-col flex-1 gap-9 w-full ">
-              {posts && posts.length > 0 ? (
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-6xl mx-auto">
+              {filteredPosts && filteredPosts.length > 0 ? (
                 <>
-                  {posts.map((post: any, index: number) => (
+                  {filteredPosts.map((post: any, index: number) => (
                     <li key={post.id} className="flex justify-center w-full">
                       <PostCard post={post} />
                       {index === 2 && missedPosts.length > 0 && (
@@ -177,45 +187,12 @@ const Home = () => {
                     >
                       Create Post
                     </Link>
-                    {suggestedUsers.length > 0 && (
-                      <>
-                        <span className="text-light-4">•</span>
-                        <Link
-                          href="/explore"
-                          className="text-primary-500 hover:text-primary-400 text-sm font-medium"
-                        >
-                          View recent activity
-                        </Link>
-                      </>
-                    )}
                   </div>
                 </div>
               )}
             </ul>
           )}
         </div>
-      </div>
-      <div className="home-creators">
-        <h3 className="h3-bold text-light-1">Suggested Users</h3>
-        {isUserLoading && !creators ? (
-          <div className="grid 2xl:grid-cols-2 gap-6">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="rounded-xl border border-dark-4 bg-dark-3/30 p-4 animate-pulse h-36" />
-            ))}
-          </div>
-        ) : (
-          <ul className="grid 2xl:grid-cols-2 gap-6">
-            {suggestedUsers && suggestedUsers.length > 0 ? (
-              suggestedUsers.map((creator: any) => (
-                <li key={creator?.id}>
-                  <UserCard user={creator} />
-                </li>
-              ))
-            ) : (
-              <p className="text-light-4">No suggestions right now. Check again soon.</p>
-            )}
-          </ul>
-        )}
       </div>
     </div>
   );

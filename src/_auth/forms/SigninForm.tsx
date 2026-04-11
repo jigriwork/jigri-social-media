@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SigninValidation } from "@/lib/validation";
 import { useSignInAccount } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
+import PWAInstallPrompt from "@/components/shared/PWAInstallPrompt";
 
 const SigninForm = () => {
   const router = useRouter();
@@ -221,6 +222,13 @@ const SigninForm = () => {
               Sign up
             </Link>
           </p>
+
+          <PWAInstallPrompt
+            variant="inline"
+            className="mt-4"
+            buttonLabel="Download"
+            descriptionOverride="For the best experience, download the app."
+          />
         </form>
       </div>
     </Form>

@@ -105,7 +105,7 @@ const NotificationBell = () => {
       .channel(`notifications:${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => fetchNotifications(false)
       )
       .subscribe();
@@ -155,8 +155,22 @@ const NotificationBell = () => {
     setUnreadCount(0);
   };
 
-  const onNotificationClick = (notification: GroupedNotification) => {
+  const onNotificationClick = async (notification: GroupedNotification) => {
     setShowDropdown(false);
+    
+    // Mark as read in DB if it's currently unread
+    if (!notification.read && user?.id) {
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", notification.id)
+        .eq("user_id", user.id);
+      
+      // Update local state immediately for snappy UI
+      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+    
     router.push(notification.action_url || `/profile/${notification.from_user_id}`);
   };
 
@@ -212,7 +226,7 @@ const NotificationBell = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-80 max-w-[calc(100vw-2rem)] bg-dark-2/95 backdrop-blur-lg border border-dark-4/50 rounded-2xl shadow-2xl z-50 overflow-hidden fixed top-20 left-[15%] -translate-x-1/2 sm:absolute sm:top-full sm:mt-2 sm:left-0 sm:translate-x-0"
+            className="w-auto max-w-[calc(100vw-2rem)] bg-dark-2/95 backdrop-blur-lg border border-dark-4/50 rounded-2xl shadow-2xl z-50 overflow-hidden fixed top-20 inset-x-4 sm:inset-x-auto sm:w-80 sm:absolute sm:top-[calc(100%+8px)] sm:right-0 sm:left-auto"
           >
             <div className="p-4 border-b border-dark-4/50 bg-gradient-to-r from-dark-2 to-dark-3">
               <div className="flex items-center justify-between">
@@ -278,10 +292,6 @@ const NotificationBell = () => {
                             </p>
                           )}
                           <div className="text-sm text-light-1">
-                            {n.from_user_name && (
-                              <span className="font-semibold text-primary-400">{n.from_user_name}</span>
-                            )}
-                            {n.from_user_name ? " " : ""}
                             <span className="text-light-2">{n.message}</span>
                             {n.count > 1 && (
                               <span className="ml-2 text-xs text-primary-400">+{n.count - 1} more</span>

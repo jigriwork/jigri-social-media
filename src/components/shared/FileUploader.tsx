@@ -16,23 +16,7 @@ const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
 
   const onDrop = useCallback(
     (acceptedFiles: FileWithPath[]) => {
-      console.log('onDrop called with acceptedFiles:', acceptedFiles);
-      
-      // Clear any previous error
-      setErrorMessage('');
-      
-      // Check file size manually
       if (acceptedFiles && acceptedFiles.length > 0) {
-        const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-        const oversizedFile = acceptedFiles.find(file => file.size > MAX_SIZE);
-        
-        if (oversizedFile) {
-          const fileSizeMB = (oversizedFile.size / (1024 * 1024)).toFixed(1);
-          setErrorMessage(`File size is ${fileSizeMB}MB. Maximum allowed size is 2MB.`);
-          console.log('File too large:', oversizedFile.size, 'bytes');
-          return;
-        }
-
         // If all files are valid, proceed
         console.log('File is valid, processing...');
         setFile(acceptedFiles);
@@ -53,9 +37,7 @@ const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
           if (file.errors) {
             file.errors.forEach((error: any) => {
               console.log('File error:', error);
-              if (error.code === 'file-too-large') {
-                setErrorMessage('File size exceeds 2MB limit. Please choose a smaller file.');
-              } else if (error.code === 'file-invalid-type') {
+              if (error.code === 'file-invalid-type') {
                 setErrorMessage('Invalid file type. Please upload PNG, JPG, or HEIF image.');
               } else {
                 setErrorMessage('File upload error. Please try again.');
@@ -72,9 +54,12 @@ const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
     onDrop,
     onDropRejected,
     accept: {
-      "image/*": [".png", ".jpeg", ".jpg", ".heif"],
+      "image/jpeg": [".jpeg", ".jpg"],
+      "image/png": [".png"],
+      "image/webp": [".webp"],
+      "image/heic": [".heic"],
+      "image/heif": [".heif"],
     },
-    maxSize: 2 * 1024 * 1024, // 2MB
     multiple: false, // Only allow one file
   });
 
@@ -112,7 +97,7 @@ const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
             <h3 className="base-medium text-light-2 mb-2 mt-6">
               Drag photo here
             </h3>
-            <p className="text-light-4 small-regular mb-6">SVG, PNG, JPG (Max 2MB)</p>
+            <p className="text-light-4 small-regular mb-6">SVG, PNG, JPG</p>
 
             <Button type="button" className="shad-button_dark_4">
               Select from computer

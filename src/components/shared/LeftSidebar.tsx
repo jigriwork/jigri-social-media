@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { useSignOutAccount, useCheckAdminAccess } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import Loader from "./Loader";
-import NotificationBell from "./NotificationBell";
 
 const LeftSidebar = () => {
   const router = useRouter();
@@ -44,12 +43,12 @@ const LeftSidebar = () => {
   return (
     <nav className="leftsidebar">
       <div className="flex flex-col gap-8 min-h-0">
-        <Link href="/" className="flex gap-3 items-center -mt-1">
+        <Link href="/" className="flex gap-3 items-center -mt-1 pl-2">
           <img
             src="/assets/images/logo.svg"
             alt="logo"
-            width={170}
-            height={36}
+            width={120}
+            height={28}
           />
         </Link>
 
@@ -59,23 +58,20 @@ const LeftSidebar = () => {
           </div>
         ) : (
           <>
-            <div className="flex items-start justify-between gap-3">
-              <Link href={`/profile/${user.id}`} className="flex gap-3 items-center min-w-0 flex-1">
+
+              <Link href={`/profile/${user.id}`} className="flex gap-3 items-center min-w-0 pr-2 group/profile">
                 <img
                   src={user.image_url || "/assets/icons/profile-placeholder.svg"}
                   alt="profile"
-                  className="h-14 w-14 rounded-full"
+                  className="h-12 w-12 rounded-full border-2 border-transparent group-hover/profile:border-primary-500 transition-all"
                 />
                 <div className="flex flex-col min-w-0">
-                  <p className="body-bold truncate">{user.name}</p>
-                  <p className="small-regular text-light-3 truncate">@{user.username}</p>
+                  <p className="body-bold text-light-1 group-hover/profile:text-primary-500 transition-colors truncate max-w-[200px]">{user.name}</p>
+                  <p className="small-regular text-light-3 truncate max-w-[200px]">@{user.username}</p>
                 </div>
               </Link>
 
-              <div className="hidden md:flex shrink-0">
-                <NotificationBell />
-              </div>
-            </div>
+
           </>
         )}
 
@@ -86,8 +82,9 @@ const LeftSidebar = () => {
             return (
               <li
                 key={link.label}
-                className={`leftsidebar-link group ${isActive && "bg-primary-500"
-                  }`}>
+                className={`leftsidebar-link group ${
+                  isActive ? "bg-primary-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-primary-500/50" : ""
+                }`}>
                 <Link
                   href={link.route}
                   className="flex gap-4 items-center p-4">

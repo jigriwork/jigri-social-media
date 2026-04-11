@@ -10,6 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import ConfirmActionModal from "./ConfirmActionModal";
 import VerificationBadge from "./VerificationBadge";
+import LinkifiedText from "./LinkifiedText";
 
 type CommentItemProps = {
   comment: Comment;
@@ -123,9 +124,10 @@ const CommentItem = ({ comment, onCommentUpdated, level = 0 }: CommentItemProps)
             )}
           </div>
           
-          <p className="text-sm text-light-2 whitespace-pre-wrap break-words">
-            {comment.content}
-          </p>
+          <LinkifiedText 
+            text={comment.content}
+            className="text-sm text-light-2"
+          />
         </div>
 
         {/* Comment Actions */}

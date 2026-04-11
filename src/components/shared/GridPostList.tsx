@@ -34,12 +34,12 @@ const GridPostList = ({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="h-full w-full bg-gradient-to-br from-dark-3 to-dark-2 p-5 flex flex-col items-start justify-start text-left">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="h-full w-full bg-[#101012] py-4 px-5 flex flex-col items-start justify-start text-left group-hover:bg-[#1a1a1c] transition-colors border border-dark-4">
+                <div className="flex items-center gap-2 mb-3 bg-dark-3/50 px-2 py-1 rounded-md border border-dark-4/50 shadow-sm font-bold">
                   <span className="text-sm">💡</span>
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-primary-500/80">Thought</span>
+                  <span className="text-[10px] uppercase tracking-wider text-primary-500/90 shadow-primary-500/10 font-bold">Thought</span>
                 </div>
-                <p className="small-medium text-light-2 line-clamp-6 whitespace-pre-wrap break-words w-full leading-relaxed">{post.caption || "Text post"}</p>
+                <p className="text-sm text-light-2 line-clamp-6 whitespace-pre-wrap break-words w-full leading-normal opacity-90">{post.caption || "Text post"}</p>
               </div>
             )}
           </Link>

@@ -267,9 +267,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
           <img
             src={user.image_url || "/assets/icons/profile-placeholder.svg"}
             alt="Your profile"
-            width={32}
-            height={32}
-            className="rounded-full"
+            className="w-9 h-9 rounded-full object-cover shrink-0"
           />
 
           <div className="flex-1 flex flex-col gap-1 relative">
@@ -282,7 +280,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                   setComment(e.target.value);
                   mainMentions.handleTextChange(e, e.target.value);
                 }}
-                className="flex-1 border rounded-full px-4 py-2 bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4 focus:border-primary-500"
+                className="flex-1 border-none shadow-none rounded-full px-4 h-10 bg-dark-4/30 text-sm text-light-1 placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-primary-500"
                 maxLength={2200}
                 disabled={isSubmitting}
               />

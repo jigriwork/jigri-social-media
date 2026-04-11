@@ -22,6 +22,7 @@ import { useCreateUserAccount, useSignInAccount } from "@/lib/react-query/querie
 import { useState, useEffect } from "react"
 import { checkEmailOrUsernameExists } from "@/lib/supabase/api"
 import { Eye, EyeOff } from "lucide-react"
+import PWAInstallPrompt from "@/components/shared/PWAInstallPrompt"
 
 
 const SignupForm = () => {
@@ -56,45 +57,45 @@ const SignupForm = () => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'email' && value.email && value.email.length > 3) {
         setAvailabilityStatus(prev => ({ ...prev, email: 'checking' }));
-        
+
         const checkEmail = async () => {
           try {
             const result = await checkEmailOrUsernameExists(value.email!, '');
-            setAvailabilityStatus(prev => ({ 
-              ...prev, 
-              email: result.emailExists ? 'taken' : 'available' 
+            setAvailabilityStatus(prev => ({
+              ...prev,
+              email: result.emailExists ? 'taken' : 'available'
             }));
           } catch (error) {
             console.error('Error checking email availability:', error);
             setAvailabilityStatus(prev => ({ ...prev, email: 'idle' }));
           }
         };
-        
+
         const timeoutId = setTimeout(checkEmail, 500);
         return () => clearTimeout(timeoutId);
       }
-      
+
       if (name === 'username' && value.username && value.username.length > 2) {
         setAvailabilityStatus(prev => ({ ...prev, username: 'checking' }));
-        
+
         const checkUsername = async () => {
           try {
             const result = await checkEmailOrUsernameExists('', value.username!);
-            setAvailabilityStatus(prev => ({ 
-              ...prev, 
-              username: result.usernameExists ? 'taken' : 'available' 
+            setAvailabilityStatus(prev => ({
+              ...prev,
+              username: result.usernameExists ? 'taken' : 'available'
             }));
           } catch (error) {
             console.error('Error checking username availability:', error);
             setAvailabilityStatus(prev => ({ ...prev, username: 'idle' }));
           }
         };
-        
+
         const timeoutId = setTimeout(checkUsername, 500);
         return () => clearTimeout(timeoutId);
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [form]);
 
@@ -111,14 +112,14 @@ const SignupForm = () => {
         return null;
     }
   };
- 
+
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof SignupValidation>) {
     try {
-      console.log('Starting signup process with values:', { 
-        name: values.name, 
-        username: values.username, 
-        email: values.email 
+      console.log('Starting signup process with values:', {
+        name: values.name,
+        username: values.username,
+        email: values.email
       });
 
       const newUser = await createUserAccount(values);
@@ -127,8 +128,8 @@ const SignupForm = () => {
 
       if (!newUser) {
         console.error('Signup failed: newUser is null/undefined');
-        toast({ 
-          title: "Sign up failed", 
+        toast({
+          title: "Sign up failed",
           description: "Unable to create account. Please try again.",
           variant: "destructive"
         });
@@ -136,22 +137,22 @@ const SignupForm = () => {
       }
 
       // Show success message
-      toast({ 
-        title: "Account created successfully!", 
+      toast({
+        title: "Account created successfully!",
         description: "Please sign in with your new account."
       });
 
       // Redirect to sign-in page
       router.push('/sign-in');
-      
+
     } catch (error: any) {
       console.error('Signup error details:', error);
       console.error('Error message:', error?.message);
       console.error('Error code:', error?.code);
       console.error('Full error object:', JSON.stringify(error, null, 2));
-      
+
       let errorMessage = "Sign up failed. Please try again.";
-      
+
       // Handle specific error types
       if (error?.name === 'EmailOrUsernameExistsError') {
         errorMessage = error.message;
@@ -174,9 +175,9 @@ const SignupForm = () => {
           errorMessage = error.message;
         }
       }
-      
-      toast({ 
-        title: "Sign up failed", 
+
+      toast({
+        title: "Sign up failed",
         description: errorMessage,
         variant: "destructive"
       });
@@ -184,23 +185,23 @@ const SignupForm = () => {
   }
   return (
     <Form {...form}>
-  <div className="w-full max-w-md px-6 flex flex-col items-center mt-6 sm:mt-0 sm:pt-1 sm:justify-center sm:min-h-full">
-      <img 
-        src="/assets/images/logo.svg" 
-        alt="logo" 
-        className="w-56 h-auto mb-6 sm:w-64 sm:mb-8"
-      />
+      <div className="w-full max-w-md px-6 flex flex-col items-center mt-6 sm:mt-0 sm:pt-1 sm:justify-center sm:min-h-full">
+        <img
+          src="/assets/images/logo.svg"
+          alt="logo"
+          className="w-56 h-auto mb-6 sm:w-64 sm:mb-8"
+        />
 
-      <h2 className="text-base font-bold text-center mb-1 sm:text-lg sm:mb-1">
-        Create a new account
-      </h2>
-      <p className="text-light-3 text-xs text-center mb-2 sm:text-sm sm:mb-3">
-        To use Jigri, Please enter your details
-      </p>
+        <h2 className="text-base font-bold text-center mb-1 sm:text-lg sm:mb-1">
+          Create a new account
+        </h2>
+        <p className="text-light-3 text-xs text-center mb-2 sm:text-sm sm:mb-3">
+          To use Jigri, Please enter your details
+        </p>
 
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-1 w-full sm:gap-2">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="flex flex-col gap-1 w-full sm:gap-2">
           <FormField
             control={form.control}
             name="name"
@@ -291,13 +292,13 @@ const SignupForm = () => {
             )}
           />
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="shad-button_primary mt-2 h-8 sm:h-10 text-xs sm:text-sm"
             disabled={
-              isCreatingAccount || 
-              isSigningInUser || 
-              availabilityStatus.email === 'taken' || 
+              isCreatingAccount ||
+              isSigningInUser ||
+              availabilityStatus.email === 'taken' ||
               availabilityStatus.username === 'taken' ||
               availabilityStatus.email === 'checking' ||
               availabilityStatus.username === 'checking'
@@ -322,9 +323,16 @@ const SignupForm = () => {
               Log in
             </Link>
           </p>
+
+          <PWAInstallPrompt
+            variant="inline"
+            className="mt-4"
+            buttonLabel="Download"
+            descriptionOverride="For the best experience, download the app."
+          />
         </form>
-    </div>
-  </Form>
+      </div>
+    </Form>
   )
 }
 

@@ -17,17 +17,15 @@ const Bottombar = () => {
             key={`bottombar-${link.label}`}
             href={link.route}
             className={`${
-              isActive && "rounded-[10px] bg-primary-500 "
-            } flex-center flex-col gap-1 p-2 transition`}>
+              isActive && "bg-primary-500 shadow-[0_4px_20px_rgba(139,92,246,0.4)]"
+            } flex-center rounded-full p-2.5 transition-all duration-300 hover:scale-110 active:scale-95`}>
             <img
               src={link.imgURL}
               alt={link.label}
-              width={16}
-              height={16}
+              width={22}
+              height={22}
               className={`${isActive && "invert-white"}`}
             />
-
-            <p className="tiny-medium text-light-2">{link.label}</p>
           </Link>
         );
       })}

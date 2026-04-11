@@ -45,7 +45,7 @@ const PostDetails = () => {
 
   return (
     <div className="post_details-container">
-      <div className="hidden md:flex max-w-5xl w-full">
+      <div className="hidden md:flex max-w-[720px] w-full">
         <Button
           onClick={() => navigate(-1)}
           variant="ghost"
@@ -63,36 +63,21 @@ const PostDetails = () => {
       {isLoading || !post ? (
         <Loader />
       ) : (
-        <div className="post_details-card">
-          {post?.image_url ? (
-            <img
-              src={post?.image_url}
-              alt="post media"
-              className="post_details-img"
-            />
-          ) : (
-            <div className="w-full md:w-[42%] flex items-start justify-start bg-dark-3 p-6 lg:p-8 min-h-[220px] rounded-l-[30px] border-r border-dark-4/60">
-              <div className="w-full max-w-none">
-                <div className="mb-3 text-xs uppercase tracking-wide text-light-4">Text post</div>
-                <LinkifiedText text={post?.caption || ""} className="text-light-1 text-base lg:text-lg leading-7 whitespace-pre-wrap break-words text-left" />
-              </div>
-            </div>
-          )}
-
-          <div className="post_details-info">
-            <div className="flex-between w-full">
-              <Link
-                to={`/profile/${post?.creator.id}`}
-                className="flex items-center gap-3">
-                <img
-                  src={
-                    post?.creator.image_url ||
-                    "/assets/icons/profile-placeholder.svg"
-                  }
-                  alt="creator"
-                  className="w-8 h-8 lg:w-12 lg:h-12 rounded-full"
-                />
-                <div className="flex gap-1 flex-col">
+        <div className="post_details-card p-5 lg:p-7">
+          <div className="flex-between w-full mb-4">
+            <Link
+              to={`/profile/${post?.creator.id}`}
+              className="flex items-center gap-3">
+              <img
+                src={
+                  post?.creator.image_url ||
+                  "/assets/icons/profile-placeholder.svg"
+                }
+                alt="creator"
+                className="w-10 h-10 lg:w-12 lg:h-12 rounded-full object-cover"
+              />
+              <div className="flex gap-1 flex-col">
+                <div className="flex items-center gap-1">
                   <p className="base-medium lg:body-bold text-light-1">
                     {post?.creator.name}
                   </p>
@@ -102,97 +87,101 @@ const PostDetails = () => {
                     role={post?.creator?.role}
                     size={14}
                   />
-                  <div className="flex-center gap-2 text-light-3">
-                    <p className="subtle-semibold lg:small-regular ">
-                      {multiFormatDateString(post?.$createdAt)}
-                    </p>
-                    {post?.location && (
-                      <>
-                        •
-                        <Link to={`/explore?search=${encodeURIComponent(post.location)}`} className="subtle-semibold lg:small-regular hover:text-primary-500">
-                          {post?.location}
-                        </Link>
-                      </>
-                    )}
-                    {post?.category && (
-                      <>
-                        •
-                        <span className="subtle-semibold lg:small-regular text-primary-500 capitalize">
-                          {POST_CATEGORIES.find((cat) => cat.value === post.category)?.label || post.category}
-                        </span>
-                      </>
-                    )}
-                  </div>
                 </div>
+                <div className="flex items-center gap-2 text-light-3">
+                  <p className="subtle-semibold lg:small-regular">
+                    {multiFormatDateString(post?.$createdAt || post?.created_at)}
+                  </p>
+                  {post?.location && (
+                    <>
+                      <span className="text-light-4">•</span>
+                      <Link to={`/explore?search=${encodeURIComponent(post.location)}`} className="subtle-semibold lg:small-regular hover:text-primary-500">
+                        {post?.location}
+                      </Link>
+                    </>
+                  )}
+                  {post?.category && (
+                    <>
+                      <span className="text-light-4">•</span>
+                      <span className="subtle-semibold lg:small-regular text-primary-500 capitalize">
+                        {POST_CATEGORIES.find((cat) => cat.value === post.category)?.label || post.category}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </Link>
+
+            <div className="flex-center gap-4">
+              <Link
+                to={`/update-post/${post?.id}`}
+                className={`${user?.id !== post?.creator.id && "hidden"}`}>
+                <img
+                  src={"/assets/icons/edit.svg"}
+                  alt="edit"
+                  width={24}
+                  height={24}
+                />
               </Link>
 
-              <div className="flex-center gap-4">
-                <Link
-                  to={`/update-post/${post?.id}`}
-                  className={`${user?.id !== post?.creator.id && "hidden"}`}>
-                  <img
-                    src={"/assets/icons/edit.svg"}
-                    alt="edit"
-                    width={24}
-                    height={24}
-                  />
-                </Link>
-
-                <Button
-                  onClick={handleDeletePost}
-                  variant="ghost"
-                  className={`ghost_details-delete_btn ${
-                    user?.id !== post?.creator.id && "hidden"
-                  }`}>
-                  <img
-                    src={"/assets/icons/delete.svg"}
-                    alt="delete"
-                    width={24}
-                    height={24}
-                  />
-                </Button>
-              </div>
+              <Button
+                onClick={handleDeletePost}
+                variant="ghost"
+                className={`ghost_details-delete_btn ${
+                  user?.id !== post?.creator.id && "hidden"
+                }`}>
+                <img
+                  src={"/assets/icons/delete.svg"}
+                  alt="delete"
+                  width={24}
+                  height={24}
+                  className="hover:invert"
+                />
+              </Button>
             </div>
+          </div>
 
-            <hr className="border w-full border-dark-4/80" />
+          <div className="text-sm lg:text-base cursor-text pt-2 pb-5 text-light-1 leading-7 whitespace-pre-wrap break-words">
+            <LinkifiedText text={post?.caption || ""} />
+            {!!post?.tags?.length && (
+              <ul className="flex gap-1 mt-3 flex-wrap">
+                {post?.tags.map((tag: string, index: string) => (
+                  <li key={`${tag}${index}`}>
+                    <Link
+                      to={`/explore?search=${encodeURIComponent(`#${normalizeTag(tag)}`)}`}
+                      className="text-light-3 small-regular hover:text-primary-500"
+                    >
+                      #{normalizeTag(tag)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
-            <div className="flex flex-col flex-1 w-full small-medium lg:base-regular">
-              {post?.image_url ? <LinkifiedText text={post?.caption || ""} /> : null}
-              {!!post?.tags?.length && (
-                <ul className="flex gap-1 mt-2 flex-wrap">
-                  {post?.tags.map((tag: string, index: string) => (
-                    <li key={`${tag}${index}`}>
-                      <Link
-                        to={`/explore?search=${encodeURIComponent(`#${normalizeTag(tag)}`)}`}
-                        className="text-light-3 small-regular hover:text-primary-500"
-                      >
-                        #{normalizeTag(tag)}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+          {post?.image_url && (
+            <img
+              src={post?.image_url}
+              alt="post media"
+              className="post_details-img"
+            />
+          )}
 
-            <div className="w-full">
-              <PostStats post={post} userId={user?.id || ""} />
-            </div>
+          <div className="w-full pt-3">
+            <PostStats post={post} userId={user?.id || ""} />
           </div>
         </div>
       )}
 
       {/* Comments Section */}
       {postId && (
-        <div className="w-full max-w-5xl">
-          <hr className="border w-full border-dark-4/80 my-6" />
+        <div className="w-full max-w-[720px] rounded-3xl bg-dark-2/40 border border-dark-4/30 p-5 lg:p-7 mt-6 mx-auto">
           <Comments postId={postId} />
         </div>
       )}
 
-      <div className="w-full max-w-5xl">
-        <hr className="border w-full border-dark-4/80" />
-
-        <h3 className="body-bold md:h3-bold w-full my-10">
+      <div className="w-full max-w-[720px] mx-auto mt-10">
+        <h3 className="body-bold md:h3-bold w-full mb-6">
           More Related Posts
         </h3>
         {isUserPostLoading || !relatedPosts ? (

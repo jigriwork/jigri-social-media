@@ -369,24 +369,24 @@ const AdminVerificationTrust = () => {
                           <option value="official">Official</option>
                         </select>
 
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <Button size="sm" variant="outline" onClick={() => onAction("under_review")} disabled={updateMutation.isPending}>
+                        <div className="flex flex-col gap-3 w-full mt-2">
+                          <Button size="sm" variant="outline" onClick={() => onAction("under_review")} disabled={updateMutation.isPending} className="w-full justify-center">
                             Mark under review
                           </Button>
-                          <Button size="sm" className="shad-button_primary" onClick={() => onAction("approved")} disabled={!canFinalize || updateMutation.isPending}>
+                          <Button size="sm" className="shad-button_primary w-full justify-center" onClick={() => onAction("approved")} disabled={!canFinalize || updateMutation.isPending}>
                             Approve application
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => onAction("needs_resubmission")} disabled={updateMutation.isPending}>
+                          <Button size="sm" variant="outline" onClick={() => onAction("needs_resubmission")} disabled={updateMutation.isPending} className="w-full justify-center">
                             Request resubmission
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => onAction("rejected")} disabled={!canFinalize || updateMutation.isPending}>
+                          <Button size="sm" variant="outline" onClick={() => onAction("rejected")} disabled={!canFinalize || updateMutation.isPending} className="w-full justify-center">
                             Reject request
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => onAction("revoked")} disabled={!canFinalize || updateMutation.isPending || selected.status !== "approved"} className="sm:col-span-2">
+                          <Button size="sm" variant="outline" onClick={() => onAction("revoked")} disabled={!canFinalize || updateMutation.isPending || selected.status !== "approved"} className="w-full justify-center">
                             Remove verification (revoke)
                           </Button>
                           {canOverride && (
-                            <Button size="sm" variant="outline" onClick={() => onAction("approved", true)} disabled={updateMutation.isPending} className="sm:col-span-2 border-violet-500/30 text-violet-300 hover:bg-violet-500/10">
+                            <Button size="sm" variant="outline" onClick={() => onAction("approved", true)} disabled={updateMutation.isPending} className="w-full justify-center border-violet-500/30 text-violet-300 hover:bg-violet-500/10">
                               Super admin override approve
                             </Button>
                           )}

@@ -89,7 +89,7 @@ const Messages = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] md:h-screen w-full max-w-6xl mx-auto overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-160px)] md:h-screen w-full max-w-6xl mx-auto overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 md:p-6 border-b border-dark-4/50">
         <div className="flex items-center gap-3">
@@ -220,7 +220,7 @@ const Messages = () => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-28 md:pb-4 space-y-3">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-32 md:pb-4 space-y-3">
                 {loadingMsgs ? (
                   <div className="flex items-center justify-center py-20">
                     <Loader />

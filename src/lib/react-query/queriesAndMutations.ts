@@ -107,7 +107,7 @@ export const useCreatePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (post: INewPost) => createPost(post),
-    onSuccess: async (data, variables) => {
+    onSuccess: async (data: any, variables: INewPost) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
       });
@@ -119,6 +119,25 @@ export const useCreatePost = () => {
       if (data && variables.userId) {
         try {
           await notificationService.createNewPostNotifications(data.id);
+          
+          // Detect and create mention notifications for posts
+          const mentionedUsernames = Array.from(
+            new Set(
+              (variables.caption.match(/@[a-zA-Z0-9_.]+/g) || []).map((match) =>
+                match.slice(1).toLowerCase()
+              )
+            )
+          );
+
+          if (mentionedUsernames.length > 0) {
+            await notificationService.createMentionNotification(
+              'post',
+              data.id,
+              variables.caption,
+              mentionedUsernames
+            );
+          }
+
           queryClient.invalidateQueries({
             queryKey: [QUERY_KEYS.GET_NOTIFICATIONS],
           });
@@ -872,7 +891,7 @@ export const useCreateComment = () => {
   return useMutation({
     mutationFn: (comment: { content: string; postId: string; userId: string; parentId?: string }) =>
       createComment(comment),
-    onSuccess: async (data, variables) => {
+    onSuccess: async (data: any, variables: { content: string; postId: string; userId: string; parentId?: string }) => {
       // Invalidate comments for the post
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_COMMENTS, variables.postId],
@@ -892,20 +911,38 @@ export const useCreateComment = () => {
       if (data && variables.userId) {
         try {
           const post = await getPostById(variables.postId);
+          
+          // Detect and create mention notifications for comments
+          const mentionedUsernames = Array.from(
+            new Set(
+              (variables.content.match(/@[a-zA-Z0-9_.]+/g) || []).map((match) =>
+                match.slice(1).toLowerCase()
+              )
+            )
+          );
+
+          if (mentionedUsernames.length > 0) {
+            await notificationService.createMentionNotification(
+              'comment',
+              data.id,
+              variables.content,
+              mentionedUsernames
+            );
+          }
+
           if (post && post.creator?.id !== variables.userId) {
             await notificationService.createCommentNotification(
               variables.postId,
               variables.content,
               Boolean(variables.parentId)
             );
-
-            // Invalidate notifications for the post owner
-            queryClient.invalidateQueries({
-              queryKey: [QUERY_KEYS.GET_NOTIFICATIONS, post.creator.id],
-            });
           }
+
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEYS.GET_NOTIFICATIONS],
+          });
         } catch (error) {
-          console.error('Error creating comment notification:', error);
+          console.error('Error creating comment notifications:', error);
         }
       }
     },

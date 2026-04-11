@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { INITIAL_USER, PRIVACY_SETTINGS } from "@/constants";
 import Loader from "@/components/shared/Loader";
 import ProfileUploader from "@/components/shared/ProfileUploder";
+import PWAInstallPrompt from "@/components/shared/PWAInstallPrompt";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -205,8 +206,8 @@ const Settings = () => {
                   key={setting.value}
                   onClick={() => setPrivacySetting(setting.value)}
                   className={`p-3 rounded-xl border text-left transition-all ${privacySetting === setting.value
-                      ? "border-primary-500 bg-primary-500/10"
-                      : "border-dark-4/50 bg-dark-3 hover:border-dark-4"
+                    ? "border-primary-500 bg-primary-500/10"
+                    : "border-dark-4/50 bg-dark-3 hover:border-dark-4"
                     }`}
                 >
                   <span className="text-lg">{setting.icon}</span>
@@ -310,6 +311,14 @@ const Settings = () => {
           </button>
         </motion.section>
 
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <PWAInstallPrompt variant="settings" />
+        </motion.section>
+
         {/* Danger Zone */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -338,7 +347,7 @@ const Settings = () => {
           <p className="text-sm text-light-4">
             By using Jigri, you agree to our Terms of Service and Privacy Policy.
           </p>
-          <p className="text-xs text-light-4 mt-3">Jigri v1.0 — Phase 5B</p>
+          <p className="text-xs text-light-4 mt-3">Jigri v1.0</p>
         </motion.section>
       </div>
     </div>
