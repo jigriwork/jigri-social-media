@@ -37,6 +37,89 @@ async function hasRecentDuplicateNotification(
   return Boolean(data && data.length > 0)
 }
 
+// GET /api/notifications — fetch notifications for current user
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const url = new URL(request.url)
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100)
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*, user:users!notifications_from_user_id_fkey(id, name, username, image_url)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('Error fetching notifications:', error)
+      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+    }
+
+    const unreadCount = (data || []).filter((n: any) => !n.read).length
+
+    return NextResponse.json({ notifications: data || [], unreadCount })
+  } catch (error) {
+    console.error('GET notifications error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PATCH /api/notifications — mark notifications as read
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const notificationId = body?.notificationId
+    const markAll = body?.markAll === true
+
+    if (markAll) {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false)
+
+      if (error) {
+        console.error('Error marking all as read:', error)
+        return NextResponse.json({ error: 'Failed to mark all as read' }, { status: 500 })
+      }
+      return NextResponse.json({ success: true, message: 'All notifications marked as read' })
+    }
+
+    if (notificationId) {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('Error marking notification as read:', error)
+        return NextResponse.json({ error: 'Failed to mark as read' }, { status: 500 })
+      }
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: 'notificationId or markAll required' }, { status: 400 })
+  } catch (error) {
+    console.error('PATCH notifications error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { createClient } from './client'
 import { Database } from './database.types'
@@ -39,7 +39,7 @@ export async function checkEmailOrUsernameExists(email: string, username: string
   try {
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedUsername = username.toLowerCase().trim();
-    
+
     console.log('Checking if email/username exists:', { email: normalizedEmail, username: normalizedUsername });
 
     // Check email in users table
@@ -87,19 +87,19 @@ export async function signUpUser(user: { name: string; email: string; password: 
     // Normalize email to lowercase
     const normalizedEmail = user.email.toLowerCase().trim();
     const normalizedUsername = user.username.toLowerCase().trim();
-    
-    console.log('Attempting to sign up user:', { 
-      email: normalizedEmail, 
-      name: user.name, 
-      username: normalizedUsername 
+
+    console.log('Attempting to sign up user:', {
+      email: normalizedEmail,
+      name: user.name,
+      username: normalizedUsername
     });
 
     // Check if email or username already exists
     const existenceCheck = await checkEmailOrUsernameExists(normalizedEmail, normalizedUsername);
-    
+
     if (!existenceCheck.isAvailable) {
       let errorMessage = '';
-      
+
       if (existenceCheck.emailExists && existenceCheck.usernameExists) {
         errorMessage = 'Both email and username are already registered. Please use different credentials.';
       } else if (existenceCheck.emailExists) {
@@ -107,17 +107,20 @@ export async function signUpUser(user: { name: string; email: string; password: 
       } else if (existenceCheck.usernameExists) {
         errorMessage = 'This username has already been taken. Please choose a different username.';
       }
-      
+
       const availabilityError = new Error(errorMessage);
       availabilityError.name = 'EmailOrUsernameExistsError';
       throw availabilityError;
     }
 
     // Step 1: Create auth user
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin || 'https://www.jigri.in').replace(/\/$/, '');
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password: user.password,
       options: {
+        emailRedirectTo: `${appUrl}/sign-in`,
         data: {
           name: user.name,
           username: normalizedUsername,
@@ -136,14 +139,14 @@ export async function signUpUser(user: { name: string; email: string; password: 
     }
 
     console.log('Auth signup successful:', data);
-    
+
     // Ensure user profile is created
     if (data.user) {
       console.log('Ensuring user profile exists...');
-      
+
       // Wait a moment for auth to propagate
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const profile = await ensureUserProfile(data.user);
       if (!profile) {
         console.warn('Profile creation failed, but auth signup was successful');
@@ -163,7 +166,7 @@ export async function signInUser(user: { email: string; password: string }) {
   try {
     // Normalize email to lowercase
     const normalizedEmail = user.email.toLowerCase().trim();
-    
+
     console.log('Attempting to sign in user:', { email: normalizedEmail });
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -178,27 +181,27 @@ export async function signInUser(user: { email: string; password: string }) {
         status: error.status,
         code: error.code || 'No code'
       });
-      
+
       // Enhance error message for better user experience
       if (error.message.includes('Email not confirmed')) {
         const enhancedError = new Error('Email verification required. Please verify your email address first, then try logging in.');
         enhancedError.name = 'EmailNotConfirmedError';
         throw enhancedError;
       }
-      
+
       if (error.message.includes('Invalid login credentials')) {
         const enhancedError = new Error('Invalid email or password. Please check your credentials and try again.');
         enhancedError.name = 'InvalidCredentialsError';
         throw enhancedError;
       }
-      
+
       throw error;
     }
 
     // Check if user is deactivated by checking the database
     if (data.user) {
       console.log('Checking if user is deactivated...');
-      
+
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('is_deactivated, is_active')
@@ -211,15 +214,15 @@ export async function signInUser(user: { email: string; password: string }) {
       } else if (userData) {
         if (userData.is_deactivated === true) {
           console.log('User account is deactivated:', data.user.email);
-          
+
           // Sign them out immediately
           await supabase.auth.signOut();
-          
+
           const deactivatedError = new Error('Your account has been deactivated. If you believe this was done in error, please contact support at support@jigri.app for assistance.');
           deactivatedError.name = 'AccountDeactivatedError';
           throw deactivatedError;
         }
-        
+
         // Set user as active since they just logged in successfully
         console.log('Setting user as active...');
         await supabase
@@ -241,7 +244,7 @@ export async function signOutUser() {
   try {
     // Get current user before signing out to update their active status
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (user) {
       // Set user as inactive since they're logging out
       await supabase
@@ -262,11 +265,11 @@ export async function signOutUser() {
 export async function updateUserActivity() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (user) {
       await supabase
         .from('users')
-        .update({ 
+        .update({
           is_active: true,
           last_active: new Date().toISOString()
         })
@@ -282,12 +285,12 @@ export async function updateUserActivity() {
 export async function setUserInactive(userId?: string) {
   try {
     let targetUserId = userId;
-    
+
     if (!targetUserId) {
       const { data: { user } } = await supabase.auth.getUser();
       targetUserId = user?.id;
     }
-    
+
     if (targetUserId) {
       await supabase
         .from('users')
@@ -308,18 +311,18 @@ async function ensureUserProfile(authUser: any): Promise<any> {
       .select('*')
       .eq('id', authUser.id)
       .single();
-    
+
     if (existingProfile && !fetchError) {
       return existingProfile;
     }
-    
+
     // If profile doesn't exist, create it
     if (fetchError && (fetchError.code === 'PGRST116' || fetchError.message?.includes('0 rows'))) {
       console.log('Creating missing user profile for:', authUser.id);
-      
+
       const userName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User';
       const username = authUser.user_metadata?.username || `user_${authUser.id.substring(0, 8)}`;
-      
+
       const { data: newProfile, error: createError } = await supabase
         .from('users')
         .insert([
@@ -338,16 +341,16 @@ async function ensureUserProfile(authUser: any): Promise<any> {
         ])
         .select()
         .single();
-        
+
       if (createError) {
         console.error('Error creating user profile:', createError);
         return null;
       }
-      
+
       console.log('User profile created successfully:', newProfile);
       return newProfile;
     }
-    
+
     console.error('Unexpected error fetching profile:', fetchError);
     return null;
   } catch (error) {
@@ -359,7 +362,7 @@ async function ensureUserProfile(authUser: any): Promise<any> {
 export async function getCurrentUser() {
   try {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError) {
       // Only log auth errors if they're not just "missing session" errors
       if (!authError.message?.includes('session_missing') && !authError.message?.includes('Auth session missing')) {
@@ -367,7 +370,7 @@ export async function getCurrentUser() {
       }
       return null
     }
-    
+
     if (!user) return null
 
     // Ensure user profile exists and return it
@@ -386,6 +389,23 @@ export async function getCurrentUser() {
 // ============================================================
 // USER
 // ============================================================
+
+export async function getUsersByUsernames(usernames: string[]) {
+  if (!usernames || usernames.length === 0) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('username, is_verified, verification_badge_type, role')
+      .in('username', usernames);
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching users by usernames:', error);
+    return []; // Return empty instead of throwing so it doesn't break rendering
+  }
+}
 
 export async function getUserById(userId: string) {
   try {
@@ -406,7 +426,7 @@ export async function getUserById(userId: string) {
 // Public version for unauthenticated access (shared profiles) using API route
 export async function getPublicUserById(userId: string) {
   console.log('ðŸ” getPublicUserById called with userId:', userId);
-  
+
   try {
     // First try direct database access
     const { data, error } = await supabase
@@ -422,11 +442,11 @@ export async function getPublicUserById(userId: string) {
       // If RLS blocks this, try the API route
       if (error.code === 'PGRST116' || error.code === '42501' || error.message.includes('row-level security')) {
         console.log('âš ï¸ RLS blocking direct access, trying API route...')
-        
+
         try {
           const response = await fetch(`/api/public/profile?userId=${userId}`)
           const apiData = await response.json()
-          
+
           if (response.ok && apiData.user) {
             console.log('âœ… Got user data from API route:', apiData.user)
             return apiData.user
@@ -437,7 +457,7 @@ export async function getPublicUserById(userId: string) {
           console.log('ðŸ’¥ API route error:', apiError)
         }
       }
-      
+
       // For other errors, return fallback
       return {
         id: userId,
@@ -449,7 +469,7 @@ export async function getPublicUserById(userId: string) {
         created_at: new Date().toISOString()
       }
     }
-    
+
     console.log('âœ… Successfully fetched user data directly:', data)
     return data
   } catch (error) {
@@ -458,7 +478,7 @@ export async function getPublicUserById(userId: string) {
     return {
       id: userId,
       name: 'User Profile',
-      username: 'user_profile', 
+      username: 'user_profile',
       email: '',
       image_url: null,
       bio: 'This profile is currently unavailable',
@@ -470,7 +490,7 @@ export async function getPublicUserById(userId: string) {
 // Public version for getting user posts (shared profiles) using API route fallback
 export async function getPublicUserPosts(userId: string) {
   console.log('ðŸ” getPublicUserPosts called with userId:', userId);
-  
+
   try {
     const { data, error } = await supabase
       .from('posts')
@@ -493,14 +513,14 @@ export async function getPublicUserPosts(userId: string) {
       .eq('creator_id', userId)
       .order('created_at', { ascending: false })
 
-    console.log('ðŸ“Š Direct posts query result:', { 
-      dataLength: data?.length || 0, 
+    console.log('ðŸ“Š Direct posts query result:', {
+      dataLength: data?.length || 0,
       error,
-      samplePost: data?.[0] ? { 
-        id: data[0].id, 
+      samplePost: data?.[0] ? {
+        id: data[0].id,
         caption: data[0].caption?.substring(0, 50) + '...',
-        creator: data[0].creator 
-      } : null 
+        creator: data[0].creator
+      } : null
     });
 
     if (error) {
@@ -508,11 +528,11 @@ export async function getPublicUserPosts(userId: string) {
       // If RLS blocks this, try the API route
       if (error.code === 'PGRST116' || error.code === '42501' || error.message.includes('row-level security')) {
         console.log('âš ï¸ RLS blocking direct posts access, trying API route...')
-        
+
         try {
           const response = await fetch(`/api/public/profile?userId=${userId}`)
           const apiData = await response.json()
-          
+
           if (response.ok && apiData.posts) {
             console.log('âœ… Got posts data from API route:', apiData.posts.length, 'posts')
             return apiData.posts
@@ -523,10 +543,10 @@ export async function getPublicUserPosts(userId: string) {
           console.log('ðŸ’¥ API route error for posts:', apiError)
         }
       }
-      
+
       return []
     }
-    
+
     console.log('âœ… Successfully fetched', data?.length || 0, 'posts directly')
     return data || []
   } catch (error) {
@@ -609,6 +629,82 @@ export async function getPublicPostById(postId: string) {
   } catch (error) {
     console.error('Error getting public post:', error)
     return null
+  }
+}
+
+export async function checkUsernameAvailability(username: string) {
+  try {
+    const normalizedUsername = username.toLowerCase().trim();
+    const { data: usernameCheck, error: usernameError } = await supabase
+      .from('users')
+      .select('username')
+      .eq('username', normalizedUsername)
+      .limit(1);
+
+    if (usernameError) throw usernameError;
+    return usernameCheck && usernameCheck.length > 0 ? false : true;
+  } catch (error) {
+    console.error('Error checking username availability:', error);
+    return false; // Default to false on error for safety
+  }
+}
+
+export async function updateUsername(userId: string, newUsername: string) {
+  try {
+    const normalizedUsername = newUsername.toLowerCase().trim();
+
+    // 1. Fetch user to check last changed date
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('username, username_last_changed, username_change_count')
+      .eq('id', userId)
+      .single();
+
+    if (userError) throw userError;
+
+    if (user.username.toLowerCase() === normalizedUsername) {
+      return { success: true, message: "Username is already set to this" };
+    }
+
+    // 2. Check 30-day limit
+    if (user.username_last_changed) {
+      const lastChanged = new Date(user.username_last_changed);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      if (lastChanged > thirtyDaysAgo) {
+        // Find exactly when they can change it again
+        const nextAllowedDate = new Date(lastChanged);
+        nextAllowedDate.setDate(nextAllowedDate.getDate() + 30);
+
+        throw new Error(`You can change your username again on ${nextAllowedDate.toLocaleDateString()}`);
+      }
+    }
+
+    // 3. Double-check availability
+    const isAvailable = await checkUsernameAvailability(normalizedUsername);
+    if (!isAvailable) {
+      throw new Error("This username is already taken. Please choose another.");
+    }
+
+    // 4. Perform the massive update
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({
+        username: normalizedUsername,
+        username_last_changed: new Date().toISOString(),
+        username_change_count: (user.username_change_count || 0) + 1
+      })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+    return { success: true, data: updatedUser };
+
+  } catch (error: any) {
+    console.error('Error updating username:', error);
+    throw error;
   }
 }
 
@@ -783,7 +879,7 @@ export async function searchUsers(searchTerm: string, limit: number = 50) {
     }
 
     const trimmedSearch = searchTerm.trim()
-    
+
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -839,7 +935,7 @@ export async function isUserAdmin(userEmail?: string): Promise<boolean> {
     console.log('isUserAdmin: No email provided');
     return false;
   }
-  
+
   console.log('isUserAdmin: Checking admin status for:', userEmail);
 
   // Check database for role/admin status
@@ -943,11 +1039,11 @@ export async function removeAdminUser(userId: string): Promise<boolean> {
 export async function checkAdminAccess(): Promise<boolean> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user?.email) {
       return false;
     }
-    
+
     const isAdmin = await isUserAdmin(user.email);
     return isAdmin;
   } catch (error) {
@@ -988,19 +1084,19 @@ export async function createPost(post: {
     console.log('Creating post with data:', post)
     console.log('User ID:', post.userId)
     console.log('User ID type:', typeof post.userId)
-    
+
     let imageUrl = null
 
     // Upload file if provided - with better error handling
     if (post.file && post.file.length > 0) {
       console.log('Uploading file:', post.file[0])
       const firstFile = post.file[0]
-      
+
       // Check file size (limit to 2MB for better performance)
       if (firstFile.size > 2 * 1024 * 1024) {
         throw new Error('File size too large. Please choose a file smaller than 2MB.')
       }
-      
+
       const fileExt = firstFile.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
 
@@ -1037,7 +1133,7 @@ export async function createPost(post: {
     }
 
     console.log('Creating post record in database...')
-    
+
     // Convert tags string to array
     let tagsArray: string[] | null = null
     if (post.tags) {
@@ -1047,7 +1143,7 @@ export async function createPost(post: {
         .map((tag: string) => tag.trim().replace(/^#/, ''))
         .filter((tag: string) => tag.length > 0)
     }
-    
+
     // Log the exact data being inserted
     const insertData = {
       caption: post.caption,
@@ -1058,7 +1154,7 @@ export async function createPost(post: {
       category: post.category,
     }
     console.log('Insert data:', insertData)
-    
+
     // Create post record
     const { data, error } = await supabase
       .from('posts')
@@ -1080,7 +1176,7 @@ export async function createPost(post: {
     console.log('Post created successfully:', data)
 
     // Note: Notifications are now handled by the notification service in the React query mutations
-    
+
     return data
   } catch (error) {
     console.error('Error creating post:', error)
@@ -1091,7 +1187,7 @@ export async function createPost(post: {
 export async function getRecentPosts() {
   try {
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     // Get all posts without any filtering in the query
     const { data, error } = await supabase
       .from('posts')
@@ -1104,16 +1200,16 @@ export async function getRecentPosts() {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    
+
     // Client-side privacy filtering
     const filteredData = data?.filter(post => {
       const creator = post.creator;
-      
+
       // If user is authenticated
       if (user) {
         // Always show own posts
         if (creator.id === user.id) return true;
-        
+
         // Only show public posts from others (followers_only and private are hidden in explore/recent)
         return creator.privacy_setting === 'public';
       } else {
@@ -1121,7 +1217,7 @@ export async function getRecentPosts() {
         return creator.privacy_setting === 'public';
       }
     }) || [];
-    
+
     // Add comment counts to posts
     if (filteredData.length > 0) {
       const postsWithCommentCounts = await Promise.all(
@@ -1130,7 +1226,7 @@ export async function getRecentPosts() {
             .from('comments')
             .select('*', { count: 'exact', head: true })
             .eq('post_id', post.id)
-          
+
           return {
             ...post,
             _count: {
@@ -1141,7 +1237,7 @@ export async function getRecentPosts() {
       )
       return postsWithCommentCounts
     }
-    
+
     return filteredData
   } catch (error) {
     console.error('Error getting recent posts:', error)
@@ -1163,14 +1259,14 @@ export async function getPostById(postId: string) {
       .single()
 
     if (error) throw error
-    
+
     // Add comment count to post
     if (data) {
       const { count } = await supabase
         .from('comments')
         .select('*', { count: 'exact', head: true })
         .eq('post_id', data.id)
-      
+
       return {
         ...data,
         _count: {
@@ -1178,7 +1274,7 @@ export async function getPostById(postId: string) {
         }
       }
     }
-    
+
     return data
   } catch (error) {
     console.error('Error getting post:', error)
@@ -1220,7 +1316,7 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
       .from('follows')
       .select('following_id')
       .eq('follower_id', user.id)
-    
+
     const followedUserIds = followsData?.map(follow => follow.following_id) || []
 
     // 1) Followed + own posts bucket
@@ -1269,18 +1365,18 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
     const followedFiltered = (followedData || []).filter((post: any) => {
       const creator = post.creator;
       if (!creator) return false;
-    
+
       // Always show own posts
       if (creator.id === user.id) return true;
-      
+
       // For others' posts, check privacy settings
       if (creator.privacy_setting === 'private') return false;
-      
+
       // For followers_only, check if current user follows the creator
       if (creator.privacy_setting === 'followers_only') {
         return followedUserIds.includes(creator.id);
       }
-      
+
       // Public posts are always visible
       return true;
     }) || [];
@@ -1303,21 +1399,31 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
       }, new Map<string, number>());
     }
 
-    const withScore = (post: any) => {
+    const withCommentsAndScore = (post: any) => {
       const likes = post.likes?.length || 0;
       const comments = commentCountMap.get(post.id) || 0;
+
+      // Calculate how many hours old the post is
       const hoursAgo = Math.max(0, (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60));
-      const recencyFactor = Math.max(0, 72 - hoursAgo) / 6; // 0..12
-      const score = likes + comments * 2 + recencyFactor;
+
+      // Massive Recency Factor: Starts at 1000 points and decays over 48 hours.
+      // This essentially guarantees any post made in the last few hours is at the top,
+      // while older posts MUST have huge engagement to compete.
+      const recencyFactor = Math.max(0, 48 - hoursAgo) * 20; // Max 960 points
+
+      // 1 like = 1 point, 1 comment = 3 points
+      const score = likes + (comments * 3) + recencyFactor;
+
       return {
         ...post,
         _count: { comments },
-        _engagementScore: score,
+        _engagementScore: score
       };
     };
 
-    const followedRanked = followedFiltered.map(withScore).sort((a: any, b: any) => b._engagementScore - a._engagementScore);
-    const globalRanked = globalData.map(withScore).sort((a: any, b: any) => b._engagementScore - a._engagementScore);
+    // Sort by Engagement Score (which is heavily weighted towards Newness)
+    const followedRanked = followedFiltered.map(withCommentsAndScore).sort((a: any, b: any) => b._engagementScore - a._engagementScore);
+    const globalRanked = globalData.map(withCommentsAndScore).sort((a: any, b: any) => b._engagementScore - a._engagementScore);
 
     // Followed-first, with a controlled global mix so feed stays alive
     const followedTarget = Math.max(8, Math.floor(limit * 0.7));
@@ -1328,14 +1434,14 @@ export async function getFollowingFeed(page: number = 1, limit: number = 20) {
       ...globalRanked.slice(Math.max(0, limit - followedTarget)),
     ];
 
-    // Deduplicate and paginate
+    // Deduplicate and ensure descending engagement score order globally
     const deduped = mixedFirstPage.filter((post: any, index: number, arr: any[]) =>
       arr.findIndex((p: any) => p.id === post.id) === index
-    );
+    ).sort((a: any, b: any) => b._engagementScore - a._engagementScore);
 
     const offset = (page - 1) * limit;
     const paginatedData = deduped.slice(offset, offset + limit);
-    
+
     return paginatedData
   } catch (error) {
     console.error('Error getting following feed:', error)
@@ -1422,7 +1528,7 @@ export async function deletePost(postId: string) {
 export async function likePost(postId: string, userId: string) {
   try {
     console.log('Liking post:', { postId, userId })
-    
+
     const { data, error } = await supabase
       .from('likes')
       .insert([
@@ -1440,9 +1546,9 @@ export async function likePost(postId: string, userId: string) {
       console.error('Error code:', error.code)
       throw error
     }
-    
+
     console.log('Like created successfully:', data)
-    
+
     return data
   } catch (error) {
     console.error('Error liking post:', error)
@@ -1457,7 +1563,7 @@ export async function likePost(postId: string, userId: string) {
 export async function deleteLike(postId: string, userId: string) {
   try {
     console.log('Unliking post:', { postId, userId })
-    
+
     const { error } = await supabase
       .from('likes')
       .delete()
@@ -1468,7 +1574,7 @@ export async function deleteLike(postId: string, userId: string) {
       console.error('Unlike deletion error:', error)
       throw error
     }
-    
+
     console.log('Like deleted successfully')
   } catch (error) {
     console.error('Error unliking post:', error)
@@ -1484,7 +1590,7 @@ export async function savePost(postId: string, userId: string) {
   try {
     console.log('Saving post:', { postId, userId })
     console.log('PostId type:', typeof postId, 'UserId type:', typeof userId)
-    
+
     // Direct insert - let the database handle duplicates with a meaningful error
     const { data, error } = await supabase
       .from('saves')
@@ -1509,7 +1615,7 @@ export async function savePost(postId: string, userId: string) {
           .single()
         return existingSave
       }
-      
+
       console.error('Save insertion error:', error)
       console.error('Error message:', error.message)
       console.error('Error details:', error.details)
@@ -1517,7 +1623,7 @@ export async function savePost(postId: string, userId: string) {
       console.error('Error code:', error.code)
       throw error
     }
-    
+
     console.log('Post saved successfully:', data)
     return data
   } catch (error) {
@@ -1529,7 +1635,7 @@ export async function savePost(postId: string, userId: string) {
 export async function deleteSave(postId: string, userId: string) {
   try {
     console.log('Unsaving post:', { postId, userId })
-    
+
     const { error } = await supabase
       .from('saves')
       .delete()
@@ -1540,7 +1646,7 @@ export async function deleteSave(postId: string, userId: string) {
       console.error('Unsave deletion error:', error)
       throw error
     }
-    
+
     console.log('Post unsaved successfully')
   } catch (error) {
     console.error('Error unsaving post:', error)
@@ -1688,9 +1794,9 @@ export async function searchPosts(searchTerm: string) {
 export async function getInfinitePosts({ pageParam }: { pageParam?: string }) {
   try {
     console.log('Fetching infinite posts with pageParam:', pageParam);
-    
+
     const pageSize = 10 // Number of posts per page
-    
+
     let query = supabase
       .from('posts')
       .select(`
@@ -1701,7 +1807,7 @@ export async function getInfinitePosts({ pageParam }: { pageParam?: string }) {
       `)
       .order('created_at', { ascending: false })
       .limit(pageSize)
-    
+
     // If pageParam is provided, fetch posts created before that timestamp
     if (pageParam) {
       // Get the post with pageParam id to get its created_at timestamp
@@ -1710,21 +1816,21 @@ export async function getInfinitePosts({ pageParam }: { pageParam?: string }) {
         .select('created_at')
         .eq('id', pageParam)
         .single()
-      
+
       if (!paramError && paramPost) {
         query = query.lt('created_at', paramPost.created_at)
       } else {
         console.warn('Could not find post with pageParam:', pageParam, paramError);
       }
     }
-    
+
     const { data, error } = await query
 
     if (error) {
       console.error('Supabase error in getInfinitePosts:', error);
       throw error;
     }
-    
+
     // Return in the format expected by react-query infinite queries
     return {
       documents: data || [],
@@ -1808,7 +1914,7 @@ export async function followUser(followingId: string) {
       })
       throw error
     }
-    
+
     console.log('Successfully followed user:', data)
     return data
   } catch (error) {
@@ -1840,7 +1946,7 @@ export async function unfollowUser(followingId: string) {
       })
       throw error
     }
-    
+
     console.log('Successfully unfollowed user:', data)
     return data
   } catch (error) {
@@ -2082,7 +2188,7 @@ export async function updateComment(commentId: string, content: string): Promise
   try {
     const { data, error } = await supabase
       .from('comments')
-      .update({ 
+      .update({
         content,
         is_edited: true,
       })
@@ -2181,9 +2287,10 @@ export async function sendPasswordResetEmail(email: string) {
   try {
     // Normalize email to lowercase
     const normalizedEmail = email.toLowerCase().trim();
-    
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || window.location.origin || 'https://www.jigri.in').replace(/\/$/, '');
+
     console.log('ðŸ”„ Starting password reset for email:', normalizedEmail);
-    
+
     // First check if user exists
     const { data: userData, error: userError } = await supabase
       .from('users')
@@ -2201,14 +2308,14 @@ export async function sendPasswordResetEmail(email: string) {
     console.log('ðŸ“§ Sending reset email to:', normalizedEmail);
     // Send password reset email with link (this will use your email template)
     const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${appUrl}/reset-password`,
     });
 
     if (error) {
       console.log('âŒ Reset email error:', error);
       throw error;
     }
-    
+
     console.log('âœ… Reset email sent successfully');
     return { success: true, message: 'Password reset email sent! Please check your inbox.' }
   } catch (error: any) {
@@ -2224,26 +2331,26 @@ export async function updateUserPassword(newPassword: string) {
     console.log('🔄 Password length:', newPassword.length);
     console.log('🌐 Current origin:', window.location.origin);
     console.log('🌐 Environment:', process.env.NODE_ENV);
-    
+
     // Create a completely fresh Supabase client instance
     console.log('🆕 Creating fresh Supabase client instance...');
     const freshClient = createClient();
-    
+
     // For production/Vercel deployment, use optimized approach
     console.log('� Using production-optimized password update...');
-    
+
     // Try to get and transfer session with shorter timeout for production
     console.log('🔄 Attempting session transfer...');
     try {
       // Shorter timeout for production environments
       const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('getSession timeout')), 2000)
       );
-      
+
       const sessionResult = await Promise.race([sessionPromise, timeoutPromise]);
       const { data: { session } } = sessionResult as any;
-      
+
       if (session) {
         console.log('✅ Got session, transferring to fresh client...');
         await freshClient.auth.setSession(session);
@@ -2255,20 +2362,20 @@ export async function updateUserPassword(newPassword: string) {
       const errorMsg = sessionError instanceof Error ? sessionError.message : 'Unknown error';
       console.log('⚠️ Session transfer failed, proceeding anyway:', errorMsg);
     }
-    
+
     // Use the fresh client for password update with timeout protection
     console.log('📞 Calling updateUser on fresh client with timeout...');
-    
+
     const updateResult = await Promise.race([
       freshClient.auth.updateUser({ password: newPassword }),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => {
           console.error('⏰ Fresh client updateUser timed out after 10 seconds');
           reject(new Error('Password update timed out. This may be a network or Supabase service issue.'));
         }, 10000)
       )
     ]);
-    
+
     const { data, error } = updateResult as any;
 
     console.log('🔐 Fresh client update result:', {
@@ -2283,35 +2390,35 @@ export async function updateUserPassword(newPassword: string) {
         status: error.status,
         code: error.code || 'no-code'
       });
-      
+
       // If fresh client also fails, this might be a Supabase service issue
       if (error.message.includes('timeout') || error.message.includes('network')) {
         throw new Error('Unable to connect to authentication service. Please check your internet connection and try again.');
       }
-      
+
       // Handle specific error types
       if (error.message.includes('session') || error.message.includes('unauthorized')) {
         throw new Error('Your session has expired. Please use a fresh password reset link.');
       }
-      
+
       if (error.message.includes('weak_password')) {
         throw new Error('Password is too weak. Please use a stronger password.');
       }
-      
+
       if (error.message.includes('same_password')) {
         throw new Error('New password must be different from your current password.');
       }
-      
+
       throw error;
     }
-    
+
     if (!data?.user) {
       throw new Error('Password update failed - no user data returned');
     }
-    
+
     console.log('✅ Password updated successfully with fresh client for:', data.user.email);
     return { success: true, message: 'Password updated successfully!' }
-    
+
   } catch (error: any) {
     console.error('🚨 Error in updateUserPassword:', {
       message: error.message,
@@ -2766,6 +2873,84 @@ export async function updateAdminVerificationApplication(
     throw error
   }
 }
+
+// ============================================================
+// MESSAGING (DM)
+// ============================================================
+
+export async function getConversations() {
+  try {
+    const response = await fetch('/api/messages/conversations')
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch conversations')
+    }
+
+    return payload.conversations || []
+  } catch (error) {
+    console.error('Error fetching conversations:', error)
+    return []
+  }
+}
+
+export async function getMessages(conversationId: string) {
+  try {
+    const response = await fetch(`/api/messages/${conversationId}`)
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to fetch messages')
+    }
+
+    return payload.messages || []
+  } catch (error) {
+    console.error('Error fetching messages:', error)
+    return []
+  }
+}
+
+export async function sendMessage(conversationId: string, content: string) {
+  try {
+    const response = await fetch(`/api/messages/${conversationId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    })
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to send message')
+    }
+
+    return payload.message
+  } catch (error) {
+    console.error('Error sending message:', error)
+    throw error
+  }
+}
+
+export async function createConversation(otherUserId: string) {
+  try {
+    const response = await fetch('/api/messages/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otherUserId }),
+    })
+    const payload = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to create conversation')
+    }
+
+    return payload.conversation
+  } catch (error) {
+    console.error('Error creating conversation:', error)
+    throw error
+  }
+}
+
+
 
 
 

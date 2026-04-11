@@ -18,7 +18,6 @@ import Loader from "@/components/shared/Loader";
 import GridPostList from "@/components/shared/GridPostList";
 import LinkifiedText from "@/components/shared/LinkifiedText";
 import LikedPosts from "./LikedPosts";
-import PrivacySettings from "@/components/shared/PrivacySettings";
 import { PRIVACY_SETTINGS } from "@/constants";
 
 interface StabBlockProps {
@@ -41,7 +40,6 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
   const { user } = useUserContext();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'posts' | 'liked'>('posts');
-  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   
   const id = params?.id;
 
@@ -140,13 +138,13 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
           >
             <p className="flex whitespace-nowrap small-medium">Edit Profile</p>
           </Link>
-          <Button 
-            type="button" 
-            className="h-10 bg-dark-4 px-4 text-light-1 rounded-lg hover:bg-dark-3 flex-1" 
-            onClick={() => setShowPrivacySettings(!showPrivacySettings)}
+          <Link
+            href="/settings"
+            className="h-10 bg-dark-4 px-4 text-light-1 flex-center gap-2 rounded-lg hover:bg-dark-3 flex-1"
           >
+            <img src="/assets/icons/settings.svg" alt="settings" width={16} height={16} className="invert-white" />
             <p className="flex whitespace-nowrap small-medium">Settings</p>
-          </Button>
+          </Link>
           <Button type="button" className="h-10 bg-dark-4 px-4 text-light-1 rounded-lg hover:bg-dark-3 flex-1" onClick={handleShareProfile}>
             <p className="flex whitespace-nowrap small-medium">Share Profile</p>
           </Button>
@@ -193,9 +191,26 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
             <h1 className="text-left text-xl sm:text-2xl font-bold">
               {currentUser.name}
             </h1>
-            <p className="text-sm text-light-3 text-left">
-              @{currentUser.username}
-            </p>
+            <div className="relative group">
+              <p 
+                className={`text-sm text-light-3 text-left ${currentUser.username_change_count > 0 ? 'cursor-help hover:text-primary-500 transition-colors' : ''}`}
+                onClick={() => {
+                  if (currentUser.username_change_count > 0) {
+                    toast({
+                      title: "Account History",
+                      description: `This user has changed their username ${currentUser.username_change_count} ${currentUser.username_change_count === 1 ? 'time' : 'times'}.`,
+                    });
+                  }
+                }}
+              >
+                @{currentUser.username}
+              </p>
+              {currentUser.username_change_count > 0 && (
+                <div className="absolute left-0 -top-6 hidden group-hover:block bg-dark-4 text-light-2 text-[10px] px-2 py-0.5 rounded border border-dark-4 whitespace-nowrap z-10 shadow-xl">
+                  {currentUser.username_change_count} {currentUser.username_change_count === 1 ? 'change' : 'changes'}
+                </div>
+              )}
+            </div>
 
             {/* Privacy indicator */}
             {isOwnProfile && (
@@ -238,15 +253,7 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
 
         <ActionButtons />
         
-        {/* Privacy Settings Section - Only for own profile */}
-        {isOwnProfile && showPrivacySettings && (
-          <div className="w-full mt-4">
-            <PrivacySettings 
-              currentPrivacy={currentUser.privacy_setting || "public"} 
-              userId={currentUser.id} 
-            />
-          </div>
-        )}
+
       </div>
       
       <div className="flex border-t border-dark-4 w-full max-w-5xl mt-2 pt-2">

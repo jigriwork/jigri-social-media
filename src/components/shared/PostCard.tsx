@@ -40,8 +40,29 @@ const PostCard = ({ post }: PostCardProps) => {
 
   const isTextOnlyPost = !post.image_url;
 
+  // Determine category-specific classes
+  let categoryWrapperClass = "post-card";
+  let categoryTag = null;
+
+  if (post.category === "announcement") {
+    categoryWrapperClass = "post-card ring-2 ring-primary-500/40 relative overflow-hidden";
+    categoryTag = (
+      <div className="absolute top-0 right-0 bg-primary-500 text-light-1 text-[10px] px-3 py-1 rounded-bl-lg font-bold flex items-center gap-1 uppercase tracking-wider">
+        <span>📢</span> Announcement
+      </div>
+    );
+  } else if (post.category === "question") {
+    categoryWrapperClass = "post-card bg-gradient-to-br from-dark-2 to-dark-3/80 border-t-2 border-t-secondary-500 relative";
+    categoryTag = (
+      <div className="absolute -top-3 right-5 bg-dark-4 border border-dark-4 px-3 py-1 rounded-full text-xs font-medium text-light-2 flex items-center gap-1 shadow-lg shadow-dark-1">
+        <span className="text-secondary-500 font-bold">Q:</span> Question
+      </div>
+    );
+  }
+
   return (
-    <div className="post-card">
+    <div className={categoryWrapperClass}>
+      {categoryTag}
       <div className="flex-between">
         <div className="flex items-center gap-3">
           <Link href={`/profile/${post.creator.id}`}>
@@ -153,10 +174,13 @@ const PostCard = ({ post }: PostCardProps) => {
         </Link>
       ) : (
         <div
-          className="w-full rounded-2xl border border-dark-4 bg-dark-3/40 p-5 cursor-pointer"
+          className="w-full rounded-2xl bg-gradient-to-br from-dark-3/80 to-dark-3/40 border border-dark-4/40 p-5 cursor-pointer hover:border-dark-4/80 transition-colors"
           onClick={() => router.push(`/posts/${post.id}`)}
         >
-          <div className="mb-2 text-xs uppercase tracking-wide text-light-4">Thread / text post</div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base text-primary-500/80">💡</span>
+            <span className="text-[11px] uppercase tracking-wider font-bold text-primary-500/80">Thought</span>
+          </div>
           <LinkifiedText
             text={post.caption}
             className="text-light-1 text-base lg:text-lg leading-7 whitespace-pre-wrap break-words"

@@ -15,6 +15,11 @@ export const sidebarLinks = [
       label: "People",
     },
     {
+      imgURL: "/assets/icons/chat.svg",
+      route: "/messages",
+      label: "Messages",
+    },
+    {
       imgURL: "/assets/icons/bookmark.svg",
       route: "/saved",
       label: "Saved",
@@ -76,9 +81,9 @@ export const sidebarLinks = [
       label: "Explore",
     },
     {
-      imgURL: "/assets/icons/people.svg",
-      route: "/all-users",
-      label: "People",
+      imgURL: "/assets/icons/chat.svg",
+      route: "/messages",
+      label: "Messages",
     },
     {
       imgURL: "/assets/icons/bookmark.svg",

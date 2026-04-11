@@ -1,6 +1,6 @@
 "use client";
 
-import PostFormNextJS from '../../components/forms/PostFormNextJS';
+import PostForm from '../../components/forms/PostForm';
 import { useGetPostById } from '../../lib/react-query/queriesAndMutations';
 
 import Loader from '../../components/shared/Loader';
@@ -41,7 +41,7 @@ const EditPostWrapper = ({ postId }: EditPostWrapperProps) => {
           />
           <h2 className="h3-bold md:h2-bold text-left w-full">Edit Post</h2>
         </div>
-        <PostFormNextJS action="Update" post={post} />
+        <PostForm action="Update" post={post} />
       </div>
     </div>
   );

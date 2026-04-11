@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/SupabaseAuthContext";
@@ -15,6 +15,8 @@ type Notification = {
   message: string;
   user_id: string;
   from_user_id: string;
+  from_user_name?: string;
+  from_user_avatar?: string;
   action_url?: string;
   read?: boolean;
   created_at: string;
@@ -43,6 +45,7 @@ const NotificationBell = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const groupedNotifications = useMemo<GroupedNotification[]>(() => {
     const grouped = new Map<string, GroupedNotification>();
@@ -78,7 +81,7 @@ const NotificationBell = () => {
     try {
       const res = await supabase
         .from("notifications")
-        .select("*, user:users!notifications_from_user_id_fkey(id, name, username, image_url)")
+        .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -110,15 +113,34 @@ const NotificationBell = () => {
     };
   }, [user?.id]);
 
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
+
   const handleBellClick = async () => {
     const nextOpen = !showDropdown;
     setShowDropdown(nextOpen);
 
     if (!nextOpen || !user?.id) return;
+    await fetchNotifications(true);
+  };
 
-    const latestNotifications = (await fetchNotifications(true)) || notifications;
+  const handleMarkAllAsRead = async () => {
+    if (!user?.id) return;
 
-    const unreadIds = latestNotifications.filter((n) => !n.read).map((n) => n.id);
+    const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
     if (unreadIds.length > 0) {
       await supabase
         .from("notifications")
@@ -126,6 +148,8 @@ const NotificationBell = () => {
         .in("id", unreadIds)
         .eq("user_id", user.id);
     }
+
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   };
 
@@ -135,7 +159,7 @@ const NotificationBell = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <motion.button
         className="relative p-3 rounded-xl bg-dark-3/50 hover:bg-dark-2/70 border border-dark-4/50 hover:border-dark-4 transition-all duration-200 group"
         onClick={handleBellClick}
@@ -191,11 +215,21 @@ const NotificationBell = () => {
             <div className="p-4 border-b border-dark-4/50 bg-gradient-to-r from-dark-2 to-dark-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-light-1">Notifications</h3>
-                {unreadCount > 0 && (
-                  <span className="text-xs bg-primary-500/20 text-primary-400 px-2 py-1 rounded-full">
-                    {unreadCount} new
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                  {unreadCount > 0 && (
+                    <span className="text-xs bg-primary-500/20 text-primary-400 px-2 py-1 rounded-full">
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -215,7 +249,7 @@ const NotificationBell = () => {
               ) : groupedNotifications.length === 0 ? (
                 <div className="p-8 text-center">
                   <p className="text-light-3 text-sm">No notifications yet</p>
-                  <p className="text-light-4 text-xs mt-1">We’ll keep you updated here.</p>
+                  <p className="text-light-4 text-xs mt-1">We'll keep you updated here.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-dark-4/30">
@@ -232,8 +266,8 @@ const NotificationBell = () => {
                     >
                       <div className="flex items-start gap-3">
                         <img
-                          src={n.user?.image_url || "/assets/icons/profile-placeholder.svg"}
-                          alt={n.user?.username || "User"}
+                          src={n.from_user_avatar || "/assets/icons/profile-placeholder.svg"}
+                          alt={n.from_user_name || "User"}
                           className="w-10 h-10 rounded-full object-cover border border-dark-4"
                         />
                         <div className="flex-1 min-w-0">
@@ -243,10 +277,10 @@ const NotificationBell = () => {
                             </p>
                           )}
                           <div className="text-sm text-light-1">
-                            {n.user?.username && (
-                              <span className="font-semibold text-primary-400">{n.user.username}</span>
+                            {n.from_user_name && (
+                              <span className="font-semibold text-primary-400">{n.from_user_name}</span>
                             )}
-                            {n.user?.username ? " " : ""}
+                            {n.from_user_name ? " " : ""}
                             <span className="text-light-2">{n.message}</span>
                             {n.count > 1 && (
                               <span className="ml-2 text-xs text-primary-400">+{n.count - 1} more</span>

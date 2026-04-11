@@ -19,6 +19,8 @@ import AuthPromptModal from "./AuthPromptModal";
 import Link from "next/link";
 import ConfirmActionModal from "./ConfirmActionModal";
 import VerificationBadge from "./VerificationBadge";
+import { useMentions } from "@/hooks/useMentions";
+import MentionsDropdown from "./MentionsDropdown";
 
 type QuickCommentProps = {
   postId: string;
@@ -42,6 +44,9 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [authAction, setAuthAction] = useState("");
   const [deleteTargetCommentId, setDeleteTargetCommentId] = useState<string | null>(null);
+
+  const mainMentions = useMentions();
+  const replyMentions = useMentions();
 
   // Fetch comments when component mounts
   useEffect(() => {
@@ -255,28 +260,43 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
             className="rounded-full"
           />
           
-          <div className="flex-1 flex items-center gap-2">
-            <Input
-              type="text"
-              placeholder="Add a comment..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="flex-1 border rounded-full px-4 py-2 bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4 focus:border-primary-500"
-              maxLength={2200}
-              disabled={isSubmitting}
-            />
+          <div className="flex-1 flex flex-col gap-1 relative">
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                placeholder="Add a comment... (Type @ to mention)"
+                value={comment}
+                onChange={(e) => {
+                  setComment(e.target.value);
+                  mainMentions.handleTextChange(e, e.target.value);
+                }}
+                className="flex-1 border rounded-full px-4 py-2 bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4 focus:border-primary-500"
+                maxLength={2200}
+                disabled={isSubmitting}
+              />
+              <MentionsDropdown
+                isVisible={mainMentions.isDropdownVisible}
+                users={mainMentions.searchResults || []}
+                isFetching={mainMentions.isFetching}
+                onClose={mainMentions.closeDropdown}
+                onSelect={(username) => {
+                  const newText = mainMentions.insertMention(username, comment);
+                  setComment(newText);
+                }}
+              />
+            </div>
+          </div>
           
-          <Button
-            type="submit"
-            variant="ghost"
-            size="sm"
-            disabled={!comment.trim() || isSubmitting}
-            className="text-primary-500 hover:text-primary-600 disabled:text-light-4 px-3 py-2 font-semibold"
-          >
-            {isSubmitting ? "Posting..." : "Post"}
-          </Button>
-        </div>
-      </form>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              disabled={!comment.trim() || isSubmitting}
+              className="text-primary-500 hover:text-primary-600 disabled:text-light-4 px-3 py-2 font-semibold"
+            >
+              {isSubmitting ? "Posting..." : "Post"}
+            </Button>
+        </form>
       ) : (
         /* Auth prompt for unauthenticated users */
         <div className="flex items-center gap-3 p-3 bg-dark-4 rounded-lg">
@@ -474,21 +494,36 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                           height={24}
                           className="rounded-full"
                         />
-                        <Input
-                          type="text"
-                          placeholder={`Reply to ${commentItem.user.name}...`}
-                          value={replyContent}
-                          onChange={(e) => setReplyContent(e.target.value)}
-                          className="flex-1 border rounded-full px-3 py-1 text-xs bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4 focus:border-primary-500"
-                          maxLength={2200}
-                          disabled={isSubmittingReply}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSubmitReply(commentItem.id);
-                            }
-                          }}
-                        />
+                        <div className="flex-1 relative">
+                          <Input
+                            type="text"
+                            placeholder={`Reply to ${commentItem.user.name}...`}
+                            value={replyContent}
+                            onChange={(e) => {
+                              setReplyContent(e.target.value);
+                              replyMentions.handleTextChange(e, e.target.value);
+                            }}
+                            className="w-full border rounded-full px-3 py-1 text-xs bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4 focus:border-primary-500"
+                            maxLength={2200}
+                            disabled={isSubmittingReply}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSubmitReply(commentItem.id);
+                              }
+                            }}
+                          />
+                          <MentionsDropdown
+                            isVisible={replyMentions.isDropdownVisible}
+                            users={replyMentions.searchResults || []}
+                            isFetching={replyMentions.isFetching}
+                            onClose={replyMentions.closeDropdown}
+                            onSelect={(username) => {
+                              const newText = replyMentions.insertMention(username, replyContent);
+                              setReplyContent(newText);
+                            }}
+                          />
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"

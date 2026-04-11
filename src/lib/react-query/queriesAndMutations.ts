@@ -13,6 +13,7 @@ import {
   getPostById,
   getRecentPosts,
   getUserById,
+  getUsersByUsernames,
   getUserPosts,
   getFollowingFeed,
   likePost,
@@ -26,6 +27,7 @@ import {
   signUpUser,
   updatePost,
   updateUser,
+  updateUsername,
   deletePost,
   getUsers,
   getSuggestedUsers,
@@ -75,27 +77,31 @@ import {
   getAdminVerificationApplications,
   getAdminVerificationApplicationDetails,
   updateAdminVerificationApplication,
+  getConversations,
+  getMessages,
+  sendMessage,
+  createConversation,
 } from "../supabase/api";
 import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
 import { QUERY_KEYS } from "./queryKeys";
 import { notificationService } from "../utils/notificationService";
 export const useCreateUserAccount = () => {
-    return useMutation({
-        mutationFn: (user: INewUser) => signUpUser(user)
-    })
+  return useMutation({
+    mutationFn: (user: INewUser) => signUpUser(user)
+  })
 }
 export const useSignInAccount = () => {
-    return useMutation({
-        mutationFn: (user: {
-            email: string; 
-            password: string;
-        }) => signInUser(user)
-    })
+  return useMutation({
+    mutationFn: (user: {
+      email: string;
+      password: string;
+    }) => signInUser(user)
+  })
 }
 export const useSignOutAccount = () => {
-    return useMutation({
-      mutationFn: signOutUser,
-    });
+  return useMutation({
+    mutationFn: signOutUser,
+  });
 };
 export const useCreatePost = () => {
   const queryClient = useQueryClient();
@@ -109,7 +115,7 @@ export const useCreatePost = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED],
       });
-      
+
       if (data && variables.userId) {
         try {
           await notificationService.createNewPostNotifications(data.id);
@@ -124,195 +130,195 @@ export const useCreatePost = () => {
   });
 };
 export const useUpdatePost = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-      mutationFn: ({ postId, tags, ...postData }: IUpdatePost) => {
-        // Convert hashtags separated by spaces or commas to array for API
-        const tagsArray = tags
-          ? tags
-              .split(/[\s,]+/)
-              .map(tag => tag.trim().replace(/^#/, ''))
-              .filter(tag => tag.length > 0)
-          : [];
-        return updatePost(postId, { 
-          ...postData, 
-          tags: tagsArray.length > 0 ? tagsArray : undefined 
-        });
-      },
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POST_BY_ID, data?.id],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-        });
-        // Invalidate following feed so updated posts reflect in followers' feeds
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED],
-        });
-      },
-    });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, tags, ...postData }: IUpdatePost) => {
+      // Convert hashtags separated by spaces or commas to array for API
+      const tagsArray = tags
+        ? tags
+          .split(/[\s,]+/)
+          .map(tag => tag.trim().replace(/^#/, ''))
+          .filter(tag => tag.length > 0)
+        : [];
+      return updatePost(postId, {
+        ...postData,
+        tags: tagsArray.length > 0 ? tagsArray : undefined
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POST_BY_ID, data?.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
+      });
+      // Invalidate following feed so updated posts reflect in followers' feeds
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED],
+      });
+    },
+  });
 };
 export const useGetRecentPosts = () => {
-    return useQuery({
-      queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-      queryFn: getRecentPosts,
-      staleTime: 1000 * 60 * 2, // 2 minutes
-      retry: (failureCount, error: any) => {
-        console.log('Recent posts query failed:', error);
-        return failureCount < 2;
-      },
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
-    });
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
+    queryFn: getRecentPosts,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: (failureCount, error: any) => {
+      console.log('Recent posts query failed:', error);
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
 };
 
 export const useGetFollowingFeed = (page: number = 1, limit: number = 20) => {
-    return useQuery({
-      queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED, page],
-      queryFn: () => getFollowingFeed(page, limit),
-      staleTime: 1000 * 60 * 1, // 1 minute (shorter than recent posts for more freshness)
-      retry: (failureCount, error: any) => {
-        console.log('Following feed query failed:', error);
-        return failureCount < 2;
-      },
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
-      // Refetch when returning from background
-      refetchInterval: false, // Don't auto-refetch on interval
-      // Ensure fresh data when component mounts
-      gcTime: 1000 * 60 * 5, // 5 minutes cache time
-    });
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED, page],
+    queryFn: () => getFollowingFeed(page, limit),
+    staleTime: 1000 * 60 * 1, // 1 minute (shorter than recent posts for more freshness)
+    retry: (failureCount, error: any) => {
+      console.log('Following feed query failed:', error);
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    // Refetch when returning from background
+    refetchInterval: false, // Don't auto-refetch on interval
+    // Ensure fresh data when component mounts
+    gcTime: 1000 * 60 * 5, // 5 minutes cache time
+  });
 };
 export const useLikePost = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-      mutationFn: ({
-        postId,
-        userId,
-      }: {
-        postId: string;
-        userId: string;
-      }) => likePost(postId, userId), // Updated to match our Supabase API
-      onSuccess: async (_, variables) => {
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POST_BY_ID],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-        });
-        
-        try {
-          const post = await getPostById(variables.postId);
-          await notificationService.createLikeNotification(variables.postId);
-          if (post?.creator?.id) {
-            queryClient.invalidateQueries({
-              queryKey: [QUERY_KEYS.GET_NOTIFICATIONS, post.creator.id],
-            });
-          }
-        } catch (error) {
-          console.error('Error creating like notification:', error);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      postId,
+      userId,
+    }: {
+      postId: string;
+      userId: string;
+    }) => likePost(postId, userId), // Updated to match our Supabase API
+    onSuccess: async (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POST_BY_ID],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
+      });
+
+      try {
+        const post = await getPostById(variables.postId);
+        await notificationService.createLikeNotification(variables.postId);
+        if (post?.creator?.id) {
+          queryClient.invalidateQueries({
+            queryKey: [QUERY_KEYS.GET_NOTIFICATIONS, post.creator.id],
+          });
         }
-      },
-    });
+      } catch (error) {
+        console.error('Error creating like notification:', error);
+      }
+    },
+  });
 };
 
 export const useDeleteLike = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-      mutationFn: ({
-        postId,
-        userId,
-      }: {
-        postId: string;
-        userId: string;
-      }) => deleteLike(postId, userId),
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POST_BY_ID],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-        });
-      },
-    });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      postId,
+      userId,
+    }: {
+      postId: string;
+      userId: string;
+    }) => deleteLike(postId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POST_BY_ID],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
+      });
+    },
+  });
 };
-  
+
 export const useSavePost = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-      mutationFn: ({ userId, postId }: { userId: string; postId: string }) =>
-        savePost(postId, userId), // Note: swapped order to match our API
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_SAVED_POSTS, variables.userId],
-        });
-      },
-    });
-}; 
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, postId }: { userId: string; postId: string }) =>
+      savePost(postId, userId), // Note: swapped order to match our API
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_SAVED_POSTS, variables.userId],
+      });
+    },
+  });
+};
 
 export const useDeleteSavedPost = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-      mutationFn: ({ postId, userId }: { postId: string; userId: string }) => 
-        deleteSave(postId, userId), // Updated to use our deleteSave function
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_POSTS],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEYS.GET_SAVED_POSTS, variables.userId],
-        });
-      },
-    });
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, userId }: { postId: string; userId: string }) =>
+      deleteSave(postId, userId), // Updated to use our deleteSave function
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POSTS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_SAVED_POSTS, variables.userId],
+      });
+    },
+  });
 };
 export const useGetCurrentUser = (enabled = true) => {
-    return useQuery({
-      queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-      queryFn: getCurrentUser,
-      enabled: enabled,
-      retry: (failureCount, error) => {
-        // Don't retry if it's an auth session missing error
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        if (errorMessage.includes('session_missing') || errorMessage.includes('Auth session missing')) {
-          return false
-        }
-        // Only retry 2 times for other errors
-        return failureCount < 2
-      },
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      refetchOnWindowFocus: false,
-    });
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_CURRENT_USER],
+    queryFn: getCurrentUser,
+    enabled: enabled,
+    retry: (failureCount, error) => {
+      // Don't retry if it's an auth session missing error
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('session_missing') || errorMessage.includes('Auth session missing')) {
+        return false
+      }
+      // Only retry 2 times for other errors
+      return failureCount < 2
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
 };
 export const useGetPostById = (postId?: string) => {
   return useQuery({
@@ -502,6 +508,15 @@ export const useGetUserById = (userId: string) => {
   });
 };
 
+export const useGetMentionedUsers = (usernames: string[]) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_MENTIONED_USERS, usernames],
+    queryFn: () => getUsersByUsernames(usernames),
+    enabled: usernames.length > 0,
+    staleTime: 1000 * 60 * 60, // Cache for an hour
+  });
+};
+
 // Public hooks for unauthenticated access
 export const useGetPublicUserById = (userId: string) => {
   return useQuery({
@@ -556,36 +571,57 @@ export const useUpdateUser = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_CURRENT_USER],
       });
-      
+
       // Invalidate specific user query
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_USER_BY_ID, data?.id],
       });
-      
+
       // Invalidate all users queries (for People page, etc.)
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_USERS],
       });
-      
+
       // Invalidate posts queries since posts show user info
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_POSTS],
       });
-      
+
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
       });
-      
+
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
       });
-      
+
       // Invalidate user posts
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_USER_POSTS, data?.id],
       });
-      
+
       // Force a complete refetch by clearing all queries
+      queryClient.refetchQueries();
+    },
+  });
+};
+
+export const useUpdateUsername = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, newUsername }: { userId: string, newUsername: string }) =>
+      updateUsername(userId, newUsername),
+    onSuccess: (data: any) => {
+      // Invalidate current user queries
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
+      });
+      // Invalidate specific user query
+      if (data?.data?.id) {
+        queryClient.invalidateQueries({
+          queryKey: [QUERY_KEYS.GET_USER_BY_ID, data.data.id],
+        });
+      }
       queryClient.refetchQueries();
     },
   });
@@ -598,24 +634,24 @@ export const useUpdateUser = () => {
 export const useFollowUser = () => {
   const queryClient = useQueryClient();
   const { user } = useUserContext();
-  
+
   return useMutation({
     mutationFn: (userId: string) => followUser(userId),
     onMutate: async (userId) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: [QUERY_KEYS.IS_FOLLOWING, userId] });
       await queryClient.cancelQueries({ queryKey: [QUERY_KEYS.GET_FOLLOWERS_COUNT, userId] });
-      
+
       // Snapshot the previous values
       const previousIsFollowing = queryClient.getQueryData([QUERY_KEYS.IS_FOLLOWING, userId]);
       const previousFollowerCount = queryClient.getQueryData([QUERY_KEYS.GET_FOLLOWERS_COUNT, userId]);
-      
+
       // Optimistically update to the new values
       queryClient.setQueryData([QUERY_KEYS.IS_FOLLOWING, userId], true);
       if (typeof previousFollowerCount === 'number') {
         queryClient.setQueryData([QUERY_KEYS.GET_FOLLOWERS_COUNT, userId], previousFollowerCount + 1);
       }
-      
+
       // Return a context object with the snapshotted values
       return { previousIsFollowing, previousFollowerCount, userId };
     },
@@ -669,17 +705,17 @@ export const useUnfollowUser = () => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: [QUERY_KEYS.IS_FOLLOWING, userId] });
       await queryClient.cancelQueries({ queryKey: [QUERY_KEYS.GET_FOLLOWERS_COUNT, userId] });
-      
+
       // Snapshot the previous values
       const previousIsFollowing = queryClient.getQueryData([QUERY_KEYS.IS_FOLLOWING, userId]);
       const previousFollowerCount = queryClient.getQueryData([QUERY_KEYS.GET_FOLLOWERS_COUNT, userId]);
-      
+
       // Optimistically update to the new values
       queryClient.setQueryData([QUERY_KEYS.IS_FOLLOWING, userId], false);
       if (typeof previousFollowerCount === 'number' && previousFollowerCount > 0) {
         queryClient.setQueryData([QUERY_KEYS.GET_FOLLOWERS_COUNT, userId], previousFollowerCount - 1);
       }
-      
+
       // Return a context object with the snapshotted values
       return { previousIsFollowing, previousFollowerCount, userId };
     },
@@ -784,7 +820,7 @@ export const useGetNotifications = (userId: string, limit: number = 20) => {
 
 export const useMarkNotificationAsRead = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (notificationId: string) => notificationService.markNotificationAsRead(notificationId),
     onSuccess: () => {
@@ -801,7 +837,7 @@ export const useMarkNotificationAsRead = () => {
 
 export const useMarkAllNotificationsAsRead = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (userId: string) => notificationService.markAllNotificationsAsRead(userId),
     onSuccess: (_, userId) => {
@@ -832,16 +868,16 @@ export const useGetComments = (postId: string) => {
 
 export const useCreateComment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (comment: { content: string; postId: string; userId: string; parentId?: string }) => 
+    mutationFn: (comment: { content: string; postId: string; userId: string; parentId?: string }) =>
       createComment(comment),
     onSuccess: async (data, variables) => {
       // Invalidate comments for the post
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_COMMENTS, variables.postId],
       });
-      
+
       // Invalidate post queries to update comment counts
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_POST_BY_ID, variables.postId],
@@ -852,7 +888,7 @@ export const useCreateComment = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED],
       });
-      
+
       if (data && variables.userId) {
         try {
           const post = await getPostById(variables.postId);
@@ -862,7 +898,7 @@ export const useCreateComment = () => {
               variables.content,
               Boolean(variables.parentId)
             );
-            
+
             // Invalidate notifications for the post owner
             queryClient.invalidateQueries({
               queryKey: [QUERY_KEYS.GET_NOTIFICATIONS, post.creator.id],
@@ -878,9 +914,9 @@ export const useCreateComment = () => {
 
 export const useUpdateComment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ commentId, content }: { commentId: string; content: string }) => 
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
       updateComment(commentId, content),
     onSuccess: () => {
       // Find which post this comment belongs to and invalidate its comments
@@ -893,7 +929,7 @@ export const useUpdateComment = () => {
 
 export const useDeleteComment = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (commentId: string) => deleteComment(commentId),
     onSuccess: () => {
@@ -936,7 +972,7 @@ export const useGetAdminUserDetails = (userId: string) => {
 
 export const useToggleUserActivation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (userId: string) => toggleUserActivation(userId),
     onSuccess: () => {
@@ -956,7 +992,7 @@ export const useToggleUserActivation = () => {
 
 export const useDeactivateUser = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (userId: string) => deactivateUser(userId),
     onSuccess: () => {
@@ -1067,7 +1103,7 @@ export const useGetAdminAllPosts = (page: number = 1, limit: number = 10, search
 
 export const useAdminDeletePost = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (postId: string) => adminDeletePost(postId),
     onSuccess: () => {
@@ -1220,3 +1256,56 @@ export const useUpdateAdminVerificationApplication = () => {
     },
   })
 }
+
+// ============================================================
+// MESSAGING HOOKS
+// ============================================================
+
+export const useGetConversations = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_CONVERSATIONS],
+    queryFn: getConversations,
+    staleTime: 1000 * 30, // 30 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+};
+
+export const useGetMessages = (conversationId: string) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_MESSAGES, conversationId],
+    queryFn: () => getMessages(conversationId),
+    enabled: !!conversationId,
+    staleTime: 1000 * 10, // 10 seconds (messages should be very fresh)
+    refetchInterval: 5000, // Poll every 5 seconds for new messages
+    refetchOnWindowFocus: true,
+  });
+};
+
+export const useSendMessage = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
+      sendMessage(conversationId, content),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_MESSAGES, variables.conversationId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_CONVERSATIONS],
+      });
+    },
+  });
+};
+
+export const useCreateConversation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (otherUserId: string) => createConversation(otherUserId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_CONVERSATIONS],
+      });
+    },
+  });
+};

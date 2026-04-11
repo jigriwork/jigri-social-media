@@ -8,6 +8,7 @@ export enum QUERY_KEYS {
     GET_SUGGESTED_USERS = "getSuggestedUsers",
     SEARCH_USERS = "searchUsers",
     GET_USER_BY_ID = "getUserById",
+  GET_MENTIONED_USERS = "getMentionedUsers",
   
   // POST KEYS
   GET_POSTS = "getPosts",
@@ -47,4 +48,8 @@ export enum QUERY_KEYS {
   
   // COMMENT KEYS
   GET_COMMENTS = "getComments",
+
+  // MESSAGING KEYS
+  GET_CONVERSATIONS = "getConversations",
+  GET_MESSAGES = "getMessages",
 }  

@@ -85,9 +85,9 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
             className="post_details-img"
           />
         ) : (
-          <div className="w-full md:w-[42%] flex items-start justify-start bg-dark-3 p-6 lg:p-8 min-h-[220px] rounded-l-[30px] border-r border-dark-4/60">
+          <div className="w-full xl:w-[42%] flex items-start justify-start bg-dark-3 p-6 lg:p-8 min-h-[220px] rounded-t-[30px] xl:rounded-l-[30px] xl:rounded-tr-none border-b xl:border-b-0 xl:border-r border-dark-4/60">
             <div className="w-full max-w-none">
-              <div className="mb-3 text-xs uppercase tracking-wide text-light-4">Text post</div>
+              <div className="mb-3 text-xs uppercase tracking-wide text-primary-500/80 font-bold flex items-center gap-2">💡 Thought</div>
               <LinkifiedText text={post.caption} className="text-light-1 text-base lg:text-lg leading-7 whitespace-pre-wrap break-words text-left" />
             </div>
           </div>
@@ -175,8 +175,7 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
           <hr className="border w-full border-dark-4/80" />
 
           <div className="flex flex-col flex-1 w-full small-medium lg:base-regular">
-            {!post.image_url && null}
-            {post.image_url ? <LinkifiedText text={post.caption} /> : null}
+            {post.image_url && <LinkifiedText text={post.caption} />}
             {!!post.tags?.length && (
               <ul className="flex gap-1 mt-2 flex-wrap">
                 {post.tags?.map((tag: string, index: number) => (

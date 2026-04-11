@@ -430,6 +430,58 @@ export interface Database {
           metadata?: Record<string, any>
         }
       }
+      conversations: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          participant_one: string
+          participant_two: string
+          last_message_at: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          participant_one: string
+          participant_two: string
+          last_message_at?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          participant_one?: string
+          participant_two?: string
+          last_message_at?: string | null
+        }
+      }
+      messages: {
+        Row: {
+          id: string
+          created_at: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          read: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          read?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          conversation_id?: string
+          sender_id?: string
+          content?: string
+          read?: boolean
+        }
+      }
     }
     Views: {
       [_ in never]: never
