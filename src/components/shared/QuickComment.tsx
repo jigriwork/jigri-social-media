@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useUserContext } from "@/context/SupabaseAuthContext";
-import { 
-  createComment, 
-  getPostComments, 
-  Comment, 
-  likeComment, 
-  unlikeComment, 
+import {
+  createComment,
+  getPostComments,
+  Comment,
+  likeComment,
+  unlikeComment,
   getCommentLikeStatus,
   updateComment,
   deleteComment
@@ -21,6 +21,8 @@ import ConfirmActionModal from "./ConfirmActionModal";
 import VerificationBadge from "./VerificationBadge";
 import { useMentions } from "@/hooks/useMentions";
 import MentionsDropdown from "./MentionsDropdown";
+import { notificationService } from "@/lib/utils/notificationService";
+import { extractMentionUsernames } from "@/lib/supabase/api";
 
 type QuickCommentProps = {
   postId: string;
@@ -74,14 +76,14 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
 
   const loadLikeStatuses = async () => {
     if (!user) return;
-    
+
     const likedSet = new Set<string>();
-    
+
     // Check like status for all comments and their replies
     for (const comment of comments) {
       const isLiked = await getCommentLikeStatus(comment.id, user.id);
       if (isLiked) likedSet.add(comment.id);
-      
+
       // Check replies too
       if (comment.replies) {
         for (const reply of comment.replies) {
@@ -90,7 +92,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
         }
       }
     }
-    
+
     setLikedComments(likedSet);
   };
 
@@ -100,9 +102,9 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
       setShowAuthPrompt(true);
       return;
     }
-    
+
     const isLiked = likedComments.has(commentId);
-    
+
     try {
       if (isLiked) {
         const success = await unlikeComment(commentId, user.id);
@@ -134,11 +136,11 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
       setShowAuthPrompt(true);
       return;
     }
-    
+
     if (!replyContent.trim() || isSubmittingReply) return;
 
     setIsSubmittingReply(true);
-    
+
     try {
       const reply = await createComment({
         content: replyContent.trim(),
@@ -148,6 +150,11 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
       });
 
       if (reply) {
+        await notificationService.createCommentNotification(postId, replyContent.trim(), true);
+        const mentionedUsernames = extractMentionUsernames(replyContent.trim());
+        if (mentionedUsernames.length > 0) {
+          await notificationService.createMentionNotification('comment', postId, replyContent.trim(), mentionedUsernames);
+        }
         setReplyContent("");
         setReplyingTo(null);
         // Refresh comments to show the new reply
@@ -171,10 +178,10 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
     if (!editContent.trim() || !user || isUpdatingComment) return;
 
     setIsUpdatingComment(true);
-    
+
     try {
       const updatedComment = await updateComment(commentId, editContent.trim());
-      
+
       if (updatedComment) {
         setEditingComment(null);
         setEditContent("");
@@ -190,10 +197,10 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
 
   const handleDeleteComment = async (commentId: string) => {
     if (!user) return;
-    
+
     try {
       const success = await deleteComment(commentId);
-      
+
       if (success) {
         // Refresh comments to remove the deleted one
         await fetchComments();
@@ -212,17 +219,17 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       setAuthAction("comment on posts");
       setShowAuthPrompt(true);
       return;
     }
-    
+
     if (!comment.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
-    
+
     try {
       const newComment = await createComment({
         content: comment.trim(),
@@ -231,6 +238,11 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
       });
 
       if (newComment) {
+        await notificationService.createCommentNotification(postId, comment.trim(), false);
+        const mentionedUsernames = extractMentionUsernames(comment.trim());
+        if (mentionedUsernames.length > 0) {
+          await notificationService.createMentionNotification('comment', postId, comment.trim(), mentionedUsernames);
+        }
         setComment("");
         // Refresh comments to show the new one
         await fetchComments();
@@ -259,7 +271,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
             height={32}
             className="rounded-full"
           />
-          
+
           <div className="flex-1 flex flex-col gap-1 relative">
             <div className="flex items-center gap-2">
               <Input
@@ -286,16 +298,16 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
               />
             </div>
           </div>
-          
-            <Button
-              type="submit"
-              variant="ghost"
-              size="sm"
-              disabled={!comment.trim() || isSubmitting}
-              className="text-primary-500 hover:text-primary-600 disabled:text-light-4 px-3 py-2 font-semibold"
-            >
-              {isSubmitting ? "Posting..." : "Post"}
-            </Button>
+
+          <Button
+            type="submit"
+            variant="ghost"
+            size="sm"
+            disabled={!comment.trim() || isSubmitting}
+            className="text-primary-500 hover:text-primary-600 disabled:text-light-4 px-3 py-2 font-semibold"
+          >
+            {isSubmitting ? "Posting..." : "Post"}
+          </Button>
         </form>
       ) : (
         /* Auth prompt for unauthenticated users */
@@ -353,7 +365,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                     {/* Comment Content */}
                     <div className="bg-dark-4 rounded-lg px-3 py-2">
                       <div className="flex items-center gap-2 mb-1">
-                        <Link 
+                        <Link
                           href={`/profile/${commentItem.user.id}`}
                           className="text-sm font-medium text-light-1 hover:text-primary-500"
                         >
@@ -372,7 +384,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                           <span className="text-xs text-light-4">• edited</span>
                         )}
                       </div>
-                      
+
                       {/* Comment Content - Edit Mode */}
                       {editingComment === commentItem.id ? (
                         <div className="space-y-2">
@@ -395,7 +407,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                           />
                           <div className="flex gap-2">
                             <Button
-                              size="sm" 
+                              size="sm"
                               onClick={() => handleUpdateComment(commentItem.id)}
                               disabled={isUpdatingComment || !editContent.trim()}
                               className="text-xs px-2 py-1 h-6 bg-primary-500 text-white hover:bg-primary-600 disabled:bg-dark-3"
@@ -435,11 +447,10 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleLikeComment(commentItem.id)}
-                        className={`text-xs px-1 py-0 h-auto ${
-                          likedComments.has(commentItem.id) 
-                            ? 'text-red-500 hover:text-red-400' 
+                        className={`text-xs px-1 py-0 h-auto ${likedComments.has(commentItem.id)
+                            ? 'text-red-500 hover:text-red-400'
                             : 'text-light-4 hover:text-primary-500'
-                        }`}
+                          }`}
                       >
                         {likedComments.has(commentItem.id) ? 'Liked' : 'Like'}
                       </Button>
@@ -553,7 +564,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                               </Link>
                               <div className="bg-dark-4 rounded-lg px-3 py-1 flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <Link 
+                                  <Link
                                     href={`/profile/${reply.user.id}`}
                                     className="text-xs font-medium text-light-1 hover:text-primary-500"
                                   >
@@ -594,7 +605,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                                     />
                                     <div className="flex gap-2">
                                       <Button
-                                        size="sm" 
+                                        size="sm"
                                         onClick={() => handleUpdateComment(reply.id)}
                                         disabled={isUpdatingComment || !editContent.trim()}
                                         className="text-xs px-2 py-1 h-6 bg-primary-500 text-white hover:bg-primary-600 disabled:bg-dark-3"
@@ -618,7 +629,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                                 )}
                               </div>
                             </div>
-                            
+
                             {/* Reply Meta */}
                             <div className="flex items-center gap-4 ml-6">
                               <span className="text-xs text-light-4">
@@ -635,11 +646,10 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleLikeComment(reply.id)}
-                                className={`text-xs px-1 py-0 h-auto ${
-                                  likedComments.has(reply.id) 
-                                    ? 'text-red-500 hover:text-red-400' 
+                                className={`text-xs px-1 py-0 h-auto ${likedComments.has(reply.id)
+                                    ? 'text-red-500 hover:text-red-400'
                                     : 'text-light-4 hover:text-primary-500'
-                                }`}
+                                  }`}
                               >
                                 {likedComments.has(reply.id) ? 'Liked' : 'Like'}
                               </Button>
@@ -686,8 +696,8 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                   onClick={() => setShowAllComments(!showAllComments)}
                   className="text-primary-500 hover:text-primary-400 text-xs"
                 >
-                  {showAllComments 
-                    ? "Show less comments" 
+                  {showAllComments
+                    ? "Show less comments"
                     : `View ${comments.length - 5} more comments`
                   }
                 </Button>

@@ -5,7 +5,7 @@ export class NotificationSound {
   private audioContext: AudioContext | null = null;
   private sounds: { [key: string]: AudioBuffer } = {};
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): NotificationSound {
     if (!NotificationSound.instance) {
@@ -21,7 +21,7 @@ export class NotificationSound {
   }
 
   // Generate modern notification sound programmatically
-  private async generateNotificationSound(type: 'default' | 'new_post' | 'like' | 'comment' | 'follow' = 'default') {
+  private async generateNotificationSound(type: 'default' | 'new_post' | 'like' | 'comment' | 'follow' | 'message' | 'mention' = 'default') {
     await this.initAudioContext();
     if (!this.audioContext) return null;
 
@@ -58,6 +58,14 @@ export class NotificationSound {
           frequency = 659 + (131 * Math.sin(t * Math.PI * 0.5)); // E5 with slow modulation
           volume = 0.11 * Math.exp(-t * 1.5) * (1 + 0.2 * Math.cos(t * Math.PI * 3));
           break;
+        case 'message':
+          frequency = 698 + (110 * Math.sin(t * Math.PI * 2));
+          volume = 0.1 * Math.exp(-t * 4) * (1 + 0.15 * Math.sin(t * Math.PI * 10));
+          break;
+        case 'mention':
+          frequency = 932 + (80 * Math.sin(t * Math.PI * 3));
+          volume = 0.11 * Math.sin(t * Math.PI) * Math.exp(-t * 2.5);
+          break;
         default:
           // Modern pleasant default notification sound
           frequency = 880 * (1 + 0.05 * Math.sin(t * Math.PI * 8)); // A5 with subtle vibrato
@@ -74,7 +82,7 @@ export class NotificationSound {
     return audioBuffer;
   }
 
-  async playNotificationSound(type: 'default' | 'new_post' | 'like' | 'comment' | 'follow' = 'default') {
+  async playNotificationSound(type: 'default' | 'new_post' | 'like' | 'comment' | 'follow' | 'message' | 'mention' = 'default') {
     try {
       // Check if user has enabled sound notifications
       if (!this.isSoundEnabled()) return;
@@ -93,13 +101,13 @@ export class NotificationSound {
       if (this.sounds[type]) {
         const source = this.audioContext.createBufferSource();
         const gainNode = this.audioContext.createGain();
-        
+
         source.buffer = this.sounds[type];
         gainNode.gain.value = this.getVolumeLevel();
-        
+
         source.connect(gainNode);
         gainNode.connect(this.audioContext.destination);
-        
+
         source.start();
       }
     } catch (error) {

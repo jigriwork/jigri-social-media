@@ -28,13 +28,15 @@ type GroupedNotification = Notification & {
 };
 
 const getImportance = (type: string) => {
-  if (type === "follow" || type === "comment") return "high";
+  if (type === "follow" || type === "comment" || type === "message" || type === "mention") return "high";
   return "normal";
 };
 
 const getUrgencyLabel = (type: string) => {
   if (type === "comment") return "Someone replied to you";
   if (type === "follow") return "Someone followed you";
+  if (type === "message") return "You have a new message";
+  if (type === "mention") return "You were mentioned";
   return "You have new activity";
 };
 
@@ -259,9 +261,8 @@ const NotificationBell = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.03 }}
-                      className={`w-full text-left p-4 hover:bg-dark-3/30 transition-colors ${
-                        !n.read ? "bg-primary-500/5 border-l-2 border-l-primary-500" : ""
-                      }`}
+                      className={`w-full text-left p-4 hover:bg-dark-3/30 transition-colors ${!n.read ? "bg-primary-500/5 border-l-2 border-l-primary-500" : ""
+                        }`}
                       onClick={() => onNotificationClick(n)}
                     >
                       <div className="flex items-start gap-3">

@@ -3,7 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
-type NotificationEventType = 'new_post' | 'like' | 'follow' | 'comment'
+type NotificationEventType = 'new_post' | 'like' | 'follow' | 'comment' | 'message' | 'mention'
+
+function extractMentionUsernames(text: string) {
+  if (!text) return []
+  const matches = text.match(/@[a-zA-Z0-9_.]+/g) || []
+  return Array.from(new Set(matches.map((match) => match.slice(1).toLowerCase())))
+}
 
 function truncateText(text: string, maxLength: number) {
   if (text.length <= maxLength) return text
@@ -134,7 +140,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({} as any))
     const eventType = body?.eventType as NotificationEventType | undefined
 
-    if (!eventType || !['new_post', 'like', 'follow', 'comment'].includes(eventType)) {
+    if (!eventType || !['new_post', 'like', 'follow', 'comment', 'message', 'mention'].includes(eventType)) {
       return NextResponse.json({ error: 'Invalid eventType' }, { status: 400 })
     }
 
@@ -238,6 +244,122 @@ export async function POST(request: NextRequest) {
       })
 
       return NextResponse.json({ success: true })
+    }
+
+    if (eventType === 'message') {
+      const conversationId = typeof body?.conversationId === 'string' ? body.conversationId : ''
+      const content = typeof body?.content === 'string' ? body.content : ''
+
+      if (!conversationId) {
+        return NextResponse.json({ error: 'conversationId is required' }, { status: 400 })
+      }
+
+      const { data: conversation } = await adminClient
+        .from('conversations')
+        .select('id, participant_one, participant_two')
+        .eq('id', conversationId)
+        .or(`participant_one.eq.${user.id},participant_two.eq.${user.id}`)
+        .single()
+
+      if (!conversation) {
+        return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      }
+
+      const recipientUserId = conversation.participant_one === user.id
+        ? conversation.participant_two
+        : conversation.participant_one
+
+      if (!recipientUserId || recipientUserId === user.id) {
+        return NextResponse.json({ success: true, skipped: true })
+      }
+
+      const actionUrl = `/messages`
+      const isDuplicate = await hasRecentDuplicateNotification(
+        adminClient,
+        recipientUserId,
+        'message',
+        user.id,
+        actionUrl,
+        2
+      )
+
+      if (isDuplicate) {
+        return NextResponse.json({ success: true, skipped: true })
+      }
+
+      await adminClient.from('notifications').insert({
+        user_id: recipientUserId,
+        type: 'message',
+        title: 'New message',
+        message: `${actor.name || actor.username || 'Someone'} sent you a message: ${truncateText(content || 'New message', 60)}`,
+        avatar: actor.image_url || '',
+        action_url: actionUrl,
+        from_user_id: actor.id,
+        from_user_name: actor.name || actor.username || 'Unknown User',
+        from_user_avatar: actor.image_url || '',
+        read: false,
+      })
+
+      return NextResponse.json({ success: true })
+    }
+
+    if (eventType === 'mention') {
+      const entityType = typeof body?.entityType === 'string' ? body.entityType : 'post'
+      const entityId = typeof body?.entityId === 'string' ? body.entityId : ''
+      const content = typeof body?.content === 'string' ? body.content : ''
+      const usernames = Array.isArray(body?.mentionedUsernames)
+        ? body.mentionedUsernames.filter((value: unknown): value is string => typeof value === 'string')
+        : extractMentionUsernames(content)
+
+      if (!entityId || usernames.length === 0) {
+        return NextResponse.json({ error: 'entityId and at least one mentioned username are required' }, { status: 400 })
+      }
+
+      const { data: mentionedUsers } = await adminClient
+        .from('users')
+        .select('id, username')
+        .in('username', usernames)
+
+      if (!mentionedUsers || mentionedUsers.length === 0) {
+        return NextResponse.json({ success: true, skipped: true })
+      }
+
+      const notifications = []
+
+      for (const mentionedUser of mentionedUsers) {
+        if (!mentionedUser?.id || mentionedUser.id === user.id) continue
+
+        const actionUrl = entityType === 'message' ? '/messages' : `/posts/${entityId}`
+        const isDuplicate = await hasRecentDuplicateNotification(
+          adminClient,
+          mentionedUser.id,
+          'mention',
+          user.id,
+          actionUrl,
+          10
+        )
+
+        if (isDuplicate) continue
+
+        notifications.push({
+          user_id: mentionedUser.id,
+          type: 'mention',
+          title: 'You were mentioned',
+          message: `${actor.name || actor.username || 'Someone'} mentioned you: ${truncateText(content, 60)}`,
+          avatar: actor.image_url || '',
+          action_url: actionUrl,
+          from_user_id: actor.id,
+          from_user_name: actor.name || actor.username || 'Unknown User',
+          from_user_avatar: actor.image_url || '',
+          read: false,
+        })
+      }
+
+      if (notifications.length > 0) {
+        await adminClient.from('notifications').insert(notifications)
+      }
+
+      return NextResponse.json({ success: true, inserted: notifications.length })
     }
 
     const postId = typeof body?.postId === 'string' ? body.postId : ''

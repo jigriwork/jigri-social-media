@@ -7,7 +7,7 @@ import { notificationSound } from './notificationSound';
 export interface DbNotification {
   id: string;
   user_id: string;
-  type: 'new_post' | 'like' | 'comment' | 'follow';
+  type: 'new_post' | 'like' | 'comment' | 'follow' | 'message' | 'mention';
   title: string;
   message: string;
   avatar: string;
@@ -25,7 +25,7 @@ export class NotificationService {
   private listeners: Set<(notification: NotificationData) => void> = new Set();
   private subscription: any = null;
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -150,6 +150,34 @@ export class NotificationService {
       await this.sendNotificationEvent({ eventType: 'comment', postId, commentText, isReply });
     } catch (error) {
       console.error('Error creating comment notification:', error);
+    }
+  }
+
+  async createMentionNotification(
+    entityType: 'post' | 'comment' | 'message',
+    entityId: string,
+    content: string,
+    mentionedUsernames: string[]
+  ) {
+    try {
+      if (!mentionedUsernames.length) return;
+      await this.sendNotificationEvent({
+        eventType: 'mention',
+        entityType,
+        entityId,
+        content,
+        mentionedUsernames,
+      });
+    } catch (error) {
+      console.error('Error creating mention notification:', error);
+    }
+  }
+
+  async createMessageNotification(conversationId: string, content: string) {
+    try {
+      await this.sendNotificationEvent({ eventType: 'message', conversationId, content });
+    } catch (error) {
+      console.error('Error creating message notification:', error);
     }
   }
 

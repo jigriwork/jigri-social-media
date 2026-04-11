@@ -1284,15 +1284,41 @@ export const useGetMessages = (conversationId: string) => {
 
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ conversationId, content }: { conversationId: string; content: string }) =>
       sendMessage(conversationId, content),
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
+      const mentionedUsernames = Array.from(
+        new Set(
+          (variables.content.match(/@[a-zA-Z0-9_.]+/g) || []).map((match) =>
+            match.slice(1).toLowerCase()
+          )
+        )
+      );
+
+      await notificationService.createMessageNotification(
+        variables.conversationId,
+        variables.content
+      );
+
+      if (mentionedUsernames.length > 0) {
+        await notificationService.createMentionNotification(
+          'message',
+          variables.conversationId,
+          variables.content,
+          mentionedUsernames
+        );
+      }
+
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_MESSAGES, variables.conversationId],
       });
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_CONVERSATIONS],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_NOTIFICATIONS],
       });
     },
   });

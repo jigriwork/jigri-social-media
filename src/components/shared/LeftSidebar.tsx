@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useSignOutAccount, useCheckAdminAccess } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import Loader from "./Loader";
+import NotificationBell from "./NotificationBell";
 
 const LeftSidebar = () => {
   const router = useRouter();
@@ -58,17 +59,23 @@ const LeftSidebar = () => {
           </div>
         ) : (
           <>
-            <Link href={`/profile/${user.id}`} className="flex gap-3 items-center">
-              <img
-                src={user.image_url || "/assets/icons/profile-placeholder.svg"}
-                alt="profile"
-                className="h-14 w-14 rounded-full"
-              />
-              <div className="flex flex-col">
-                <p className="body-bold">{user.name}</p>
-                <p className="small-regular text-light-3">@{user.username}</p>
+            <div className="flex items-start justify-between gap-3">
+              <Link href={`/profile/${user.id}`} className="flex gap-3 items-center min-w-0 flex-1">
+                <img
+                  src={user.image_url || "/assets/icons/profile-placeholder.svg"}
+                  alt="profile"
+                  className="h-14 w-14 rounded-full"
+                />
+                <div className="flex flex-col min-w-0">
+                  <p className="body-bold truncate">{user.name}</p>
+                  <p className="small-regular text-light-3 truncate">@{user.username}</p>
+                </div>
+              </Link>
+
+              <div className="hidden md:flex shrink-0">
+                <NotificationBell />
               </div>
-            </Link>
+            </div>
           </>
         )}
 
@@ -79,18 +86,16 @@ const LeftSidebar = () => {
             return (
               <li
                 key={link.label}
-                className={`leftsidebar-link group ${
-                  isActive && "bg-primary-500"
-                }`}>
+                className={`leftsidebar-link group ${isActive && "bg-primary-500"
+                  }`}>
                 <Link
                   href={link.route}
                   className="flex gap-4 items-center p-4">
                   <img
                     src={link.imgURL}
                     alt={link.label}
-                    className={`group-hover:invert-white ${
-                      isActive && "invert-white"
-                    }`}
+                    className={`group-hover:invert-white ${isActive && "invert-white"
+                      }`}
                   />
                   {link.label}
                 </Link>

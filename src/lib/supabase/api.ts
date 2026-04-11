@@ -2096,6 +2096,12 @@ export async function createComment(comment: {
   }
 }
 
+export function extractMentionUsernames(content: string): string[] {
+  if (!content) return []
+  const matches = content.match(/@[a-zA-Z0-9_.]+/g) || []
+  return Array.from(new Set(matches.map((match) => match.slice(1).toLowerCase())))
+}
+
 export async function getPostComments(postId: string): Promise<Comment[]> {
   try {
     const { data, error } = await supabase
@@ -2949,6 +2955,7 @@ export async function createConversation(otherUserId: string) {
     throw error
   }
 }
+
 
 
 
