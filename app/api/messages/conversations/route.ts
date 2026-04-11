@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+async function getAuthenticatedUser(supabase: Awaited<ReturnType<typeof createClient>>, request?: NextRequest) {
+  const authHeader = request?.headers.get('authorization')
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+
+  if (token) {
+    const { data, error } = await supabase.auth.getUser(token)
+    if (!error && data.user) return data.user
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
+}
+
 // GET /api/messages/conversations — list user's conversations
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getAuthenticatedUser(supabase, request)
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -66,7 +79,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getAuthenticatedUser(supabase, request)
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

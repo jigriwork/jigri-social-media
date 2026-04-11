@@ -197,7 +197,25 @@
 
   /* Bottom bar */
   .bottom-bar {
-    @apply z-50 flex-between w-[90%] fixed bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-dark-2/60 backdrop-blur-xl px-6 py-3 md:hidden border border-dark-4/40 shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+    @apply z-[70] flex items-stretch justify-between gap-1.5 w-[calc(100%-1rem)] max-w-[420px] fixed left-1/2 -translate-x-1/2 rounded-[26px] bg-dark-2/80 backdrop-blur-2xl px-2 py-2.5 border border-dark-4/55 shadow-[0_10px_36px_rgba(0,0,0,0.5)] md:hidden;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .bottom-bar::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-[26px] border border-white/5;
+  }
+
+  .bottom-bar-item {
+    @apply relative flex flex-1 flex-col items-center justify-center rounded-2xl px-2 py-1.5 min-h-[56px] transition-all duration-300;
+  }
+
+  .bottom-bar-item-active {
+    @apply bg-primary-500/20 shadow-[0_6px_24px_rgba(139,92,246,0.35)] border border-primary-500/40;
+  }
+
+  .bottom-bar-active-dot {
+    @apply absolute -top-1 h-1.5 w-1.5 rounded-full bg-primary-500;
   }
 
   /* File uploader */

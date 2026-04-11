@@ -28,11 +28,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: '/assets/images/App%20icon%20share.png', type: 'image/png' },
       { url: '/assets/images/App%20Icon.svg', type: 'image/svg+xml' },
       { url: '/assets/images/tablogo.ico' },
     ],
-    shortcut: ['/assets/images/App%20Icon.svg'],
-    apple: [{ url: '/assets/images/App%20Icon.svg', type: 'image/svg+xml' }],
+    shortcut: ['/assets/images/App%20icon%20share.png'],
+    apple: [{ url: '/assets/images/App%20icon%20share.png', type: 'image/png' }],
   },
   openGraph: {
     title: 'Jigri',
@@ -41,10 +42,10 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/assets/images/App%20Icon.svg',
-        width: 512,
-        height: 512,
-        alt: 'Jigri app icon',
+        url: '/assets/images/App%20icon%20share.png',
+        width: 2000,
+        height: 2000,
+        alt: 'Jigri social share image',
       },
     ],
   },
@@ -52,7 +53,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'Jigri',
     description: 'Share moments, connect faster, and install Jigri for a real app-like experience on mobile and desktop.',
-    images: ['/assets/images/App%20Icon.svg'],
+    images: ['/assets/images/App%20icon%20share.png'],
   },
 }
 

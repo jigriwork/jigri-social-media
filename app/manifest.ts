@@ -14,14 +14,14 @@ export default function manifest(): MetadataRoute.Manifest {
         lang: "en-IN",
         icons: [
             {
-                src: "/assets/images/App%20Icon.svg",
-                sizes: "any",
-                type: "image/svg+xml",
+                src: "/assets/images/App%20icon%20share.png",
+                sizes: "2000x2000",
+                type: "image/png",
                 purpose: "maskable",
             },
             {
                 src: "/assets/images/App%20Icon.svg",
-                sizes: "512x512",
+                sizes: "any",
                 type: "image/svg+xml",
                 purpose: "maskable",
             },

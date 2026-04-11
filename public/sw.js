@@ -2,6 +2,7 @@ const CACHE_NAME = "jigri-pwa-v2";
 const ASSETS_TO_CACHE = [
     "/",
     "/manifest.webmanifest",
+    "/assets/images/App%20icon%20share.png",
     "/assets/images/App%20Icon.svg",
     "/assets/images/logo.svg",
     "/assets/images/side-img.svg",

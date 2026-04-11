@@ -30,6 +30,23 @@ export type VerificationApplication = Database['public']['Tables']['verification
 
 const supabase = createClient()
 
+async function getAuthenticatedFetchHeaders() {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`
+    }
+  } catch (error) {
+    console.warn('Unable to attach access token to request:', error)
+  }
+
+  return headers
+}
+
 // ============================================================
 // AUTH
 // ============================================================
@@ -2886,7 +2903,9 @@ export async function updateAdminVerificationApplication(
 
 export async function getConversations() {
   try {
-    const response = await fetch('/api/messages/conversations')
+    const response = await fetch('/api/messages/conversations', {
+      headers: await getAuthenticatedFetchHeaders(),
+    })
     const payload = await response.json().catch(() => ({}))
 
     if (!response.ok) {
@@ -2902,7 +2921,9 @@ export async function getConversations() {
 
 export async function getMessages(conversationId: string) {
   try {
-    const response = await fetch(`/api/messages/${conversationId}`)
+    const response = await fetch(`/api/messages/${conversationId}`, {
+      headers: await getAuthenticatedFetchHeaders(),
+    })
     const payload = await response.json().catch(() => ({}))
 
     if (!response.ok) {
@@ -2920,7 +2941,7 @@ export async function sendMessage(conversationId: string, content: string) {
   try {
     const response = await fetch(`/api/messages/${conversationId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await getAuthenticatedFetchHeaders(),
       body: JSON.stringify({ content }),
     })
     const payload = await response.json().catch(() => ({}))
@@ -2940,7 +2961,7 @@ export async function createConversation(otherUserId: string) {
   try {
     const response = await fetch('/api/messages/conversations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await getAuthenticatedFetchHeaders(),
       body: JSON.stringify({ otherUserId }),
     })
     const payload = await response.json().catch(() => ({}))
@@ -2955,6 +2976,7 @@ export async function createConversation(otherUserId: string) {
     throw error
   }
 }
+
 
 
 

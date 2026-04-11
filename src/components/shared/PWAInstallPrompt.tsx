@@ -12,6 +12,10 @@ declare global {
     interface Navigator {
         standalone?: boolean;
     }
+
+    interface Window {
+        __jigriDeferredInstallPrompt?: BeforeInstallPromptEvent | null;
+    }
 }
 
 type PWAInstallPromptProps = {
@@ -47,26 +51,31 @@ export default function PWAInstallPrompt({
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [isInstalled, setIsInstalled] = useState(false);
     const [showIOSHelp, setShowIOSHelp] = useState(false);
+    const [showDesktopHelp, setShowDesktopHelp] = useState(false);
 
     useEffect(() => {
         setIsInstalled(isStandaloneMode());
+        setDeferredPrompt(window.__jigriDeferredInstallPrompt ?? null);
 
-        const handleBeforeInstallPrompt = (event: Event) => {
-            event.preventDefault();
-            setDeferredPrompt(event as BeforeInstallPromptEvent);
+        const handleDeferredReady = () => {
+            setDeferredPrompt(window.__jigriDeferredInstallPrompt ?? null);
+            setShowDesktopHelp(false);
         };
 
         const handleInstalled = () => {
             setIsInstalled(true);
             setDeferredPrompt(null);
             setShowIOSHelp(false);
+            setShowDesktopHelp(false);
         };
 
-        window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        window.addEventListener("jigri-beforeinstallprompt", handleDeferredReady);
+        window.addEventListener("jigri-appinstalled", handleInstalled);
         window.addEventListener("appinstalled", handleInstalled);
 
         return () => {
-            window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+            window.removeEventListener("jigri-beforeinstallprompt", handleDeferredReady);
+            window.removeEventListener("jigri-appinstalled", handleInstalled);
             window.removeEventListener("appinstalled", handleInstalled);
         };
     }, []);
@@ -81,7 +90,11 @@ export default function PWAInstallPrompt({
 
         if (isiOS()) {
             setShowIOSHelp((prev) => !prev);
+            setShowDesktopHelp(false);
+            return;
         }
+
+        setShowDesktopHelp((prev) => !prev);
     }, [deferredPrompt]);
 
     const content = useMemo(() => {
@@ -108,7 +121,7 @@ export default function PWAInstallPrompt({
                     : variant === "inline"
                         ? "Download Jigri for the cleanest experience on mobile and desktop."
                         : "Install Jigri for quicker launch, immersive full-screen browsing, and a smoother social experience on mobile and desktop."),
-            button: buttonLabel || (deferredPrompt ? "Download" : isiOS() ? "How to install" : "Download"),
+            button: buttonLabel || (deferredPrompt ? "Download" : isiOS() ? "How to install" : "Install info"),
         };
     }, [deferredPrompt, isInstalled, variant]);
 
@@ -137,6 +150,13 @@ export default function PWAInstallPrompt({
                 {showIOSHelp && !isInstalled && (
                     <p className="mt-3 text-xs leading-5 text-light-4">
                         On iPhone or iPad, open Jigri in Safari, tap Share, then choose Add to Home Screen.
+                    </p>
+                )}
+
+                {showDesktopHelp && !isInstalled && !isiOS() && (
+                    <p className="mt-3 text-xs leading-5 text-light-4">
+                        Install prompt isn&apos;t available yet. Open Jigri in Chrome/Edge over HTTPS,
+                        use the browser menu (⋮) and choose <span className="text-light-2 font-medium">Install app</span>.
                     </p>
                 )}
             </section>
@@ -189,6 +209,16 @@ export default function PWAInstallPrompt({
                         <p className="font-medium text-light-1">Install on iPhone or iPad</p>
                         <p className="mt-2 leading-6 text-light-3">
                             Open Jigri in Safari, tap the <span className="font-semibold text-light-1">Share</span> button, then choose <span className="font-semibold text-light-1">Add to Home Screen</span>.
+                        </p>
+                    </div>
+                )}
+
+                {showDesktopHelp && !isInstalled && !isiOS() && (
+                    <div className="rounded-2xl border border-dark-4/50 bg-dark-3/70 p-4 text-sm text-light-2">
+                        <p className="font-medium text-light-1">Install on Android/Desktop</p>
+                        <p className="mt-2 leading-6 text-light-3">
+                            If the one-tap prompt doesn&apos;t appear yet, open this app in Chrome or Edge and use browser menu
+                            <span className="font-semibold text-light-1"> Install app</span>. This usually appears after you browse the app for a short time on HTTPS.
                         </p>
                     </div>
                 )}

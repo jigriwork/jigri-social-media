@@ -20,8 +20,8 @@ const INITIAL_STATE: AuthContextType = {
   supabaseUser: null,
   isLoading: false,
   isAuthenticated: false,
-  setUser: () => {},
-  setIsAuthenticated: () => {},
+  setUser: () => { },
+  setIsAuthenticated: () => { },
   checkAuthUser: async () => false as boolean,
 }
 
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const userRef = useRef<User | null>(null)
   const isAuthenticatedRef = useRef(false)
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  
+
   // Keep refs in sync with state
   useEffect(() => {
     userRef.current = user
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current)
       }
-      
+
       // Set a timeout to force loading to false after 8 seconds
       loadingTimeoutRef.current = setTimeout(() => {
         console.warn('Auth loading timeout reached, forcing loading to false')
@@ -93,12 +93,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = createClient()
 
+  const clearCachedAuth = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('jigri_user')
+      localStorage.removeItem('jigri_auth')
+    }
+  }
+
+  const cacheAuthenticatedUser = (currentAccount: User) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
+      localStorage.setItem('jigri_auth', 'true')
+    }
+  }
+
+  const applyAuthenticatedUser = (currentAccount: User, sessionUser?: SupabaseUser | null) => {
+    setUser(currentAccount)
+    setIsAuthenticated(true)
+    if (sessionUser) {
+      setSupabaseUser(sessionUser)
+    }
+    cacheAuthenticatedUser(currentAccount)
+  }
+
+  const clearAuthState = () => {
+    setSupabaseUser(null)
+    setUser(null)
+    setIsAuthenticated(false)
+    clearCachedAuth()
+  }
+
+  const restoreCachedUserIfMatchesSession = (sessionUser?: SupabaseUser | null) => {
+    if (typeof window === 'undefined') return false
+
+    const cachedUser = localStorage.getItem('jigri_user')
+    const cachedAuth = localStorage.getItem('jigri_auth')
+
+    if (!cachedUser || cachedAuth !== 'true' || !sessionUser?.id) {
+      return false
+    }
+
+    try {
+      const parsedUser = JSON.parse(cachedUser)
+      if (parsedUser?.id !== sessionUser.id) {
+        console.warn('Cached auth user does not match active session. Clearing stale cache.')
+        clearCachedAuth()
+        return false
+      }
+
+      setSupabaseUser(sessionUser)
+      setUser(parsedUser)
+      setIsAuthenticated(true)
+      return true
+    } catch (error) {
+      console.error('Error parsing cached user:', error)
+      clearCachedAuth()
+      return false
+    }
+  }
+
   // Initialize from localStorage on component mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const cachedUser = localStorage.getItem('jigri_user')
       const cachedAuth = localStorage.getItem('jigri_auth')
-      
+
       if (cachedUser && cachedAuth === 'true') {
         try {
           const userData = JSON.parse(cachedUser)
@@ -106,8 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true)
         } catch (error) {
           console.error('Error parsing cached user:', error)
-          localStorage.removeItem('jigri_user')
-          localStorage.removeItem('jigri_auth')
+          clearCachedAuth()
         }
       }
     }
@@ -118,24 +176,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentAccount = await getCurrentUser()
       if (currentAccount) {
-        setUser(currentAccount)
-        setIsAuthenticated(true)
-        // Cache user data in localStorage for persistence
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
-          localStorage.setItem('jigri_auth', 'true')
-        }
+        const { data: { user: sessionUser } } = await supabase.auth.getUser()
+        applyAuthenticatedUser(currentAccount, sessionUser)
         return true
       } else {
         // Only clear user data if we're sure there's no session
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) {
-          setUser(null)
-          setIsAuthenticated(false)
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('jigri_user')
-            localStorage.removeItem('jigri_auth')
-          }
+          clearAuthState()
         }
       }
       return false
@@ -161,19 +209,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Get initial session
         const { data: { session } } = await supabase.auth.getSession()
-        
+
         if (!mounted) return
 
         if (session?.user) {
           setSupabaseUser(session.user)
           await checkAuthUser()
         } else {
-          // If no session but we have cached data, keep it but mark as loading
-          const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('jigri_user') : null
-          if (!cachedUser) {
-            setUser(null)
-            setIsAuthenticated(false)
-          }
+          clearAuthState()
           setIsLoading(false)
         }
       } catch (error) {
@@ -190,54 +233,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
-        
+
         console.log('Auth state changed:', event, session?.user?.id)
-        
+
         if (event === 'SIGNED_IN') {
           if (session?.user) {
             setSupabaseUser(session.user)
-            // Check if we actually have valid state (not just refs)
-            const hasValidState = user?.id && isAuthenticated
-            const hasExistingUser = userRef.current?.id && isAuthenticatedRef.current
-            
-            // Only skip loading if we have BOTH valid refs AND valid state
-            if (hasValidState && hasExistingUser) {
-              // Just silently refresh user data without loading state
-              try {
-                const currentAccount = await getCurrentUser()
-                if (currentAccount) {
-                  setUser(currentAccount)
-                  setIsAuthenticated(true)
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
-                    localStorage.setItem('jigri_auth', 'true')
-                  }
-                }
-              } catch (error) {
-                console.error('Silent auth refresh error:', error)
-              }
+            if (restoreCachedUserIfMatchesSession(session.user)) {
+              setIsLoading(false)
             } else {
-              // Check if we have cached user data first
-              const cachedUser = typeof window !== 'undefined' ? localStorage.getItem('jigri_user') : null
-              const cachedAuth = typeof window !== 'undefined' ? localStorage.getItem('jigri_auth') : null
-              
-              if (cachedUser && cachedAuth === 'true') {
-                try {
-                  const userData = JSON.parse(cachedUser)
-                  setUser(userData)
-                  setIsAuthenticated(true)
-                  setIsLoading(false) // Important: Don't trigger loading state
-                } catch (error) {
-                  console.error('Error parsing cached user:', error)
-                  localStorage.removeItem('jigri_user')
-                  localStorage.removeItem('jigri_auth')
-                  console.log('Cached data corrupted, fetching fresh user data')
-                  await checkAuthUser()
-                }
-              } else {
-                console.log('No cached data, fetching fresh user data')
-                await checkAuthUser()
-              }
+              console.log('Fetching fresh signed-in user data')
+              await checkAuthUser()
             }
           }
         } else if (event === 'TOKEN_REFRESHED') {
@@ -247,26 +253,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
               const currentAccount = await getCurrentUser()
               if (currentAccount) {
-                setUser(currentAccount)
-                setIsAuthenticated(true)
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
-                  localStorage.setItem('jigri_auth', 'true')
-                }
+                applyAuthenticatedUser(currentAccount, session.user)
               }
             } catch (error) {
               console.error('Token refresh error:', error)
             }
           }
         } else if (event === 'SIGNED_OUT') {
-          setSupabaseUser(null)
-          setUser(null)
-          setIsAuthenticated(false)
+          clearAuthState()
           setIsLoading(false)
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('jigri_user')
-            localStorage.removeItem('jigri_auth')
-          }
         }
         // For other events, don't automatically clear state
       }
@@ -289,7 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           // Check if we have a valid session first
           const { data: { session } } = await supabase.auth.getSession()
-          
+
           if (session?.user) {
             // If we have a session but no user data, refresh
             if (!userRef.current?.id || !isAuthenticatedRef.current) {
@@ -300,25 +295,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log('User already exists, silent refresh...')
               const currentAccount = await getCurrentUser()
               if (currentAccount) {
-                setUser(currentAccount)
-                setIsAuthenticated(true)
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
-                  localStorage.setItem('jigri_auth', 'true')
-                }
+                applyAuthenticatedUser(currentAccount, session.user)
               }
             }
           } else {
             // No session - check if we have cached data that needs to be cleared
             if (userRef.current?.id || isAuthenticatedRef.current) {
               console.log('No session but user data exists, clearing...')
-              setUser(null)
-              setIsAuthenticated(false)
+              clearAuthState()
               setIsLoading(false)
-              if (typeof window !== 'undefined') {
-                localStorage.removeItem('jigri_user')
-                localStorage.removeItem('jigri_auth')
-              }
             }
           }
         } catch (error) {
@@ -336,7 +321,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             // Check if we have a valid session first
             const { data: { session } } = await supabase.auth.getSession()
-            
+
             if (session?.user) {
               // If we have a session but no user data, refresh
               if (!userRef.current?.id || !isAuthenticatedRef.current) {
@@ -347,25 +332,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('User already exists, silent refresh...')
                 const currentAccount = await getCurrentUser()
                 if (currentAccount) {
-                  setUser(currentAccount)
-                  setIsAuthenticated(true)
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('jigri_user', JSON.stringify(currentAccount))
-                    localStorage.setItem('jigri_auth', 'true')
-                  }
+                  applyAuthenticatedUser(currentAccount, session.user)
                 }
               }
             } else {
               // No session - check if we have cached data that needs to be cleared
               if (userRef.current?.id || isAuthenticatedRef.current) {
                 console.log('No session but user data exists, clearing...')
-                setUser(null)
-                setIsAuthenticated(false)
+                clearAuthState()
                 setIsLoading(false)
-                if (typeof window !== 'undefined') {
-                  localStorage.removeItem('jigri_user')
-                  localStorage.removeItem('jigri_auth')
-                }
               }
             }
           } catch (error) {
@@ -378,7 +353,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('focus', handleFocus)
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    
+
     return () => {
       clearTimeout(refreshTimeout)
       window.removeEventListener('focus', handleFocus)
