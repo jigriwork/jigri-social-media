@@ -25,7 +25,7 @@ const AdminManagement = () => {
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newAdminEmail.trim()) {
       toast({
         title: "Error",
@@ -103,7 +103,7 @@ const AdminManagement = () => {
       onError: (error: any) => {
         console.error('Remove admin error:', error);
         toast({
-          title: "Error", 
+          title: "Error",
           description: error?.message || error?.error?.message || "Failed to remove admin user.",
           variant: "destructive",
         });
@@ -124,10 +124,10 @@ const AdminManagement = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.8 }}
-      className="mt-10 w-full max-w-5xl"
+      className="mt-6 md:mt-10 w-full max-w-5xl"
     >
-      <div className="glassmorphism border border-dark-4 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="glassmorphism border border-dark-4 rounded-xl p-4 md:p-6 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <h3 className="h3-bold">Admin Management</h3>
           <Button
             onClick={() => setIsAddingAdmin(!isAddingAdmin)}
@@ -135,11 +135,11 @@ const AdminManagement = () => {
             disabled={isAddingAdminUser || isRemovingAdmin || !isSuperAdmin}
             title={isSuperAdmin ? 'Add admin user' : 'Only super admin can add admins'}
           >
-            <img 
-              src="/assets/icons/add-post.svg" 
-              alt="add" 
-              width={16} 
-              height={16} 
+            <img
+              src="/assets/icons/add-post.svg"
+              alt="add"
+              width={16}
+              height={16}
               className="invert-white"
             />
             Add Admin
@@ -170,6 +170,9 @@ const AdminManagement = () => {
                   type="email"
                   placeholder="Enter email address"
                   value={newAdminEmail}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   onChange={(e) => setNewAdminEmail(e.target.value)}
                   className="shad-input"
                   disabled={isAddingAdminUser}
@@ -178,7 +181,7 @@ const AdminManagement = () => {
                   User must already have an account in the system
                 </p>
               </div>
-              <div className="flex gap-3 justify-end">
+              <div className="flex flex-col sm:flex-row gap-3 justify-end">
                 <Button
                   type="button"
                   onClick={() => {
@@ -213,7 +216,7 @@ const AdminManagement = () => {
           <h4 className="text-lg font-semibold text-light-1 mb-4">
             Current Admins ({adminUsers?.length || 0})
           </h4>
-          
+
           {adminUsers && adminUsers.length > 0 ? (
             <div className="grid gap-3">
               {adminUsers.map((admin, index) => (
@@ -222,33 +225,33 @@ const AdminManagement = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.2, delay: index * 0.1 }}
-                  className="flex items-center justify-between p-4 bg-dark-3/30 rounded-lg border border-dark-4"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-dark-3/30 rounded-lg border border-dark-4"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <img
                       src={admin.image_url || "/assets/icons/profile-placeholder.svg"}
                       alt={admin.name}
                       className="w-10 h-10 rounded-full"
                     />
-                    <div>
-                      <p className="font-semibold text-light-1">{admin.name}</p>
-                      <p className="text-sm text-light-3">@{admin.username}</p>
-                      <p className="text-xs text-light-4">{admin.email}</p>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-light-1 break-words">{admin.name}</p>
+                      <p className="text-sm text-light-3 break-all">@{admin.username}</p>
+                      <p className="text-xs text-light-4 break-all">{admin.email}</p>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
+
+                  <div className="flex flex-wrap items-center gap-2">
                     {(admin as any).role === 'super_admin' && (
                       <span className="px-2 py-1 text-xs bg-primary-500/20 text-primary-500 rounded-full border border-primary-500/30">
                         Super Admin
                       </span>
                     )}
-                    
+
                     {/* Remove button - disabled for initial admins and current user */}
                     <Button
                       onClick={() => handleRemoveAdmin(admin.id, admin.email, (admin as any).role)}
                       disabled={
-                        isRemovingAdmin || 
+                        isRemovingAdmin ||
                         (admin as any).role === 'super_admin' ||
                         !isSuperAdmin ||
                         currentUser?.id === admin.id
@@ -257,18 +260,18 @@ const AdminManagement = () => {
                       size="sm"
                       title={
                         currentUser?.id === admin.id ? "Cannot remove yourself" :
-                        (admin as any).role === 'super_admin' ? "Cannot remove super admin" :
-                        !isSuperAdmin ? "Only super admin can remove admins" :
-                        "Remove admin privileges"
+                          (admin as any).role === 'super_admin' ? "Cannot remove super admin" :
+                            !isSuperAdmin ? "Only super admin can remove admins" :
+                              "Remove admin privileges"
                       }
                     >
                       {isRemovingAdmin ? (
                         <Loader />
                       ) : (
-                        <img 
-                          src="/assets/icons/delete.svg" 
-                          alt="remove" 
-                          width={16} 
+                        <img
+                          src="/assets/icons/delete.svg"
+                          alt="remove"
+                          width={16}
                           height={16}
                           className="filter invert-[.25] sepia-100 saturate-[1000%] hue-rotate-[315deg] brightness-125"
                         />

@@ -89,12 +89,12 @@ const Messages = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] md:h-screen w-full max-w-6xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-80px)] md:h-screen w-full max-w-6xl mx-auto overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 md:p-6 border-b border-dark-4/50">
         <div className="flex items-center gap-3">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-primary-500">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <h2 className="h3-bold md:h2-bold">Messages</h2>
         </div>
@@ -103,7 +103,7 @@ const Messages = () => {
           className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
           New Chat
         </button>
@@ -119,7 +119,7 @@ const Messages = () => {
           ) : !conversations || conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" className="text-light-4 mb-4 opacity-40">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.5" />
               </svg>
               <p className="text-light-3 font-medium mb-1">No conversations yet</p>
               <p className="text-light-4 text-sm">Start a new chat to connect with someone</p>
@@ -132,9 +132,8 @@ const Messages = () => {
                 <button
                   key={conv.id}
                   onClick={() => setSelectedConvId(conv.id)}
-                  className={`flex items-center gap-3 p-4 w-full text-left hover:bg-dark-3/50 transition-colors border-b border-dark-4/20 ${
-                    selectedConvId === conv.id ? "bg-dark-3/70 border-l-2 border-l-primary-500" : ""
-                  }`}
+                  className={`flex items-center gap-3 p-4 w-full text-left hover:bg-dark-3/50 transition-colors border-b border-dark-4/20 ${selectedConvId === conv.id ? "bg-dark-3/70 border-l-2 border-l-primary-500" : ""
+                    }`}
                 >
                   <div className="relative flex-shrink-0">
                     <img
@@ -192,7 +191,7 @@ const Messages = () => {
                   className="md:hidden p-1 hover:bg-dark-3 rounded transition-colors"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
                 <img
@@ -221,7 +220,7 @@ const Messages = () => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-28 md:pb-4 space-y-3">
                 {loadingMsgs ? (
                   <div className="flex items-center justify-center py-20">
                     <Loader />
@@ -241,11 +240,10 @@ const Messages = () => {
                         className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                       >
                         <div
-                          className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                            isMe
+                          className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMe
                               ? "bg-primary-500 text-white rounded-br-md"
                               : "bg-dark-3 text-light-1 rounded-bl-md border border-dark-4/50"
-                          }`}
+                            }`}
                         >
                           <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                           <p className={`text-[10px] mt-1 ${isMe ? "text-white/60" : "text-light-4"}`}>
@@ -260,7 +258,7 @@ const Messages = () => {
               </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t border-dark-4/50 bg-dark-2/30">
+              <div className="sticky bottom-0 z-10 p-3 md:p-4 border-t border-dark-4/50 bg-dark-2/95 backdrop-blur supports-[backdrop-filter]:bg-dark-2/80 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 <div className="flex items-end gap-3">
                   <textarea
                     value={messageText}
@@ -280,7 +278,7 @@ const Messages = () => {
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
                   </button>
@@ -290,7 +288,7 @@ const Messages = () => {
           ) : (
             <div className="flex flex-col items-center justify-center flex-1 text-center px-6">
               <svg width="80" height="80" viewBox="0 0 24 24" fill="none" className="text-light-4 mb-4 opacity-30">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="1.5" />
               </svg>
               <h3 className="text-light-2 text-lg font-semibold mb-2">Your Messages</h3>
               <p className="text-light-4 text-sm max-w-sm">

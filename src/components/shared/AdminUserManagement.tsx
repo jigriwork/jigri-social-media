@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import Loader from "@/components/shared/Loader";
 import ConfirmActionModal from "@/components/shared/ConfirmActionModal";
-import { 
-  useGetAdminAllUsers, 
+import {
+  useGetAdminAllUsers,
   useToggleUserActivation,
   useUpdateAdminUserProfile,
   useResetAdminUserPassword,
@@ -48,15 +48,15 @@ const AdminUserManagement = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ postId: string; postCaption: string } | null>(null);
   const { toast } = useToast();
 
-  const { 
-    data: usersData, 
+  const {
+    data: usersData,
     isLoading: isLoadingUsers
   } = useGetAdminAllUsers(currentPage, 10, searchTerm, {
     enabled: selectedTab === "users" // Only fetch when users tab is selected
   });
 
-  const { 
-    data: postsData, 
+  const {
+    data: postsData,
     isLoading: isLoadingPosts
   } = useGetAdminAllPosts(currentPage, 10, searchTerm, {
     enabled: selectedTab === "posts" // Only fetch when posts tab is selected
@@ -98,12 +98,12 @@ const AdminUserManagement = () => {
     else if (minutesDiff <= 60) {
       const mins = Math.round(minutesDiff);
       return { color: 'bg-yellow-500', label: `${mins}m ago`, textColor: 'text-yellow-400' };
-    } 
+    }
     // Hours: 1 hour to 24 hours
     else if (minutesDiff <= 1440) { // 24 hours
       const hoursAgo = Math.floor(minutesDiff / 60);
       return { color: 'bg-orange-500', label: `${hoursAgo}h ago`, textColor: 'text-orange-400' };
-    } 
+    }
     // Days: More than 24 hours
     else if (minutesDiff <= 10080) { // 7 days
       const daysAgo = Math.floor(minutesDiff / 1440);
@@ -264,59 +264,59 @@ const AdminUserManagement = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: index * 0.1 }}
-              className="p-4 bg-dark-3/30 rounded-lg border border-dark-4"
+              className="p-4 bg-dark-3/30 rounded-lg border border-dark-4 overflow-hidden"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                <div className="flex items-start gap-4 min-w-0">
                   <img
                     src={user.image_url || "/assets/icons/profile-placeholder.svg"}
                     alt={user.name}
                     className="w-12 h-12 rounded-full object-cover"
                   />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-light-1">{user.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-light-1 break-words">{user.name}</h3>
                       {(user.role === 'admin' || user.role === 'super_admin' || user.is_admin) && (
                         <span className="px-2 py-1 text-xs bg-primary-500/20 text-primary-500 rounded-full border border-primary-500/30">
                           {user.role === 'super_admin' ? 'Super Admin' : user.role === 'moderator' ? 'Moderator' : 'Admin'}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-light-3">@{user.username}</p>
-                    <p className="text-xs text-light-4">{user.email}</p>
-                    <div className="flex gap-4 mt-2 text-xs text-light-3">
+                    <p className="text-sm text-light-3 break-all">@{user.username}</p>
+                    <p className="text-xs text-light-4 break-all">{user.email}</p>
+                    <div className="flex flex-wrap gap-4 mt-2 text-xs text-light-3">
                       <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                    {isSuperAdmin && (
-                      <Button size="sm" variant="outline" disabled={isUpdatingUser} onClick={() => handleEditUser(user)}>
-                        Edit
-                      </Button>
-                    )}
-                    {isSuperAdmin && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isResettingPassword}
-                        onClick={() => handleResetPassword(user)}
-                      >
-                        Reset password
-                      </Button>
-                    )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {isSuperAdmin && (
+                    <Button size="sm" variant="outline" className="w-full sm:w-auto" disabled={isUpdatingUser} onClick={() => handleEditUser(user)}>
+                      Edit
+                    </Button>
+                  )}
+                  {isSuperAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      disabled={isResettingPassword}
+                      onClick={() => handleResetPassword(user)}
+                    >
+                      Reset password
+                    </Button>
+                  )}
                   {(user.role !== 'super_admin') && (
                     <Button
                       onClick={() => handleToggleActivation(user.id, user.name, user.is_deactivated)}
                       disabled={isToggling}
                       variant={user.is_deactivated ? "default" : "destructive"}
                       size="sm"
-                      className={
-                        user.is_deactivated 
-                          ? "text-green-500 hover:text-green-400 hover:bg-green-500/10 border-green-500/20" 
+                      className={`w-full sm:w-auto ${user.is_deactivated
+                          ? "text-green-500 hover:text-green-400 hover:bg-green-500/10 border-green-500/20"
                           : "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                      }
+                        }`}
                     >
                       {isToggling ? (
                         <Loader />
@@ -334,14 +334,14 @@ const AdminUserManagement = () => {
                       variant="destructive"
                       disabled={isDeletingUser}
                       onClick={() => handleDeleteUser(user)}
-                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                      className="w-full sm:w-auto text-red-500 hover:text-red-400 hover:bg-red-500/10"
                     >
                       Delete user
                     </Button>
                   )}
-                  
+
                   {/* Show user status */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 w-full sm:w-auto">
                     {(() => {
                       const status = getUserStatus(user);
                       return (
@@ -363,7 +363,7 @@ const AdminUserManagement = () => {
         {/* Pagination */}
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-dark-4">
           <div className="text-sm text-light-3">
-            Page {usersData.pagination.page} of {usersData.pagination.totalPages} 
+            Page {usersData.pagination.page} of {usersData.pagination.totalPages}
             ({usersData.pagination.total} total users)
           </div>
           <div className="flex gap-2">
@@ -432,7 +432,7 @@ const AdminUserManagement = () => {
                     className="w-20 h-20 rounded-lg object-cover"
                   />
                 )}
-                
+
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <img
@@ -443,15 +443,15 @@ const AdminUserManagement = () => {
                     <span className="text-sm text-light-2">{post.creator.name}</span>
                     <span className="text-xs text-light-4">@{post.creator.username}</span>
                   </div>
-                  
+
                   <p className="text-light-1 mb-2 line-clamp-2">{post.caption}</p>
-                  
+
                   <div className="flex gap-4 text-xs text-light-3">
                     <span>Posted: {new Date(post.created_at).toLocaleDateString()}</span>
                     {post.location && <span>📍 {post.location}</span>}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center">
                   <Button
                     onClick={() => handleDeletePost(post.id, post.caption)}
@@ -463,10 +463,10 @@ const AdminUserManagement = () => {
                     {isDeletingPost ? (
                       <Loader />
                     ) : (
-                      <img 
-                        src="/assets/icons/delete.svg" 
-                        alt="delete" 
-                        width={16} 
+                      <img
+                        src="/assets/icons/delete.svg"
+                        alt="delete"
+                        width={16}
                         height={16}
                         className="filter invert-[.25] sepia-100 saturate-[1000%] hue-rotate-[315deg] brightness-125"
                       />
@@ -481,7 +481,7 @@ const AdminUserManagement = () => {
         {/* Pagination */}
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-dark-4">
           <div className="text-sm text-light-3">
-            Page {postsData.pagination.page} of {postsData.pagination.totalPages} 
+            Page {postsData.pagination.page} of {postsData.pagination.totalPages}
             ({postsData.pagination.total} total posts)
           </div>
           <div className="flex gap-2">
@@ -518,7 +518,7 @@ const AdminUserManagement = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-light-1">Admin Management</h3>
-          
+
           {/* Tab Switcher */}
           <div className="flex bg-dark-3/30 rounded-lg p-1">
             <Button
@@ -527,11 +527,10 @@ const AdminUserManagement = () => {
                 setCurrentPage(1);
                 setSearchTerm("");
               }}
-              className={`px-4 py-2 text-sm rounded-md transition-all ${
-                selectedTab === "users"
+              className={`px-4 py-2 text-sm rounded-md transition-all ${selectedTab === "users"
                   ? "bg-primary-500 text-white"
                   : "text-light-3 hover:text-light-1 bg-transparent"
-              }`}
+                }`}
             >
               Users
             </Button>
@@ -541,11 +540,10 @@ const AdminUserManagement = () => {
                 setCurrentPage(1);
                 setSearchTerm("");
               }}
-              className={`px-4 py-2 text-sm rounded-md transition-all ${
-                selectedTab === "posts"
+              className={`px-4 py-2 text-sm rounded-md transition-all ${selectedTab === "posts"
                   ? "bg-primary-500 text-white"
                   : "text-light-3 hover:text-light-1 bg-transparent"
-              }`}
+                }`}
             >
               Posts
             </Button>

@@ -41,9 +41,13 @@ const SigninForm = () => {
   const handleSignin = async (user: z.infer<typeof SigninValidation>) => {
     // Clear previous error
     setSignInError(null);
-    
+    const normalizedUser = {
+      ...user,
+      email: user.email.toLowerCase().trim(),
+    };
+
     try {
-      const session = await signInAccount(user);
+      const session = await signInAccount(normalizedUser);
 
       if (!session) {
         setSignInError("Login failed. Please try again.");
@@ -62,13 +66,13 @@ const SigninForm = () => {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      
+
       // Handle enhanced error messages from signInUser function
       if (error?.name === 'EmailNotConfirmedError') {
         setSignInError("⚠️ Email verification required. Please check your email and click the verification link, then try logging in again.");
         return;
       }
-      
+
       if (error?.name === 'InvalidCredentialsError') {
         setSignInError("❌ Invalid credentials. Please check your email and password and try again.");
         return;
@@ -83,15 +87,15 @@ const SigninForm = () => {
         });
         return;
       }
-      
+
       // Fallback checks for legacy error handling
       if (error?.message) {
-        if (error.message.includes('email not confirmed') || 
-            error.message.includes('Email not confirmed') ||
-            error.message.includes('Email verification required')) {
+        if (error.message.includes('email not confirmed') ||
+          error.message.includes('Email not confirmed') ||
+          error.message.includes('Email verification required')) {
           setSignInError("⚠️ Email verification required. Please verify your email address first, then try logging in.");
-        } else if (error.message.includes('Invalid login credentials') || 
-                   error.message.includes('Invalid email or password')) {
+        } else if (error.message.includes('Invalid login credentials') ||
+          error.message.includes('Invalid email or password')) {
           setSignInError("❌ Invalid credentials. Please check your email and password and try again.");
         } else if (error.message.includes('account has been deactivated')) {
           setSignInError("🚫 Your account has been deactivated. If you believe this was done in error, please contact support at support@jigri.app for assistance.");
@@ -106,10 +110,10 @@ const SigninForm = () => {
 
   return (
     <Form {...form}>
-  <div className="w-full max-w-md px-6 flex flex-col items-center mt-20 sm:mt-0 sm:pt-2 sm:justify-center sm:min-h-full">
-        <img 
-          src="/assets/images/logo.svg" 
-          alt="logo" 
+      <div className="w-full max-w-md px-6 flex flex-col items-center mt-20 sm:mt-0 sm:pt-2 sm:justify-center sm:min-h-full">
+        <img
+          src="/assets/images/logo.svg"
+          alt="logo"
           className="w-56 h-auto mb-6 sm:w-64 sm:mb-8"
         />
 
@@ -119,7 +123,7 @@ const SigninForm = () => {
         <p className="text-light-3 text-sm text-center mb-4 sm:mb-5">
           Welcome back! Please enter your details.
         </p>
-        
+
         <form
           onSubmit={form.handleSubmit(handleSignin)}
           className="flex flex-col gap-3 w-full sm:gap-4">
@@ -130,12 +134,15 @@ const SigninForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label">Email</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="text" 
-                    className="shad-input" 
-                    {...field} 
+                  <Input
+                    type="text"
+                    className="shad-input"
+                    {...field}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     onChange={(e) => {
-                      field.onChange(e);
+                      field.onChange(e.target.value.toLowerCase());
                       // Clear error when user starts typing
                       if (signInError) setSignInError(null);
                     }}

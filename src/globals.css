@@ -297,11 +297,11 @@
 
 /* ADMIN DASHBOARD STYLES */
 .admin-container {
-  @apply flex flex-col flex-1 items-center gap-10 py-10 px-5 md:px-8 lg:p-14;
+  @apply flex flex-col flex-1 items-center gap-6 md:gap-10 py-6 px-4 pb-24 md:px-8 lg:p-14;
 }
 
 .stat-card {
-  @apply glassmorphism border border-dark-4 rounded-xl p-6 hover:scale-105 transition-transform duration-200;
+  @apply glassmorphism border border-dark-4 rounded-xl p-4 md:p-6 hover:scale-[1.02] transition-transform duration-200;
 }
 
 .stat-icon-wrapper {

@@ -68,8 +68,8 @@ const AdminDashboard = () => {
 
   return (
     <div className="common-container">
-      <div className="admin-container">
-        <div className="flex gap-2 w-full max-w-5xl mb-8">
+      <div className="admin-container !px-4 md:!px-8 lg:!px-14">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full max-w-5xl mb-6 md:mb-8">
           <img
             src="/assets/icons/people.svg"
             width={36}
@@ -77,14 +77,14 @@ const AdminDashboard = () => {
             alt="admin"
             className="invert-white"
           />
-          <h2 className="h3-bold md:h2-bold text-left w-full">Admin Dashboard</h2>
-          <span className="px-3 py-1 text-xs rounded-full border border-primary-500/30 text-primary-400 bg-primary-500/10 self-center">
+          <h2 className="h3-bold md:h2-bold text-left w-full break-words">Admin Dashboard</h2>
+          <span className="px-3 py-1 text-xs rounded-full border border-primary-500/30 text-primary-400 bg-primary-500/10 self-start sm:self-center whitespace-nowrap">
             Role: {String(role).replace('_', ' ')}
           </span>
         </div>
 
         {stats && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 w-full max-w-5xl">
+          <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full max-w-5xl">
             {/* Total Users */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -236,9 +236,9 @@ const AdminDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.7 }}
-          className="mt-10 w-full max-w-5xl"
+          className="mt-6 md:mt-10 w-full max-w-5xl"
         >
-          <div className="glassmorphism border border-dark-4 rounded-xl p-6">
+          <div className="glassmorphism border border-dark-4 rounded-xl p-4 md:p-6">
             <h3 className="h3-bold mb-4">Platform Overview</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="text-light-2">
@@ -276,7 +276,7 @@ const AdminDashboard = () => {
 
         {/* Super Admin Role Governance Section */}
         {role === 'super_admin' ? <AdminManagement /> : null}
-        
+
         {/* User & Content Management Section */}
         <AdminUserManagement />
 

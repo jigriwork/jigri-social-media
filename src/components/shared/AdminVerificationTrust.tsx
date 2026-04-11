@@ -89,10 +89,10 @@ const AdminVerificationTrust = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.8 }}
-      className="mt-8 w-full max-w-6xl"
+      className="mt-6 md:mt-8 w-full max-w-6xl"
     >
-      <div className="bg-dark-2/50 rounded-xl p-6 border border-dark-4">
-        <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="bg-dark-2/50 rounded-xl p-4 md:p-6 border border-dark-4 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h3 className="text-xl font-semibold text-light-1">Verification &amp; Trust</h3>
           <span className="text-xs text-light-3">Role: {role.replace(/_/g, " ")}</span>
         </div>
@@ -105,11 +105,10 @@ const AdminVerificationTrust = () => {
                 setStatus(opt.value);
                 setPage(1);
               }}
-              className={`px-3 py-1 text-xs rounded-full ${
-                status === opt.value
+              className={`px-3 py-1 text-xs rounded-full ${status === opt.value
                   ? "bg-primary-500 text-white"
                   : "bg-dark-3 text-light-3 hover:text-light-1"
-              }`}
+                }`}
             >
               {opt.label}
             </Button>
@@ -117,7 +116,7 @@ const AdminVerificationTrust = () => {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-lg border border-dark-4 bg-dark-3/20 p-3 max-h-[560px] overflow-y-auto">
+          <div className="rounded-lg border border-dark-4 bg-dark-3/20 p-3 max-h-[560px] overflow-y-auto min-w-0">
             {isQueueLoading ? (
               <div className="flex-center py-8">
                 <Loader />
@@ -130,11 +129,10 @@ const AdminVerificationTrust = () => {
                   <button
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
-                    className={`w-full text-left rounded-lg border p-3 transition-colors ${
-                      selectedId === item.id
+                    className={`w-full text-left rounded-lg border p-3 transition-colors ${selectedId === item.id
                         ? "border-primary-500 bg-primary-500/10"
                         : "border-dark-4 bg-dark-3/30 hover:border-primary-500/30"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm text-light-1 font-semibold line-clamp-1">{item?.applicant?.name || "Unknown user"}</p>
@@ -171,7 +169,7 @@ const AdminVerificationTrust = () => {
             )}
           </div>
 
-          <div className="rounded-lg border border-dark-4 bg-dark-3/20 p-3 min-h-[260px]">
+          <div className="rounded-lg border border-dark-4 bg-dark-3/20 p-3 min-h-[260px] min-w-0">
             {!selectedId ? (
               <p className="text-sm text-light-4 py-6 text-center">Select an application to review details.</p>
             ) : isDetailLoading ? (
