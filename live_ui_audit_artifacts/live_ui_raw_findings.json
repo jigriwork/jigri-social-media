@@ -1,0 +1,640 @@
+{
+  "timestamp": "2026-04-12T12:49:01.317Z",
+  "baseUrl": "https://www.jigri.in",
+  "desktop": {
+    "loggedOutHome": {
+      "url": "https://www.jigri.in/sign-in",
+      "title": "Jigri",
+      "heading": [
+        "Log in to your account"
+      ],
+      "navTexts": [],
+      "buttons": [
+        "Log in",
+        "Download"
+      ],
+      "links": [
+        {
+          "text": "Forgot password?",
+          "href": "/forgot-password"
+        },
+        {
+          "text": "Sign up",
+          "href": "/sign-up"
+        }
+      ],
+      "bodyTextSample": "Log in to your account\n\nWelcome back! Please enter your details.\n\nEmail\nPassword\nForgot password?\nLog in\n\nDon't have an account?Sign up\n\nBest on app\n\nFor the best experience, download the app.\n\nDownload",
+      "mainRect": null,
+      "postCountDetected": 0,
+      "visiblePosts": 0,
+      "postRects": [],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 1,
+      "tinySvgs": 0,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    }
+  },
+  "auth": {
+    "signupAttempt": {
+      "email": "jigri.audit.1775998145014@example.com"
+    },
+    "signupForm": {
+      "url": "https://www.jigri.in/sign-up",
+      "title": "Jigri",
+      "heading": [
+        "Create a new account"
+      ],
+      "navTexts": [],
+      "buttons": [
+        "Sign Up",
+        "Download"
+      ],
+      "links": [
+        {
+          "text": "Log in",
+          "href": "/sign-in"
+        }
+      ],
+      "bodyTextSample": "Create a new account\n\nTo use Jigri, Please enter your details\n\nName\nUsername\nEmail\nPassword\nConfirm Password\nSign Up\n\nAlready have an account?Log in\n\nBest on app\n\nFor the best experience, download the app.\n\nDownload",
+      "mainRect": null,
+      "postCountDetected": 0,
+      "visiblePosts": 0,
+      "postRects": [],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 1,
+      "tinySvgs": 0,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "afterSignup": {
+      "url": "https://www.jigri.in/sign-up",
+      "title": "Jigri",
+      "heading": [
+        "Create a new account"
+      ],
+      "navTexts": [],
+      "buttons": [
+        "Sign Up",
+        "Download"
+      ],
+      "links": [
+        {
+          "text": "Log in",
+          "href": "/sign-in"
+        }
+      ],
+      "bodyTextSample": "Create a new account\n\nTo use Jigri, Please enter your details\n\nName\n\nName must be at least 2 characters.\n\nUsername\n\nUsername must be at least 2 characters.\n\nEmail\n✓ Available\nPassword\nConfirm Password\nSign Up\n\nAlready have an account?Log in\n\nBest on app\n\nFor the best experience, download the app.\n\nDownload",
+      "mainRect": null,
+      "postCountDetected": 0,
+      "visiblePosts": 0,
+      "postRects": [],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 1,
+      "tinySvgs": 0,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "signInForm": {
+      "url": "https://www.jigri.in/sign-in",
+      "title": "Jigri",
+      "heading": [
+        "Log in to your account"
+      ],
+      "navTexts": [],
+      "buttons": [
+        "Log in",
+        "Download"
+      ],
+      "links": [
+        {
+          "text": "Forgot password?",
+          "href": "/forgot-password"
+        },
+        {
+          "text": "Sign up",
+          "href": "/sign-up"
+        }
+      ],
+      "bodyTextSample": "Log in to your account\n\nWelcome back! Please enter your details.\n\nEmail\nPassword\nForgot password?\nLog in\n\nDon't have an account?Sign up\n\nBest on app\n\nFor the best experience, download the app.\n\nDownload",
+      "mainRect": null,
+      "postCountDetected": 0,
+      "visiblePosts": 0,
+      "postRects": [],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 1,
+      "tinySvgs": 0,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "afterLogin": {
+      "url": "https://www.jigri.in/",
+      "title": "Jigri",
+      "heading": [
+        "Following Feed"
+      ],
+      "navTexts": [
+        "Test User\n\n@tester",
+        "Home",
+        "Explore",
+        "People",
+        "Messages",
+        "Saved",
+        "Create Post"
+      ],
+      "buttons": [
+        "5",
+        "Logout",
+        "all",
+        "clips",
+        "pics",
+        "notes",
+        "5"
+      ],
+      "links": [
+        {
+          "text": "Test User\n\n@tester",
+          "href": "/profile/db299f1b-1fcb-4172-80a1-8b92734a86a7"
+        },
+        {
+          "text": "Home",
+          "href": "/"
+        },
+        {
+          "text": "Explore",
+          "href": "/explore"
+        },
+        {
+          "text": "People",
+          "href": "/all-users"
+        },
+        {
+          "text": "Messages",
+          "href": "/messages"
+        },
+        {
+          "text": "Saved",
+          "href": "/saved"
+        },
+        {
+          "text": "Create Post",
+          "href": "/create-post"
+        },
+        {
+          "text": "Continue",
+          "href": "/all-users"
+        },
+        {
+          "text": "@admin",
+          "href": "/profile/username/admin"
+        },
+        {
+          "text": "@admin",
+          "href": "/profile/username/admin"
+        },
+        {
+          "text": "Testing Jigri social media platform with a test post from QA. #QAReview #Testing\n\nby @asksmpd26",
+          "href": "/posts/ade328d3-35f7-44d0-8a10-732fc563720a"
+        },
+        {
+          "text": "New text , hello world\n\nby @tester",
+          "href": "/posts/9a8b27f3-1e53-43bb-9780-435ddbee2707"
+        },
+        {
+          "text": "hello world (edited for QA on April 10, 2026). Updated version #EditTest\n\nby @tester",
+          "href": "/posts/d7a505e9-5178-4b1e-afb4-6326b2f862ff"
+        },
+        {
+          "text": "#QAReview",
+          "href": "/explore?search=%23QAReview"
+        },
+        {
+          "text": "#Testing",
+          "href": "/explore?search=%23Testing"
+        },
+        {
+          "text": "#mitty",
+          "href": "/explore?search=%23mitty"
+        },
+        {
+          "text": "#perfume",
+          "href": "/explore?search=%23perfume"
+        },
+        {
+          "text": "#EditTest",
+          "href": "/explore?search=%23EditTest"
+        },
+        {
+          "text": "Home",
+          "href": "/"
+        },
+        {
+          "text": "Explore",
+          "href": "/explore"
+        },
+        {
+          "text": "Messages",
+          "href": "/messages"
+        },
+        {
+          "text": "Saved",
+          "href": "/saved"
+        },
+        {
+          "text": "Create",
+          "href": "/create-post"
+        }
+      ],
+      "bodyTextSample": "Test User\n\n@tester\n\nHome\nExplore\nPeople\nMessages\nSaved\nCreate Post\n\nLogout\n\nFollowing Feed\nall\nclips\npics\nnotes\n5\n\nGetting started (2/3)\n\n✓ Upload profile photo\n\n○ Follow at least 3 people\n\nContinue\n\n✓ Create your first post\n\nAdib Sattar\n\n1 day ago\n\n💡\nTHOUGHT\n\nHello Jigri’s ✋\n\n0\n\n0\n\nQ:\nQuestion\n\nTest User\n\n1 day ago\n\n💡\nTHOUGHT\n\nhow is the josh ? \n@admin\n \n\n1\n\n2\n\nTest User\n\n1 day ago\n\n💡\nTHOUGHT\n\n@admin\n hello there\n\n0\n\n0\n\nYou might have missed this\n\nTesting Jigri social media platform with a test post from QA. #QAReview #Testing\n\nby @asksmpd26\n\nNew text , hello world\n\nby @tester\n\nhello world (edited for QA on April 10, 2026). Updated version #EditTest\n\nby @tester\n\nAsk SMPD\n\n1 day ago\n\n💡\nTHOUGHT\n\nTesting Jigri social media platform with a test post from QA. #QAReview #Testing\n\n0\n\n0\n\nQ:\nQuestion\n\nTest User\n\n1 day ago\n\nNew text , hello world\n\n#mitty\n#perfume\n\n2\n\n2\n\nTest User\n\n2 days ago\n\n💡\nTHOUGHT\n\nhello world (edited for QA on April 10, 2026). Updated version #EditTest\n\n1\n\n4",
+      "mainRect": null,
+      "postCountDetected": 7,
+      "visiblePosts": 5,
+      "postRects": [
+        {
+          "x": 312,
+          "y": 40,
+          "w": 1096,
+          "h": 1633
+        },
+        {
+          "x": 312,
+          "y": 378,
+          "w": 528,
+          "h": 290
+        },
+        {
+          "x": 880,
+          "y": 380,
+          "w": 528,
+          "h": 290
+        },
+        {
+          "x": 312,
+          "y": 710,
+          "w": 271,
+          "h": 318
+        },
+        {
+          "x": 880,
+          "y": 710,
+          "w": 528,
+          "h": 318
+        },
+        {
+          "x": 312,
+          "y": 1067,
+          "w": 528,
+          "h": 606
+        },
+        {
+          "x": 880,
+          "y": 1067,
+          "w": 528,
+          "h": 606
+        }
+      ],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 2,
+      "tinySvgs": 1,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "loggedInLikely": true
+  },
+  "loggedIn": {
+    "feed": {
+      "url": "https://www.jigri.in/",
+      "title": "Jigri",
+      "heading": [
+        "Following Feed"
+      ],
+      "navTexts": [
+        "Test User\n\n@tester",
+        "Home",
+        "Explore",
+        "People",
+        "Messages",
+        "Saved",
+        "Create Post"
+      ],
+      "buttons": [
+        "5",
+        "Logout",
+        "all",
+        "clips",
+        "pics",
+        "notes",
+        "5"
+      ],
+      "links": [
+        {
+          "text": "Test User\n\n@tester",
+          "href": "/profile/db299f1b-1fcb-4172-80a1-8b92734a86a7"
+        },
+        {
+          "text": "Home",
+          "href": "/"
+        },
+        {
+          "text": "Explore",
+          "href": "/explore"
+        },
+        {
+          "text": "People",
+          "href": "/all-users"
+        },
+        {
+          "text": "Messages",
+          "href": "/messages"
+        },
+        {
+          "text": "Saved",
+          "href": "/saved"
+        },
+        {
+          "text": "Create Post",
+          "href": "/create-post"
+        },
+        {
+          "text": "Continue",
+          "href": "/all-users"
+        },
+        {
+          "text": "@admin",
+          "href": "/profile/username/admin"
+        },
+        {
+          "text": "@admin",
+          "href": "/profile/username/admin"
+        },
+        {
+          "text": "Testing Jigri social media platform with a test post from QA. #QAReview #Testing\n\nby @asksmpd26",
+          "href": "/posts/ade328d3-35f7-44d0-8a10-732fc563720a"
+        },
+        {
+          "text": "New text , hello world\n\nby @tester",
+          "href": "/posts/9a8b27f3-1e53-43bb-9780-435ddbee2707"
+        },
+        {
+          "text": "hello world (edited for QA on April 10, 2026). Updated version #EditTest\n\nby @tester",
+          "href": "/posts/d7a505e9-5178-4b1e-afb4-6326b2f862ff"
+        },
+        {
+          "text": "#QAReview",
+          "href": "/explore?search=%23QAReview"
+        },
+        {
+          "text": "#Testing",
+          "href": "/explore?search=%23Testing"
+        },
+        {
+          "text": "#mitty",
+          "href": "/explore?search=%23mitty"
+        },
+        {
+          "text": "#perfume",
+          "href": "/explore?search=%23perfume"
+        },
+        {
+          "text": "#EditTest",
+          "href": "/explore?search=%23EditTest"
+        },
+        {
+          "text": "Home",
+          "href": "/"
+        },
+        {
+          "text": "Explore",
+          "href": "/explore"
+        },
+        {
+          "text": "Messages",
+          "href": "/messages"
+        },
+        {
+          "text": "Saved",
+          "href": "/saved"
+        },
+        {
+          "text": "Create",
+          "href": "/create-post"
+        }
+      ],
+      "bodyTextSample": "Test User\n\n@tester\n\nHome\nExplore\nPeople\nMessages\nSaved\nCreate Post\n\nLogout\n\nFollowing Feed\nall\nclips\npics\nnotes\n5\n\nGetting started (2/3)\n\n✓ Upload profile photo\n\n○ Follow at least 3 people\n\nContinue\n\n✓ Create your first post\n\nAdib Sattar\n\n1 day ago\n\n💡\nTHOUGHT\n\nHello Jigri’s ✋\n\n0\n\n0\n\nQ:\nQuestion\n\nTest User\n\n1 day ago\n\n💡\nTHOUGHT\n\nhow is the josh ? \n@admin\n \n\n1\n\n2\n\nTest User\n\n1 day ago\n\n💡\nTHOUGHT\n\n@admin\n hello there\n\n0\n\n0\n\nYou might have missed this\n\nTesting Jigri social media platform with a test post from QA. #QAReview #Testing\n\nby @asksmpd26\n\nNew text , hello world\n\nby @tester\n\nhello world (edited for QA on April 10, 2026). Updated version #EditTest\n\nby @tester\n\nAsk SMPD\n\n1 day ago\n\n💡\nTHOUGHT\n\nTesting Jigri social media platform with a test post from QA. #QAReview #Testing\n\n0\n\n0\n\nQ:\nQuestion\n\nTest User\n\n1 day ago\n\nNew text , hello world\n\n#mitty\n#perfume\n\n2\n\n2\n\nTest User\n\n2 days ago\n\n💡\nTHOUGHT\n\nhello world (edited for QA on April 10, 2026). Updated version #EditTest\n\n1\n\n4",
+      "mainRect": null,
+      "postCountDetected": 7,
+      "visiblePosts": 5,
+      "postRects": [
+        {
+          "x": 312,
+          "y": 40,
+          "w": 1096,
+          "h": 1633
+        },
+        {
+          "x": 312,
+          "y": 378,
+          "w": 528,
+          "h": 290
+        },
+        {
+          "x": 880,
+          "y": 380,
+          "w": 528,
+          "h": 290
+        },
+        {
+          "x": 312,
+          "y": 710,
+          "w": 271,
+          "h": 318
+        },
+        {
+          "x": 880,
+          "y": 710,
+          "w": 528,
+          "h": 318
+        },
+        {
+          "x": 312,
+          "y": 1067,
+          "w": 528,
+          "h": 606
+        },
+        {
+          "x": 880,
+          "y": 1067,
+          "w": 528,
+          "h": 606
+        }
+      ],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 2,
+      "tinySvgs": 1,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "postDetail": {
+      "url": "https://www.jigri.in/posts/ade328d3-35f7-44d0-8a10-732fc563720a",
+      "title": "Jigri",
+      "heading": [],
+      "navTexts": [],
+      "buttons": [
+        "Back",
+        "Post"
+      ],
+      "links": [
+        {
+          "text": "#QAReview",
+          "href": "/explore?search=%23QAReview"
+        },
+        {
+          "text": "#Testing",
+          "href": "/explore?search=%23Testing"
+        },
+        {
+          "text": "Ask SMPD",
+          "href": "/profile/d1b29967-9ef2-4b8c-baeb-a26ef35ba2c8"
+        },
+        {
+          "text": "Home",
+          "href": "/"
+        },
+        {
+          "text": "Explore",
+          "href": "/explore"
+        },
+        {
+          "text": "Messages",
+          "href": "/messages"
+        },
+        {
+          "text": "Saved",
+          "href": "/saved"
+        },
+        {
+          "text": "Create",
+          "href": "/create-post"
+        }
+      ],
+      "bodyTextSample": "Back\n\n💡 THOUGHT\n\nTesting Jigri social media platform with a test post from QA. #QAReview #Testing\n\nAsk SMPD\n\n1 day ago\n\n•\nGeneral\n\n0\n\n0\n\nNo comments yet\nPost\n\nBe the first to comment!",
+      "mainRect": null,
+      "postCountDetected": 3,
+      "visiblePosts": 3,
+      "postRects": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 842
+        },
+        {
+          "x": 360,
+          "y": 136,
+          "w": 720,
+          "h": 384
+        },
+        {
+          "x": 361,
+          "y": 294,
+          "w": 718,
+          "h": 226
+        }
+      ],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 0,
+      "tinySvgs": 0,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "profile": {
+      "url": "https://www.jigri.in/profile",
+      "title": "Jigri",
+      "heading": [
+        "404",
+        "This page could not be found."
+      ],
+      "navTexts": [],
+      "buttons": [],
+      "links": [],
+      "bodyTextSample": "404\nThis page could not be found.",
+      "mainRect": null,
+      "postCountDetected": 0,
+      "visiblePosts": 0,
+      "postRects": [],
+      "asides": [],
+      "brokenImgs": 0,
+      "svgCount": 0,
+      "tinySvgs": 0,
+      "viewport": {
+        "w": 1440,
+        "h": 900
+      }
+    }
+  },
+  "mobile": {
+    "feed": {
+      "url": "https://www.jigri.in/",
+      "title": "Jigri",
+      "viewport": {
+        "w": 390,
+        "h": 664
+      },
+      "postCountDetected": 0,
+      "visiblePosts": 0,
+      "heading": [
+        "Following Feed"
+      ],
+      "navTexts": [
+        "Test User@tester",
+        "Home",
+        "Explore",
+        "People",
+        "Messages",
+        "Saved",
+        "Create Post"
+      ],
+      "bodyTextSample": "5\nFollowing Feed\nall\nclips\npics\nnotes\n\nGetting started (2/3)\n\n✓ Upload profile photo\n\n○ Follow at least 3 people\n\nContinue\n\n✓ Create your first post\n\nHome\nExplore\nMessages\nSaved\nCreate"
+    },
+    "postDetail": {
+      "url": "https://www.jigri.in/",
+      "title": "Jigri",
+      "heading": [
+        "Following Feed"
+      ],
+      "bodyTextSample": "5\nFollowing Feed\nall\nclips\npics\nnotes\n\nGetting started (2/3)\n\n✓ Upload profile photo\n\n○ Follow at least 3 people\n\nContinue\n\n✓ Create your first post\n\nHome\nExplore\nMessages\nSaved\nCreate"
+    }
+  },
+  "errors": {
+    "networkErrorsTop": [
+      {
+        "url": "https://www.jigri.in/profile",
+        "status": 404
+      }
+    ],
+    "consoleErrorsTop": [
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ]
+  }
+}

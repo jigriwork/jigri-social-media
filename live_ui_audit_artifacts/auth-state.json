@@ -1,0 +1,29 @@
+{
+  "cookies": [
+    {
+      "name": "sb-wztqxpcfprghqmqvconk-auth-token",
+      "value": "base64-eyJhY2Nlc3NfdG9rZW4iOiJleUpoYkdjaU9pSkZVekkxTmlJc0ltdHBaQ0k2SWpkaFpXVXlPV1l5TFdJME5HSXRORFkzTUMxaU16UXdMV0kwT1RFek0yVXpOVGN4WVNJc0luUjVjQ0k2SWtwWFZDSjkuZXlKcGMzTWlPaUpvZEhSd2N6b3ZMM2Q2ZEhGNGNHTm1jSEpuYUhGdGNYWmpiMjVyTG5OMWNHRmlZWE5sTG1OdkwyRjFkR2d2ZGpFaUxDSnpkV0lpT2lKa1lqSTVPV1l4WWkweFptTmlMVFF4TnpJdE9EQmhNUzA0WWpreU56TTBZVGcyWVRjaUxDSmhkV1FpT2lKaGRYUm9aVzUwYVdOaGRHVmtJaXdpWlhod0lqb3hOemMyTURBeE56WXpMQ0pwWVhRaU9qRTNOelU1T1RneE5qTXNJbVZ0WVdsc0lqb2lkR1Z6ZEVCMFpYTjBMbU52YlNJc0luQm9iMjVsSWpvaUlpd2lZWEJ3WDIxbGRHRmtZWFJoSWpwN0luQnliM1pwWkdWeUlqb2laVzFoYVd3aUxDSndjbTkyYVdSbGNuTWlPbHNpWlcxaGFXd2lYWDBzSW5WelpYSmZiV1YwWVdSaGRHRWlPbnNpWlcxaGFXeGZkbVZ5YVdacFpXUWlPblJ5ZFdWOUxDSnliMnhsSWpvaVlYVjBhR1Z1ZEdsallYUmxaQ0lzSW1GaGJDSTZJbUZoYkRFaUxDSmhiWElpT2x0N0ltMWxkR2h2WkNJNkluQmhjM04zYjNKa0lpd2lkR2x0WlhOMFlXMXdJam94TnpjMU9UazRNVFl6ZlYwc0luTmxjM05wYjI1ZmFXUWlPaUkxWkRkaVkySXdPUzFsWm1JNExUUTJOamd0WW1WaE1DMHdZamMwTjJRNU5URXpabUlpTENKcGMxOWhibTl1ZVcxdmRYTWlPbVpoYkhObGZRLnRLX3VuLW5DSXdvbzlLMm9VNHBLR2NXZHhqMXNRTmN6UE9hYVJ4X1l2OTUtRTd5ckF0R2NLN0xlOW92ZVczNFp2TmlEclEwTVEyTWZIVkZaREUzNnBnIiwidG9rZW5fdHlwZSI6ImJlYXJlciIsImV4cGlyZXNfaW4iOjM2MDAsImV4cGlyZXNfYXQiOjE3NzYwMDE3NjMsInJlZnJlc2hfdG9rZW4iOiJvdXdtejNzcjM3Z24iLCJ1c2VyIjp7ImlkIjoiZGIyOTlmMWItMWZjYi00MTcyLTgwYTEtOGI5MjczNGE4NmE3IiwiYXVkIjoiYXV0aGVudGljYXRlZCIsInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiZW1haWxfY29uZmlybWVkX2F0IjoiMjAyNi0wNC0wOVQwODowMzo1Ny43MDAzNzRaIiwicGhvbmUiOiIiLCJjb25maXJtZWRfYXQiOiIyMDI2LTA0LTA5VDA4OjAzOjU3LjcwMDM3NFoiLCJsYXN0X3NpZ25faW5fYXQiOiIyMDI2LTA0LTEyVDEyOjQ5OjIzLjA0NDg3ODQ0WiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsX3ZlcmlmaWVkIjp0cnVlfSwiaWRlbnRpdGllcyI6W3siaWRlbnRpdHlfaWQiOiI1ZjRjMWE1My1lNjNmLTQ1MTYtYTU5YS0zYjIxY2VmOWQ0NmMiLCJpZCI6ImRiMjk5ZjFiLTFmY2ItNDE3Mi04MGExLThiOTI3MzRhODZhNyIsInVzZXJfaWQiOiJkYjI5OWYxYi0xZmNiLTQxNzItODBhMS04YjkyNzM0YTg2YTciLCJpZGVudGl0eV9kYXRhIjp7ImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiJkYjI5OWYxYi0xZmNiLTQxNzItODBhMS04YjkyNzM0YTg2YTcifSwicHJvdmlkZXIiOiJlbWFpbCIsImxhc3Rfc2lnbl9pbl9hdCI6IjIwMjYtMDQtMDlUMDg6MDM6NTcuNjk0MjE0WiIsImNyZWF0ZWRfYXQiOiIyMDI2LTA0LTA5VDA4OjAzOjU3LjY5NDI3M1oiLCJ1cGRhdGVkX2F0IjoiMjAyNi0wNC0wOVQwODowMzo1Ny42OTQyNzNaIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIn1dLCJjcmVhdGVkX2F0IjoiMjAyNi0wNC0wOVQwODowMzo1Ny42NjM3NDhaIiwidXBkYXRlZF9hdCI6IjIwMjYtMDQtMTJUMTI6NDk6MjMuMTA5NjY4WiIsImlzX2Fub255bW91cyI6ZmFsc2V9LCJ3ZWFrX3Bhc3N3b3JkIjpudWxsfQ",
+      "domain": "www.jigri.in",
+      "path": "/",
+      "expires": 1810558163.75174,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://www.jigri.in",
+      "localStorage": [
+        {
+          "name": "jigri_auth",
+          "value": "true"
+        },
+        {
+          "name": "jigri_user",
+          "value": "{\"id\":\"db299f1b-1fcb-4172-80a1-8b92734a86a7\",\"created_at\":\"2026-04-09T08:03:57.663393+00:00\",\"updated_at\":\"2026-04-11T15:02:52.262401+00:00\",\"email\":\"test@test.com\",\"name\":\"Test User\",\"username\":\"tester\",\"bio\":\"Testing Jigri platform as part of QA. – edited on April 10, 2026 for QA.\",\"image_url\":\"https://wztqxpcfprghqmqvconk.supabase.co/storage/v1/object/public/posts/profile-db299f1b-1fcb-4172-80a1-8b92734a86a7-1775811416034.jpg\",\"is_admin\":false,\"is_active\":false,\"is_deactivated\":false,\"last_active\":null,\"privacy_setting\":\"public\",\"role\":\"user\",\"is_verified\":false,\"verification_badge_type\":null,\"verification_status\":\"none\",\"verification_updated_at\":\"2026-04-10T14:11:15.568+00:00\",\"username_last_changed\":null,\"username_change_count\":0}"
+        }
+      ]
+    }
+  ]
+}

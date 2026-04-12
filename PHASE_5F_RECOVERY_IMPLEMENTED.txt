@@ -1,0 +1,129 @@
+PHASE 5F-RECOVERY — LAYOUT UNIFICATION (IMPLEMENTED)
+Date: 2026-04-12
+
+============================================================
+1) WHAT WAS BROKEN BEFORE
+============================================================
+- Multiple conflicting layout wrappers existed (AppLayout, ClientLayoutWrapper, src/_root/RootLayout).
+- Home feed used a 2-column grid and oversized container behavior.
+- RightSidebar was not part of the main active browsing layout.
+- Post detail used separate composition path and inconsistent containment.
+- /profile route was missing (404 on /profile index).
+
+============================================================
+2) WHAT WAS FIXED
+============================================================
+- Unified browsing shell in ONE active layout: app/components/AppLayout.tsx.
+- Added real RightSidebar rendering directly in AppLayout.
+- Added route-based RightSidebar visibility logic in AppLayout (single logic source, not fake behavior via separate layouts).
+- Removed Home feed 2-column grid and enforced single-column feed.
+- Enforced feed width around 680–720px via max-w-[720px] in Home and CSS utilities.
+- Tightened feed/post spacing and post card/media sizing for better density.
+- Updated post detail page route to use AppLayout for same layout system.
+- Added app/profile/page.tsx to resolve /profile route and redirect to /profile/{userId}.
+
+============================================================
+3) FINAL LAYOUT ARCHITECTURE (SINGLE SOURCE OF TRUTH)
+============================================================
+ACTIVE (main UI):
+- app/components/AppLayout.tsx
+  - Handles auth guard for browsing pages
+  - Renders [Topbar + LeftSidebar + Center Content + RightSidebar + Bottombar]
+  - Controls RightSidebar visibility via centralized route-prefix logic
+
+DEPRECATED (no longer source of main UI layout behavior):
+- src/_root/ClientLayoutWrapper.tsx
+- src/_root/RootLayout.tsx
+- src/_root/pages/PostDetailsWrapper.tsx
+
+Notes:
+- These deprecated wrappers remain in codebase for backward compatibility/reference only.
+- Main app pages now resolve through AppLayout as source of truth.
+
+============================================================
+4) SIDEBAR VISIBILITY RULES (IMPLEMENTED)
+============================================================
+RightSidebar is VISIBLE on browsing surfaces by default (via AppLayout), including:
+- /
+- /explore
+- /all-users
+- /profile
+- /profile/[id]
+- /posts/[id]
+
+RightSidebar is HIDDEN by route-logic prefixes:
+- /messages
+- /settings
+- /create-post
+- /admin
+- /update-profile
+- /update-post
+- /verification
+- /forgot-password
+- /reset-password
+- /update-password
+
+Implementation location:
+- app/components/AppLayout.tsx
+  - RIGHT_SIDEBAR_HIDDEN_PREFIXES
+  - showRightSidebar computed from pathname
+
+============================================================
+5) FEED WIDTH + DENSITY DECISIONS
+============================================================
+Home feed:
+- Single-column feed (no md:grid-cols-2 remains in Home)
+- Max width constrained to 720px
+- Centered via layout + mx-auto behavior
+- Spacing tightened:
+  - home container gap reduced
+  - home-posts gap reduced
+  - post card padding/radius reduced
+  - post image heights reduced
+
+Files:
+- src/_root/pages/Home.tsx
+- src/globals.css
+
+============================================================
+6) ROUTE FIXES
+============================================================
+Fixed:
+- /profile no longer 404
+  - Added app/profile/page.tsx
+  - Redirects authenticated users to /profile/{id}
+  - Redirects unauthenticated users to /sign-in
+
+Checked major routes in build output:
+- /profile (static route generated)
+- /posts/[id]
+- /explore
+- /messages
+
+============================================================
+7) WRAPPERS REMOVED VS KEPT
+============================================================
+Kept ACTIVE:
+- app/layout.tsx (framework root providers only)
+- app/components/AppLayout.tsx (single browsing layout controller)
+
+Kept but DEPRECATED for main UI flow:
+- src/_root/ClientLayoutWrapper.tsx
+- src/_root/RootLayout.tsx
+- src/_root/pages/PostDetailsWrapper.tsx
+
+============================================================
+8) VALIDATION RESULTS (MANDATORY CHECKLIST)
+============================================================
+[x] Home is single-column centered feed
+[x] No grid layout remains in Home (search confirmed: no grid-cols-2 in Home.tsx)
+[x] Feed width constraint enforced (max-w-[720px])
+[x] RightSidebar appears in unified layout and is logic-controlled
+[x] RightSidebar hide rules implemented via centralized route logic
+[x] /profile route exists and handled
+[x] No layout build conflicts
+[x] npm run build passes successfully
+
+Build status:
+- Command: npm run build
+- Result: SUCCESS (compiled, typed, routes generated)

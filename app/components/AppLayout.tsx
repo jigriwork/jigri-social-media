@@ -4,12 +4,32 @@ import { useEffect, useState } from 'react';
 import { useUserContext } from '../../src/context/SupabaseAuthContext';
 import Topbar from '../../src/components/shared/Topbar';
 import LeftSidebar from '../../src/components/shared/LeftSidebar';
+import RightSidebar from '../../src/components/shared/RightSidebar';
 import Bottombar from '../../src/components/shared/Bottombar';
 import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+
+const RIGHT_SIDEBAR_HIDDEN_PREFIXES = [
+  '/messages',
+  '/settings',
+  '/create-post',
+  '/admin',
+  '/update-profile',
+  '/update-post',
+  '/verification',
+  '/forgot-password',
+  '/reset-password',
+  '/update-password',
+];
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useUserContext();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const showRightSidebar = !RIGHT_SIDEBAR_HIDDEN_PREFIXES.some((route) =>
+    pathname?.startsWith(route)
+  );
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -30,13 +50,15 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="w-full md:flex">
+    <div className="w-full min-h-screen md:flex">
       <Topbar />
       <LeftSidebar />
 
-      <section className="flex flex-1 h-full">
+      <section className="flex flex-1 min-w-0 h-full justify-center">
         {children}
       </section>
+
+      {showRightSidebar && <RightSidebar />}
 
       <Bottombar />
     </div>

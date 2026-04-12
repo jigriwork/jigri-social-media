@@ -1,5 +1,5 @@
 "use client";
-import SharedPostTopbar from "../../../src/components/shared/SharedPostTopbar";
+import AppLayout from "../../components/AppLayout";
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,6 @@ import { Button } from "../../../src/components/ui";
 import Loader from "../../../src/components/shared/Loader";
 import PostStats from "../../../src/components/shared/PostStats";
 import Comments from "../../../src/components/shared/Comments";
-import Bottombar from "../../../src/components/shared/Bottombar";
 import Link from "next/link";
 import LinkifiedText from "../../../src/components/shared/LinkifiedText";
 import VerificationBadge from "../../../src/components/shared/VerificationBadge";
@@ -42,29 +41,32 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
 
   if (isLoading) {
     return (
-      <div className="post_details-container">
-        <div className="flex-center w-full h-full">
-          <Loader />
+      <AppLayout>
+        <div className="post_details-container">
+          <div className="flex-center w-full h-full">
+            <Loader />
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   if (!post) {
     return (
-      <div className="post_details-container">
-        <div className="flex-center w-full h-full">
-          <p className="text-light-4">Post not found</p>
+      <AppLayout>
+        <div className="post_details-container">
+          <div className="flex-center w-full h-full">
+            <p className="text-light-4">Post not found</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <>
-      <SharedPostTopbar />
+    <AppLayout>
       <div className="post_details-container">
-        <div className="hidden md:flex max-w-5xl w-full">
+        <div className="hidden md:flex max-w-[720px] w-full">
           <Button
             onClick={() => router.back()}
             className="shad-button_ghost">
@@ -205,14 +207,11 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
         </div>
 
         {/* Comments Section */}
-        <div className="w-full max-w-5xl">
-          <hr className="border w-full border-dark-4/80 my-6" />
+        <div className="w-full max-w-[720px] rounded-3xl bg-dark-2/40 border border-dark-4/30 p-5 lg:p-7 mt-2 mx-auto">
           <Comments postId={id} />
         </div>
-        {user && <div className="h-24 md:hidden w-full" aria-hidden="true" />}
       </div>
-      {user && <Bottombar />}
-    </>
+    </AppLayout>
   );
 };
 
