@@ -6,10 +6,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import ShareProfileModal from "@/components/shared/ShareProfileModal";
-import { 
-  useGetUserById, 
-  useGetUserPosts, 
-  useGetFollowersCount, 
+import {
+  useGetUserById,
+  useGetUserPosts,
+  useGetFollowersCount,
   useGetFollowingCount,
   useIsFollowing,
   useFollowUser,
@@ -20,6 +20,7 @@ import GridPostList from "@/components/shared/GridPostList";
 import LinkifiedText from "@/components/shared/LinkifiedText";
 import VerificationBadge from "@/components/shared/VerificationBadge";
 import VerificationApplicationPanel from "@/components/shared/VerificationApplicationPanel";
+import ProfileStoriesRow from "@/components/shared/ProfileStoriesRow";
 import LikedPosts from "./LikedPosts";
 
 interface StabBlockProps {
@@ -41,22 +42,22 @@ type ProfileWrapperProps = {
 const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
   const { user } = useUserContext();
   const [activeTab, setActiveTab] = useState<'posts' | 'liked'>('posts');
-  
+
   const id = params?.id;
 
   const { data: currentUser, isPending: isUserLoading, error: userError } = useGetUserById(id || "");
   const { data: userPosts, isPending: isPostsLoading } = useGetUserPosts(id || "");
-  
+
   const { data: followersCount, isLoading: followersLoading } = useGetFollowersCount(id || "");
   const { data: followingCount, isLoading: followingLoading } = useGetFollowingCount(id || "");
   const { data: isCurrentlyFollowing, isLoading: isFollowingLoading } = useIsFollowing(id || "");
-  
+
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
-  
+
   const handleFollowToggle = () => {
     if (!id) return;
-    
+
     if (isCurrentlyFollowing) {
       unfollowMutation.mutate(id);
     } else {
@@ -68,7 +69,7 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
   const handleShareProfile = () => {
     setShowShareModal(true);
   };
-  
+
   const isOwnProfile = user?.id === id;
 
   if (isUserLoading) {
@@ -96,11 +97,11 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
             href="/settings"
             className="h-10 bg-dark-4 px-4 text-light-1 flex-center gap-2 rounded-lg hover:bg-dark-3 flex-1"
           >
-            <img 
-              src="/assets/icons/settings.svg" 
-              alt="settings" 
-              width={16} 
-              height={16} 
+            <img
+              src="/assets/icons/settings.svg"
+              alt="settings"
+              width={16}
+              height={16}
               className="invert-white"
             />
             <p className="flex whitespace-nowrap small-medium">Settings</p>
@@ -113,19 +114,18 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
         <>
           <Button
             type="button"
-            className={`h-10 px-4 text-light-1 flex-center gap-2 rounded-lg flex-1 ${
-              isCurrentlyFollowing 
-                ? "bg-dark-4 hover:bg-dark-3" 
+            className={`h-10 px-4 text-light-1 flex-center gap-2 rounded-lg flex-1 ${isCurrentlyFollowing
+                ? "bg-dark-4 hover:bg-dark-3"
                 : "bg-primary-500 hover:bg-primary-600"
-            }`}
+              }`}
             onClick={handleFollowToggle}
             disabled={followMutation.isPending || unfollowMutation.isPending || isFollowingLoading}
           >
             <p className="flex whitespace-nowrap small-medium">
-              {followMutation.isPending || unfollowMutation.isPending 
-                ? "Loading..." 
-                : isCurrentlyFollowing 
-                  ? "Following" 
+              {followMutation.isPending || unfollowMutation.isPending
+                ? "Loading..."
+                : isCurrentlyFollowing
+                  ? "Following"
                   : "Follow"
               }
             </p>
@@ -176,13 +176,13 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
             </div>
           </div>
         </div>
-        
+
         {/* BIO - GAP REDUCED */}
         <div className="mt-2 w-full"> {/* CHANGED: mt-3 to mt-2 */}
-            <LinkifiedText 
-              text={currentUser.bio || ""}
-              className="text-sm text-left"
-            />
+          <LinkifiedText
+            text={currentUser.bio || ""}
+            className="text-sm text-left"
+          />
         </div>
 
         {isOwnProfile && (followersCount || 0) === 0 && (
@@ -195,29 +195,28 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
         )}
 
         <ActionButtons />
+        <ProfileStoriesRow userId={id} />
         {isOwnProfile && <VerificationApplicationPanel />}
       </div>
 
 
-      
+
       {/* POSTS TABS - GAP REDUCED */}
       <div className="flex border-t border-dark-4 w-full max-w-5xl mt-2 pt-2"> {/* CHANGED: mt-3 pt-2 to mt-2 pt-2 */}
         {currentUser.id === user?.id && (
           <div className="flex max-w-5xl w-full">
             <button
               onClick={() => setActiveTab('posts')}
-              className={`profile-tab rounded-l-lg ${
-                activeTab === 'posts' && "!bg-dark-3"
-              }`}
+              className={`profile-tab rounded-l-lg ${activeTab === 'posts' && "!bg-dark-3"
+                }`}
             >
               <img src={"/assets/icons/posts.svg"} alt="posts" width={20} height={20} />
               Posts
             </button>
             <button
               onClick={() => setActiveTab('liked')}
-              className={`profile-tab rounded-r-lg ${
-                activeTab === 'liked' && "!bg-dark-3"
-              }`}
+              className={`profile-tab rounded-r-lg ${activeTab === 'liked' && "!bg-dark-3"
+                }`}
             >
               <img src={"/assets/icons/like.svg"} alt="like" width={20} height={20} />
               Liked Posts

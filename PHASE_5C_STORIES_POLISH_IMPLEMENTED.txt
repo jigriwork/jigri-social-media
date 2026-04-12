@@ -1,0 +1,68 @@
+PHASE 5C STORIES POLISH / COMPLETION IMPLEMENTED
+
+Scope:
+- Refinement pass on existing stories system only
+- No new story tables/APIs/system created
+- Existing Phase 5C foundation preserved
+
+1) Viewer list UX improvement
+- Replaced raw inline viewer names with polished viewer list surface in StoryViewer.
+- Mobile behavior:
+  - opens as bottom sheet style panel (anchored at bottom, rounded top, overlay backdrop)
+  - scrollable list with compact cards
+- Desktop behavior:
+  - opens as floating side/modal panel in viewer container
+- Viewer row now shows:
+  - avatar (image_url)
+  - display name
+  - username
+  - viewed time (formatted local time)
+
+2) Multi-story support polish
+- Preserved multi-story-per-user behavior (no replacement of active stories).
+- Story group remains user-based, not per-story tray duplication.
+- Opening a user ring plays all active stories in sequence via existing group/story index flow.
+- "Your Story" remains first in tray.
+- Added easy “+ Add” action even when user already has active stories.
+
+3) Story tray polish
+- Kept ring states:
+  - unviewed = gradient ring
+  - viewed = faded/dark ring
+  - own story = user-first ring with direct add affordance
+- Ensured one tray item per user group in feed and profile row presentation.
+
+4) Owner controls polish
+- In StoryViewer (owner story):
+  - Viewers button opens polished viewer list panel
+  - Add Story quick action
+  - Delete current story action (with pending state)
+- Delete flow:
+  - uses existing delete story API/hook
+  - advances/handles close behavior without breaking story sequence
+
+5) Mobile-first usability polish
+- Improved viewer top spacing and progress bar clarity.
+- Larger/clear close target.
+- Safe-area aware bottom controls (`env(safe-area-inset-bottom)`).
+- Better caption readability (background, spacing, wrapping).
+- Cleaner action placement and tap target sizing.
+
+6) Data + API refinements (no duplication)
+- Added viewer avatar support to existing owner story API payload:
+  - `app/api/stories/[id]/route.ts` now includes `users.image_url` for viewer rows.
+- Extended existing story viewer type to include `image_url`.
+- Story view mutation now invalidates user stories query family to refresh owner viewer list faster.
+
+7) Validation
+- Verified in dev logs after changes:
+  - GET `/api/stories/feed` -> 200
+  - GET `/api/stories/[userId]` -> 200
+  - POST `/api/stories/[id]/view` -> 200
+  - GET `/manifest.webmanifest` -> 200 (post-clean runs)
+- Production build status:
+  - `npm run build` PASSED
+
+Notes / limits
+- This pass intentionally avoids v2 enhancements (stickers/filters/music/reactions etc.).
+- Existing intermittent local Next dev cache corruption issue remains environmental; addressed by clean restart flow when it appears.

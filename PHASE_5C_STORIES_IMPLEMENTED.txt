@@ -1,0 +1,126 @@
+PHASE 5C — STORIES SYSTEM IMPLEMENTED
+
+1) SCHEMA SUMMARY
+
+- Added migration: supabase/migrations/20260412132000_phase5c_stories_system.sql
+- New table: public.stories
+  - id (uuid, pk, default gen_random_uuid())
+  - user_id (uuid, fk -> public.users.id, on delete cascade)
+  - media_url (text, required)
+  - media_type (text, constrained to image/video)
+  - caption (text, optional)
+  - created_at (timestamptz, default now())
+  - expires_at (timestamptz, default now() + interval '24 hours')
+  - is_active (boolean, default true)
+- New table: public.story_views
+  - id (uuid, pk, default gen_random_uuid())
+  - story_id (uuid, fk -> public.stories.id, on delete cascade)
+  - viewer_id (uuid, fk -> public.users.id, on delete cascade)
+  - viewed_at (timestamptz, default now())
+  - unique(story_id, viewer_id) to prevent duplicate views
+- Indexes added:
+  - idx_stories_user_id
+  - idx_stories_expires_at
+  - idx_story_views_story_viewer
+- RLS enabled on stories and story_views with policies for:
+  - own story creation
+  - active/non-expired story visibility (plus own stories)
+  - own story deletion
+  - own view insertion against active/non-expired stories
+  - story view reads scoped to owner/viewer access pattern
+
+
+2) API SUMMARY
+
+- POST /api/stories
+  - Accepts multipart form-data: media + optional caption
+  - Uploads media to existing Supabase bucket (posts) under:
+    stories/{userId}/{storyId}/media.{ext}
+  - Creates story with expires_at = now + 24h
+
+- GET /api/stories/feed
+  - Returns active stories grouped by user
+  - Marks viewed/unviewed for current user
+  - Sorts with followed users first, then others (recent first)
+
+- GET /api/stories/[id]
+  - Returns active ordered stories for the provided user id
+  - Adds viewed state for current viewer
+  - If requested user is current user, includes viewer_count + basic viewer list
+
+- POST /api/stories/[id]/view
+  - Records story view (idempotent via upsert + unique constraint)
+  - Skips self-view writes
+
+- DELETE /api/stories/[id]
+  - Owner-only deletion
+  - Removes DB row and attempts storage object cleanup
+
+
+3) UI COMPONENTS SUMMARY
+
+- Added src/components/shared/StoriesTray.tsx
+  - Integrated into Home top area
+  - Horizontal scroll, avatar rings, viewed/unviewed ring state
+  - First item is Your Story with + indicator when no active story
+
+- Added src/components/shared/CreateStoryModal.tsx
+  - Flow: file select -> optional caption -> preview -> post
+  - Supports image/video, mobile-first bottom-sheet style
+
+- Added src/components/shared/StoryViewer.tsx
+  - Fullscreen (mobile), centered modal style on desktop
+  - Multi-story progress bars
+  - Tap left/right navigation
+  - Auto progression (~6s)
+  - Swipe-down close + close button + keyboard arrows/escape
+  - Lazy/preload behavior for next story media
+  - Owner viewer count + basic viewer name list
+
+- Added src/components/shared/ProfileStoriesRow.tsx
+  - Integrated into profile page story row
+  - Own profile supports quick create/open behavior
+
+
+4) VIEWER BEHAVIOR SUMMARY
+
+- On story display change:
+  - Auto resets progress
+  - Posts /view for non-owner
+  - Preloads next media (image/video metadata)
+- Navigation:
+  - Next/prev via screen half-tap zones
+  - Keyboard nav on desktop
+  - Auto-close after last story
+
+
+5) EXPIRY LOGIC SUMMARY
+
+- Expiry source of truth: server/database
+- stories.expires_at set during creation (24h)
+- Feed/user story queries only return:
+  - is_active = true
+  - expires_at > now
+- No separate cleanup job added in v1 (as allowed)
+
+
+6) VALIDATION RESULTS
+
+- Build check: PASSED
+  - Command: npm run build
+  - Next.js build compiled successfully, lint/type checks passed, static generation passed
+- Verified in code paths:
+  - Story creation API, feed API, per-user story API, view tracking API, delete API
+  - Home tray integration and profile row integration
+  - Story viewer navigation, auto-progress, and viewer tracking hooks
+  - 24-hour expiry filtering enforced in APIs
+- Limitations of this validation round:
+  - Runtime/manual click-through validation was not executed in-browser in this run
+  - No background physical deletion of expired rows in v1
+
+
+7) V1 LIMITATIONS (INTENTIONAL)
+
+- No stickers/filters/music/editing tools
+- No advanced analytics beyond basic viewer list/count
+- No dedicated cron cleanup for expired stories yet

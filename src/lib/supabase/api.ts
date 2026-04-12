@@ -2977,6 +2977,140 @@ export async function createConversation(otherUserId: string) {
   }
 }
 
+// ============================================================
+// STORIES
+// ============================================================
+
+export type StoryUser = {
+  id: string;
+  username?: string | null;
+  name?: string | null;
+  image_url?: string | null;
+  is_verified?: boolean | null;
+  verification_badge_type?: 'verified' | 'official' | null;
+  role?: string | null;
+};
+
+export type StoryViewer = {
+  id: string;
+  name: string;
+  username?: string | null;
+  image_url?: string | null;
+  viewed_at: string;
+};
+
+export type Story = {
+  id: string;
+  user_id: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  caption?: string | null;
+  created_at: string;
+  expires_at: string;
+  viewed?: boolean;
+  users?: StoryUser;
+  viewers?: StoryViewer[];
+  viewer_count?: number;
+};
+
+export type StoryGroup = {
+  user: StoryUser;
+  stories: Story[];
+  hasUnviewed: boolean;
+  latestCreatedAt: string;
+};
+
+async function getAuthBearerHeader() {
+  const headers: Record<string, string> = {};
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  } catch (error) {
+    console.warn('Unable to attach access token to story request:', error);
+  }
+  return headers;
+}
+
+export async function createStory(input: { file: File; caption?: string }) {
+  const formData = new FormData();
+  formData.append('media', input.file);
+  if (input.caption?.trim()) {
+    formData.append('caption', input.caption.trim());
+  }
+
+  const response = await fetch('/api/stories', {
+    method: 'POST',
+    headers: await getAuthBearerHeader(),
+    body: formData,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Failed to create story');
+  }
+
+  return payload.story as Story;
+}
+
+export async function getStoriesFeed() {
+  const response = await fetch('/api/stories/feed', {
+    headers: await getAuthenticatedFetchHeaders(),
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Failed to fetch stories feed');
+  }
+
+  return (payload.groups || []) as StoryGroup[];
+}
+
+export async function getUserStories(userId: string) {
+  const response = await fetch(`/api/stories/${userId}`, {
+    headers: await getAuthenticatedFetchHeaders(),
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Failed to fetch user stories');
+  }
+
+  return (payload.stories || []) as Story[];
+}
+
+export async function recordStoryView(storyId: string) {
+  const response = await fetch(`/api/stories/${storyId}/view`, {
+    method: 'POST',
+    headers: await getAuthenticatedFetchHeaders(),
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok && response.status !== 409) {
+    throw new Error(payload?.error || 'Failed to record story view');
+  }
+
+  return payload;
+}
+
+export async function deleteStory(storyId: string) {
+  const response = await fetch(`/api/stories/${storyId}`, {
+    method: 'DELETE',
+    headers: await getAuthenticatedFetchHeaders(),
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Failed to delete story');
+  }
+
+  return payload;
+}
+
+
+
+
 
 
 

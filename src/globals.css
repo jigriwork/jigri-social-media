@@ -117,6 +117,15 @@
     background: #7878a3;
   }
 
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   .common-container {
     @apply flex flex-col flex-1 items-center gap-10 overflow-scroll py-10 px-5 pb-24 md:px-8 md:pb-10 lg:p-14 custom-scrollbar;
   }
@@ -145,11 +154,11 @@
 
   /* Home */
   .home-container {
-    @apply flex w-full flex-1 flex-col items-center gap-10 overflow-y-auto py-8 px-4 pb-24 md:px-8 lg:py-10 custom-scrollbar;
+    @apply flex w-full flex-1 flex-col items-center gap-8 overflow-y-auto py-8 px-4 pb-24 md:px-6 lg:py-10 custom-scrollbar;
   }
 
   .home-posts {
-    @apply flex w-full flex-col items-center gap-6 md:gap-10;  /* Expanded from 720px max-width to allow grid */
+    @apply flex w-full max-w-[720px] flex-col items-center gap-5 md:gap-6;
   }
 
   .rightsidebar {
@@ -255,11 +264,11 @@
 
   /* Post Card */
   .post-card {
-    @apply bg-dark-2/60 backdrop-blur-sm rounded-[32px] border border-dark-4/40 p-5 lg:p-7 w-full transition-all hover:bg-dark-2/90 hover:border-dark-4/80 hover:shadow-2xl hover:-translate-y-[2px];
+    @apply bg-dark-2/60 backdrop-blur-sm rounded-[28px] border border-dark-4/40 p-4 lg:p-5 w-full transition-all hover:bg-dark-2/90 hover:border-dark-4/80 hover:shadow-2xl hover:-translate-y-[2px];
   }
 
   .post-card_img {
-    @apply h-64 xs:h-[400px] lg:h-[450px] w-full rounded-[24px] object-cover mb-5;
+    @apply h-56 xs:h-[340px] lg:h-[390px] w-full rounded-[20px] object-cover mb-4;
   }
 
   /* Topbar */

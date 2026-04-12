@@ -1,15 +1,15 @@
 export enum QUERY_KEYS {
-    // AUTH KEYS
-    CREATE_USER_ACCOUNT = "createUserAccount",
-  
-    // USER KEYS
-    GET_CURRENT_USER = "getCurrentUser",
-    GET_USERS = "getUsers",
-    GET_SUGGESTED_USERS = "getSuggestedUsers",
-    SEARCH_USERS = "searchUsers",
-    GET_USER_BY_ID = "getUserById",
+  // AUTH KEYS
+  CREATE_USER_ACCOUNT = "createUserAccount",
+
+  // USER KEYS
+  GET_CURRENT_USER = "getCurrentUser",
+  GET_USERS = "getUsers",
+  GET_SUGGESTED_USERS = "getSuggestedUsers",
+  SEARCH_USERS = "searchUsers",
+  GET_USER_BY_ID = "getUserById",
   GET_MENTIONED_USERS = "getMentionedUsers",
-  
+
   // POST KEYS
   GET_POSTS = "getPosts",
   GET_INFINITE_POSTS = "getInfinitePosts",
@@ -20,15 +20,15 @@ export enum QUERY_KEYS {
   GET_FILE_PREVIEW = "getFilePreview",
   GET_SAVED_POSTS = "getSavedPosts",
   GET_LIKED_POSTS = "getLikedPosts",    //  SEARCH KEYS
-    SEARCH_POSTS = "getSearchPosts",
-    
-    // FOLLOW KEYS
-    GET_FOLLOWERS_COUNT = "getFollowersCount",
-    GET_FOLLOWING_COUNT = "getFollowingCount",
-    IS_FOLLOWING = "isFollowing",
-    GET_FOLLOWERS = "getFollowers",
-    GET_FOLLOWING = "getFollowing",
-    
+  SEARCH_POSTS = "getSearchPosts",
+
+  // FOLLOW KEYS
+  GET_FOLLOWERS_COUNT = "getFollowersCount",
+  GET_FOLLOWING_COUNT = "getFollowingCount",
+  IS_FOLLOWING = "isFollowing",
+  GET_FOLLOWERS = "getFollowers",
+  GET_FOLLOWING = "getFollowing",
+
   // ADMIN KEYS
   GET_ADMIN_STATS = "getAdminStats",
   CHECK_ADMIN_ACCESS = "checkAdminAccess",
@@ -41,15 +41,19 @@ export enum QUERY_KEYS {
   GET_MY_VERIFICATION_APPLICATIONS = "getMyVerificationApplications",
   GET_ADMIN_VERIFICATION_APPLICATIONS = "getAdminVerificationApplications",
   GET_ADMIN_VERIFICATION_APPLICATION_DETAILS = "getAdminVerificationApplicationDetails",
-  
+
   // NOTIFICATION KEYS
   GET_NOTIFICATIONS = "getNotifications",
   GET_UNREAD_COUNT = "getUnreadCount",
-  
+
   // COMMENT KEYS
   GET_COMMENTS = "getComments",
 
   // MESSAGING KEYS
   GET_CONVERSATIONS = "getConversations",
   GET_MESSAGES = "getMessages",
+
+  // STORIES KEYS
+  GET_STORIES_FEED = "getStoriesFeed",
+  GET_USER_STORIES = "getUserStories",
 }  

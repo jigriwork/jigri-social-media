@@ -81,6 +81,11 @@ import {
   getMessages,
   sendMessage,
   createConversation,
+  getStoriesFeed,
+  getUserStories,
+  createStory,
+  recordStoryView,
+  deleteStory,
 } from "../supabase/api";
 import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
 import { QUERY_KEYS } from "./queryKeys";
@@ -119,7 +124,7 @@ export const useCreatePost = () => {
       if (data && variables.userId) {
         try {
           await notificationService.createNewPostNotifications(data.id);
-          
+
           // Detect and create mention notifications for posts
           const mentionedUsernames = Array.from(
             new Set(
@@ -911,7 +916,7 @@ export const useCreateComment = () => {
       if (data && variables.userId) {
         try {
           const post = await getPostById(variables.postId);
-          
+
           // Detect and create mention notifications for comments
           const mentionedUsernames = Array.from(
             new Set(
@@ -1369,6 +1374,61 @@ export const useCreateConversation = () => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_CONVERSATIONS],
       });
+    },
+  });
+};
+
+// ============================================================
+// STORIES HOOKS
+// ============================================================
+
+export const useGetStoriesFeed = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_STORIES_FEED],
+    queryFn: getStoriesFeed,
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: true,
+  });
+};
+
+export const useGetUserStories = (userId?: string) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_USER_STORIES, userId],
+    queryFn: () => getUserStories(userId!),
+    enabled: !!userId,
+    staleTime: 1000 * 30,
+  });
+};
+
+export const useCreateStory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, caption }: { file: File; caption?: string }) => createStory({ file, caption }),
+    onSuccess: (story) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_STORIES_FEED] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USER_STORIES, story.user_id] });
+    },
+  });
+};
+
+export const useRecordStoryView = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (storyId: string) => recordStoryView(storyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_STORIES_FEED] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USER_STORIES] });
+    },
+  });
+};
+
+export const useDeleteStory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (storyId: string) => deleteStory(storyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_STORIES_FEED] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USER_STORIES] });
     },
   });
 };
