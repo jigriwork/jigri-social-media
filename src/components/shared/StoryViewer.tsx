@@ -399,7 +399,15 @@ const StoryViewer = ({
                                                     className="w-9 h-9 rounded-full object-cover border border-dark-4"
                                                 />
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="text-light-1 text-sm truncate">{viewer.name}</p>
+                                                    <div className="flex items-center gap-1">
+                                                      <p className="text-light-1 text-sm truncate uppercase font-bold">{viewer.name}</p>
+                                                      <VerificationBadge
+                                                          isVerified={viewer.is_verified}
+                                                          badgeType={viewer.verification_badge_type}
+                                                          role={viewer.role}
+                                                          size={12}
+                                                      />
+                                                    </div>
                                                     <p className="text-light-3 text-xs truncate">@{viewer.username || "user"}</p>
                                                 </div>
                                                 <p className="text-light-4 text-[11px] shrink-0">{formatViewedAt(viewer.viewed_at)}</p>

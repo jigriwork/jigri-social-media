@@ -37,7 +37,7 @@ function ImageBadge({
       width={size}
       height={size}
       className={clsx(
-        'inline-block shrink-0 drop-shadow-[0_0_8px_rgba(59,130,246,0.65)]',
+        'inline-block shrink-0 drop-shadow-[0_2px_12px_rgba(59,130,246,0.85)] filter brightness-110 contrast-125 saturate-150',
         className
       )}
     />

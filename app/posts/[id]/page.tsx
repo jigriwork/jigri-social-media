@@ -167,7 +167,7 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
 
                     <Button
                       onClick={handleDeletePost}
-                      className="ghost_details-delete_btn rounded-lg border border-red-500/35 bg-red-500/10 hover:bg-red-500/20 hover:border-red-500/60 px-2 py-1"
+                      className="p-1.5 h-auto rounded-xl border border-rose-500/15 bg-rose-500/5 hover:bg-rose-500/15 hover:border-rose-500/40 group/delete transition-all duration-300"
                       aria-label="Delete post"
                       title="Delete post"
                     >
@@ -176,7 +176,7 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
                         alt="delete"
                         width={22}
                         height={22}
-                        className="opacity-95"
+                        className="opacity-70 group-hover/delete:opacity-100 transition-opacity"
                       />
                     </Button>
                   </>

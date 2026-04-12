@@ -21,6 +21,7 @@ import LinkifiedText from "@/components/shared/LinkifiedText";
 import VerificationBadge from "@/components/shared/VerificationBadge";
 import VerificationApplicationPanel from "@/components/shared/VerificationApplicationPanel";
 import ProfileStoriesRow from "@/components/shared/ProfileStoriesRow";
+import UserAvatar from "@/components/shared/UserAvatar";
 import LikedPosts from "./LikedPosts";
 
 interface StabBlockProps {
@@ -148,10 +149,10 @@ const ProfileWrapper = ({ params }: ProfileWrapperProps) => {
       <div className="flex flex-col w-full max-w-5xl">
         {/* MAIN HEADER - ALIGNMENT CHANGED */}
         <div className="flex flex-row items-center gap-4 sm:gap-6 w-full"> {/* CHANGED: items-start to items-center */}
-          <img
-            src={currentUser.image_url || "/assets/icons/profile-placeholder.svg"}
-            alt="profile"
-            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex-shrink-0"
+          <UserAvatar 
+            user={currentUser} 
+            size="xl" 
+            showRing={true} 
           />
           <div className="flex flex-col items-start w-full">
             <h1 className="text-left text-xl sm:text-2xl font-bold">

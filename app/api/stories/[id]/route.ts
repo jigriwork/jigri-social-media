@@ -66,7 +66,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         if (user.id === userId && storyIds.length > 0) {
             const { data: viewerRows } = await (supabase as any)
                 .from('story_views')
-                .select('story_id, viewer_id, viewed_at, users:viewer_id(id, name, username, image_url)')
+                .select('story_id, viewer_id, viewed_at, users:viewer_id(id, name, username, image_url, is_verified, verification_badge_type, role)')
                 .in('story_id', storyIds)
                 .order('viewed_at', { ascending: false })
 
@@ -80,6 +80,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
                     name: row.users?.name || row.users?.username || 'Viewer',
                     username: row.users?.username || null,
                     image_url: row.users?.image_url || null,
+                    is_verified: row.users?.is_verified || false,
+                    verification_badge_type: row.users?.verification_badge_type || null,
+                    role: row.users?.role || null,
                     viewed_at: row.viewed_at,
                 })
             }

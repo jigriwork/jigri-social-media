@@ -371,3 +371,20 @@
     padding-bottom: 20px !important;
   }
 }
+/* Story Rings - Instagram style gradient */
+.story-ring-wrapper {
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  @apply relative p-[2.5px] rounded-full;
+}
+
+.story-ring-inner {
+  @apply bg-dark-1 rounded-full p-[2px];
+}
+
+.story-ring-active {
+  transition: all 0.3s ease;
+}
+
+.story-ring-active:hover {
+  @apply scale-105;
+}

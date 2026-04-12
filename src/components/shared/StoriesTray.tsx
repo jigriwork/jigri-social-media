@@ -59,9 +59,9 @@ const StoriesTray = () => {
 
     return (
         <>
-            <div className="w-full max-w-[720px] mx-auto overflow-x-auto no-scrollbar px-0.5">
-                <div className="flex items-center gap-3 py-0.5 min-w-max">
-                    <div className="flex flex-col items-center gap-1">
+            <div className="w-full max-w-[720px] mx-auto overflow-x-auto no-scrollbar px-1">
+                <div className="flex items-center gap-4 py-1 min-w-max">
+                    <div className="flex flex-col items-center pt-0.5 min-w-[76px]">
                         <button
                             onClick={() => {
                                 if (hasOwnStory) {
@@ -74,7 +74,7 @@ const StoriesTray = () => {
                             }}
                             className="relative transition-transform duration-200 active:scale-95"
                         >
-                            <div className={`relative p-[2px] rounded-full ${hasOwnStory ? ringClass(false) : "bg-dark-4"}`}>
+                            <div className={`relative p-[2.5px] rounded-full ${hasOwnStory ? ringClass(false) : "bg-dark-4"}`}>
                                 <img
                                     src={user?.image_url || "/assets/icons/profile-placeholder.svg"}
                                     alt="your story"
@@ -82,28 +82,30 @@ const StoriesTray = () => {
                                     loading="lazy"
                                 />
                                 {!hasOwnStory && (
-                                    <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center border border-black">
+                                    <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary-500 text-white text-sm flex items-center justify-center border-2 border-black shadow-lg">
                                         +
                                     </span>
                                 )}
                             </div>
                         </button>
-                        {hasOwnStory && (
-                            <button
-                                type="button"
-                                onClick={() => setCreateOpen(true)}
-                                className="-mt-0.5 text-[10px] text-primary-400 hover:text-primary-300 min-h-[24px] px-1"
-                                aria-label="Add another story"
-                            >
-                                + Add
-                            </button>
-                        )}
-                        <span className="text-[11px] text-light-2">Your Story</span>
+                        <div className="flex flex-col items-center mt-1.5 h-8 justify-start">
+                          <span className="text-[11px] text-light-2 font-medium leading-tight">Your Story</span>
+                          {hasOwnStory && (
+                              <button
+                                  type="button"
+                                  onClick={() => setCreateOpen(true)}
+                                  className="text-[9px] text-primary-400 hover:text-primary-300 font-bold leading-none mt-1"
+                                  aria-label="Add another story"
+                              >
+                                  + Add
+                              </button>
+                          )}
+                        </div>
                     </div>
 
                     {isPending
                         ? [...Array(5)].map((_, i) => (
-                            <div key={i} className="w-14 h-14 rounded-full bg-dark-4 animate-pulse" />
+                            <div key={i} className="w-14 h-14 rounded-full bg-dark-4 animate-pulse shrink-0" />
                         ))
                         : orderedGroups
                             .filter((group: StoryGroup) => group.user?.id !== user?.id)
@@ -113,9 +115,9 @@ const StoriesTray = () => {
                                     <button
                                         key={group.user?.id || idx}
                                         onClick={() => openGroup(absoluteIdx)}
-                                        className="flex flex-col items-center gap-1 transition-transform duration-200 active:scale-95"
+                                        className="flex flex-col items-center pt-0.5 transition-transform duration-200 active:scale-95 min-w-[76px]"
                                     >
-                                        <div className={`p-[2px] rounded-full ${ringClass(!group.hasUnviewed)}`}>
+                                        <div className={`p-[2.5px] rounded-full ${ringClass(!group.hasUnviewed)}`}>
                                             <img
                                                 src={group.user?.image_url || "/assets/icons/profile-placeholder.svg"}
                                                 alt={group.user?.username || "story user"}
@@ -123,15 +125,17 @@ const StoriesTray = () => {
                                                 loading="lazy"
                                             />
                                         </div>
-                                        <span className="text-[11px] text-light-2 max-w-[70px] truncate inline-flex items-center gap-1">
-                                            <span className="truncate">@{group.user?.username || "user"}</span>
-                                            <VerificationBadge
-                                                isVerified={group.user?.is_verified}
-                                                badgeType={group.user?.verification_badge_type}
-                                                role={group.user?.role}
-                                                size={11}
-                                            />
-                                        </span>
+                                        <div className="mt-1.5 h-8 flex flex-col items-center justify-start">
+                                            <span className="text-[11px] text-light-2 font-medium max-w-[72px] truncate inline-flex items-center gap-1 leading-tight">
+                                                <span className="truncate">@{group.user?.username || "user"}</span>
+                                                <VerificationBadge
+                                                    isVerified={group.user?.is_verified}
+                                                    badgeType={group.user?.verification_badge_type}
+                                                    role={group.user?.role}
+                                                    size={10}
+                                                />
+                                            </span>
+                                        </div>
                                     </button>
                                 );
                             })}

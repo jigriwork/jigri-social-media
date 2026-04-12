@@ -12,6 +12,7 @@ import QuickComment from "./QuickComment";
 import ConfirmActionModal from "./ConfirmActionModal";
 import VerificationBadge from "./VerificationBadge";
 import LinkifiedText from "./LinkifiedText";
+import UserAvatar from "./UserAvatar";
 
 const normalizeTag = (tag: string) => tag.replace(/^#/, "");
 
@@ -65,13 +66,10 @@ const PostCard = ({ post }: PostCardProps) => {
       <div className="flex-between">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Link href={`/profile/${post.creator.id}`} className="shrink-0">
-            <img
-              src={
-                post.creator?.image_url ||
-                "/assets/icons/profile-placeholder.svg"
-              }
-              alt="creator"
-              className="w-10 h-10 rounded-full border border-dark-4 object-cover"
+            <UserAvatar 
+              user={post.creator} 
+              size="md"
+              showRing={true} 
             />
           </Link>
 
@@ -93,30 +91,35 @@ const PostCard = ({ post }: PostCardProps) => {
           </div>
         </div>
 
-        <div className={`flex gap-1 ${user?.id !== post.creator.id && "hidden"}`}>
-          <Link href={`/update-post/${post.id}`}>
+        <div className={`flex items-center gap-4 ${user?.id !== post.creator.id && "hidden"}`}>
+          <Link 
+            href={`/update-post/${post.id}`}
+            className="p-1.5 h-auto rounded-xl border border-primary-500/10 bg-primary-500/5 hover:bg-primary-500/20 hover:border-primary-500/40 transition-all duration-300 group/edit shadow-sm"
+            aria-label="Edit post"
+            title="Edit post"
+          >
             <img
               src={"/assets/icons/edit.svg"}
               alt="edit"
-              width={18}
-              height={18}
-              className="opacity-60 hover:opacity-100 transition-opacity"
+              width={16}
+              height={16}
+              className="opacity-60 group-hover/edit:opacity-100 transition-opacity invert brightness-0 saturate-0"
             />
           </Link>
 
           <Button
             onClick={() => setShowDeleteConfirm(true)}
             variant="ghost"
-            className="p-1.5 h-auto rounded-lg border border-red-500/35 bg-red-500/10 hover:bg-red-500/20 hover:border-red-500/60 transition-colors"
+            className="p-1.5 h-auto rounded-xl border border-rose-500/10 bg-rose-500/5 hover:bg-rose-500/20 hover:border-rose-500/40 transition-all duration-300 group/delete shadow-sm"
             aria-label="Delete post"
             title="Delete post"
           >
             <img
               src={"/assets/icons/delete.svg"}
               alt="delete"
-              width={20}
-              height={20}
-              className="opacity-90"
+              width={16}
+              height={16}
+              className="opacity-60 group-hover/delete:opacity-100 transition-opacity"
             />
           </Button>
         </div>

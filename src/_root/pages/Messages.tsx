@@ -13,6 +13,7 @@ import {
 } from "@/lib/react-query/queriesAndMutations";
 import Loader from "@/components/shared/Loader";
 import VerificationBadge from "@/components/shared/VerificationBadge";
+import UserAvatar from "@/components/shared/UserAvatar";
 import useDebounce from "@/hooks/useDebounce";
 
 const Messages = () => {
@@ -135,18 +136,11 @@ const Messages = () => {
                   className={`flex items-center gap-3 p-4 w-full text-left hover:bg-dark-3/50 transition-colors border-b border-dark-4/20 ${selectedConvId === conv.id ? "bg-dark-3/70 border-l-2 border-l-primary-500" : ""
                     }`}
                 >
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={other.image_url || "/assets/icons/profile-placeholder.svg"}
-                      alt={other.name}
-                      className="w-12 h-12 rounded-full object-cover border border-dark-4"
-                    />
-                    {conv.unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-primary-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                        {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
-                      </span>
-                    )}
-                  </div>
+                  <UserAvatar 
+                    user={other} 
+                    size="lg"
+                    showRing={true} 
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className={`font-semibold text-sm truncate flex items-center gap-1 ${conv.unreadCount > 0 ? "text-light-1" : "text-light-2"}`}>
@@ -194,10 +188,10 @@ const Messages = () => {
                     <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
-                <img
-                  src={getOtherUser(selectedConv)?.image_url || "/assets/icons/profile-placeholder.svg"}
-                  alt={getOtherUser(selectedConv)?.name}
-                  className="w-10 h-10 rounded-full object-cover border border-dark-4"
+                <UserAvatar 
+                  user={getOtherUser(selectedConv)} 
+                  size="md"
+                  showRing={true} 
                 />
                 <div>
                   <p className="font-semibold text-light-1 text-sm flex items-center gap-1">
@@ -348,10 +342,10 @@ const Messages = () => {
                         onClick={() => handleStartChat(u.id)}
                         className="flex items-center gap-3 w-full p-3 hover:bg-dark-3/50 rounded-xl transition-colors"
                       >
-                        <img
-                          src={u.image_url || "/assets/icons/profile-placeholder.svg"}
-                          alt={u.name}
-                          className="w-10 h-10 rounded-full object-cover border border-dark-4"
+                        <UserAvatar 
+                          user={u} 
+                          size="md"
+                          showRing={true} 
                         />
                         <div className="text-left">
                           <p className="font-medium text-sm text-light-1 flex items-center gap-1">

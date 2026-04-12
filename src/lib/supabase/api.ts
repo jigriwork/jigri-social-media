@@ -2996,6 +2996,9 @@ export type StoryViewer = {
   name: string;
   username?: string | null;
   image_url?: string | null;
+  is_verified?: boolean | null;
+  verification_badge_type?: 'verified' | 'official' | null;
+  role?: string | null;
   viewed_at: string;
 };
 
