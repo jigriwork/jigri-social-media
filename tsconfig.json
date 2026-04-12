@@ -36,11 +36,12 @@
     ]
   },
   "include": [
-    "next-env.d.ts",
     ".next/types/**/*.ts",
     "app",
+    "next-env.d.ts",
+    "out/types/**/*.ts",
     "src",
-    "out/types/**/*.ts"
+    ".next-dev/types/**/*.ts"
   ],
   "references": [
     {

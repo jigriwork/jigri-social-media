@@ -36,7 +36,10 @@ function ImageBadge({
       title={title}
       width={size}
       height={size}
-      className={clsx('inline-block shrink-0', className)}
+      className={clsx(
+        'inline-block shrink-0 drop-shadow-[0_0_8px_rgba(59,130,246,0.65)]',
+        className
+      )}
     />
   )
 }

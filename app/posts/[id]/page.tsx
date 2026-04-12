@@ -167,12 +167,16 @@ const PostDetailPage = ({ params }: PostDetailPageProps) => {
 
                     <Button
                       onClick={handleDeletePost}
-                      className="ghost_details-delete_btn">
+                      className="ghost_details-delete_btn rounded-lg border border-red-500/35 bg-red-500/10 hover:bg-red-500/20 hover:border-red-500/60 px-2 py-1"
+                      aria-label="Delete post"
+                      title="Delete post"
+                    >
                       <img
                         src={"/assets/icons/delete.svg"}
                         alt="delete"
-                        width={24}
-                        height={24}
+                        width={22}
+                        height={22}
+                        className="opacity-95"
                       />
                     </Button>
                   </>

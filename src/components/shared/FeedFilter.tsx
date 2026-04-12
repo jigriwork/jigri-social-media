@@ -16,16 +16,15 @@ interface FeedFilterProps {
 
 const FeedFilter = ({ activeFilter, onFilterChange }: FeedFilterProps) => {
   return (
-    <div className="flex items-center gap-2 mb-8 bg-dark-2/40 backdrop-blur-md p-1.5 rounded-full border border-dark-4/40 w-fit mx-auto lg:mx-0 shadow-lg mt-2">
+    <div className="flex items-center gap-2 mb-0.5 bg-dark-2/40 backdrop-blur-md p-1.5 rounded-full border border-dark-4/40 w-fit mx-auto lg:mx-0 shadow-lg mt-0.5 transition-all duration-200">
       {FILTERS.map((filter) => {
         const isActive = activeFilter === filter.id;
         return (
           <button
             key={filter.id}
             onClick={() => onFilterChange(filter.id)}
-            className={`relative px-6 py-2 text-sm font-semibold transition-all duration-300 rounded-full ${
-              isActive ? "text-white" : "text-light-3 hover:text-white"
-            }`}
+            className={`relative px-6 py-2 text-sm font-semibold transition-all duration-300 rounded-full ${isActive ? "text-white" : "text-light-3 hover:text-white"
+              }`}
           >
             {isActive && (
               <motion.div

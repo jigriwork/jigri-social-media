@@ -1,0 +1,77 @@
+PHASE 5C FINAL FIX PASS (Stories + Mobile + Notifications)
+
+Date: 2026-04-12
+
+IMPLEMENTED FIXES
+
+1) Story hold -> pause (critical UX)
+- Added press-and-hold pause behavior in StoryViewer.
+- Works for both touch and mouse/pointer interactions.
+- Image stories: timer/progress pauses while holding and resumes on release.
+- Video stories: playback pauses while holding and resumes on release.
+- Added global pointer release safety to avoid stuck paused state.
+- Existing auto progression and left/right story navigation kept intact.
+
+2) Create Story modal position (mobile)
+- Updated CreateStoryModal to behave as a true bottom sheet on mobile.
+- Anchored flush to bottom (no detached gap), with safe-area-aware bottom padding.
+- Added smooth slide-up entry animation (`story-sheet-enter`).
+- Kept desktop modal behavior unchanged.
+
+3) Story tray spacing and alignment
+- Reduced vertical spacing between feed filter and story tray by tightening FeedFilter bottom margin.
+- Tightened story tray internal vertical spacing.
+- Ensured story tray remains aligned to feed width (`max-w-[720px]` + centered).
+- Removed loose/floating feel with tighter spacing and alignment consistency.
+
+4) Mobile story UI polish
+- Improved top safe-area spacing for progress bars/header.
+- Improved caption readability (stronger background + padding).
+- Maintained large left/right tap zones for navigation.
+- Increased close button tap target size and touch affordance.
+- Added subtle transition polish on viewer container and interactions.
+
+5) Notification badge reset bug
+- On opening notifications, unread badge now resets immediately in UI.
+- Unread notifications are optimistically marked read in local state.
+- Backend read-status sync runs in background and fallback refresh is applied on failure.
+- Existing manual "Mark all read" flow preserved.
+
+6) Delete button UI polish (post)
+- Updated delete actions in:
+  - `src/components/shared/PostCard.tsx`
+  - `app/posts/[id]/page.tsx`
+- Improved destructive affordance with red-tinted background/border + red hover state.
+- Increased icon visibility and adjusted button spacing/padding.
+- Added accessibility labels/title for delete action intent clarity.
+
+7) Micro UI polish
+- Reduced feed vertical spacing ~5-10% (`home-container` and `home-posts` gap tuning).
+- Added smooth story modal animation and interaction transitions.
+- Added/kept better mobile tap targets for story entry/close/action controls.
+
+
+COMPONENTS / FILES UPDATED
+
+- src/components/shared/StoryViewer.tsx
+- src/components/shared/CreateStoryModal.tsx
+- src/components/shared/StoriesTray.tsx
+- src/components/shared/FeedFilter.tsx
+- src/components/shared/NotificationBell.tsx
+- src/components/shared/PostCard.tsx
+- app/posts/[id]/page.tsx
+- src/globals.css
+
+
+VALIDATION SUMMARY
+
+- Story hold-to-pause behavior implemented for touch + mouse/pointer.
+- Create Story modal bottom-sheet anchoring and safe-area behavior fixed on mobile.
+- Story tray spacing tightened and aligned with feed width.
+- Notification badge reset behavior fixed with instant UI update + backend sync.
+- Delete action visuals improved and clearer.
+- `npm run build`: PASS (after notification async typing fix).
+
+Notes:
+- No RightSidebar changes made.
+- Stories system flow was preserved (navigation + auto progression retained).

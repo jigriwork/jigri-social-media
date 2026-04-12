@@ -136,6 +136,28 @@ const NotificationBell = () => {
     setShowDropdown(nextOpen);
 
     if (!nextOpen || !user?.id) return;
+
+    // Reset badge immediately for instant UI response when opening notifications
+    const optimisticUnreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
+    if (optimisticUnreadIds.length > 0) {
+      setNotifications((prev) => prev.map((n) => (optimisticUnreadIds.includes(n.id) ? { ...n, read: true } : n)));
+      setUnreadCount(0);
+
+      // Sync backend read status in background
+      void (async () => {
+        try {
+          await supabase
+            .from("notifications")
+            .update({ read: true })
+            .in("id", optimisticUnreadIds)
+            .eq("user_id", user.id);
+        } catch {
+          // Fallback to fresh sync if update fails
+          fetchNotifications(false);
+        }
+      })();
+    }
+
     await fetchNotifications(true);
   };
 
@@ -157,7 +179,7 @@ const NotificationBell = () => {
 
   const onNotificationClick = async (notification: GroupedNotification) => {
     setShowDropdown(false);
-    
+
     // Mark as read in DB if it's currently unread
     if (!notification.read && user?.id) {
       await supabase
@@ -165,12 +187,12 @@ const NotificationBell = () => {
         .update({ read: true })
         .eq("id", notification.id)
         .eq("user_id", user.id);
-      
+
       // Update local state immediately for snappy UI
       setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
-    
+
     router.push(notification.action_url || `/profile/${notification.from_user_id}`);
   };
 

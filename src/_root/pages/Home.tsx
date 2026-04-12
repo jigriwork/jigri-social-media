@@ -77,7 +77,7 @@ const Home = () => {
     <div className="flex flex-row flex-1 w-full justify-center">
       <div className="home-container">
         <div className="home-posts">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 w-full mb-1 md:mb-4">
             <h2 className="h3-bold md:h2-bold text-left bg-gradient-to-r from-white to-light-4 bg-clip-text text-transparent">Following Feed</h2>
             <div className="flex items-center gap-4">
               <FeedFilter activeFilter={activeFilter} onFilterChange={setActiveFilter} />

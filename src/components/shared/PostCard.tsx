@@ -103,18 +103,20 @@ const PostCard = ({ post }: PostCardProps) => {
               className="opacity-60 hover:opacity-100 transition-opacity"
             />
           </Link>
-          
+
           <Button
             onClick={() => setShowDeleteConfirm(true)}
             variant="ghost"
-            className="p-1 h-auto"
+            className="p-1.5 h-auto rounded-lg border border-red-500/35 bg-red-500/10 hover:bg-red-500/20 hover:border-red-500/60 transition-colors"
+            aria-label="Delete post"
+            title="Delete post"
           >
             <img
               src={"/assets/icons/delete.svg"}
               alt="delete"
-              width={18}
-              height={18}
-              className="opacity-60 hover:opacity-100 transition-opacity"
+              width={20}
+              height={20}
+              className="opacity-90"
             />
           </Button>
         </div>
@@ -169,21 +171,21 @@ const PostCard = ({ post }: PostCardProps) => {
         </Link>
       )}
 
-      <PostStats 
-        post={post} 
-        userId={user?.id || ""} 
+      <PostStats
+        post={post}
+        userId={user?.id || ""}
         onCommentClick={handleCommentClick}
       />
 
       {/* Comments Section */}
       {showComments && (
         <div className="border-t border-dark-4 pt-2">
-          <QuickComment 
-            postId={post.id} 
+          <QuickComment
+            postId={post.id}
             onCommentAdded={() => {
               // Optionally refresh post data or show success message
               console.log('Comment added successfully!');
-            }} 
+            }}
           />
         </div>
       )}

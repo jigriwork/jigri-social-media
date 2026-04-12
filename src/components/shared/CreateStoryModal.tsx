@@ -54,10 +54,10 @@ const CreateStoryModal = ({ open, onClose }: CreateStoryModalProps) => {
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center">
-            <div className="w-full md:max-w-xl bg-dark-2 border border-dark-4 rounded-t-2xl md:rounded-2xl p-4 md:p-6 max-h-[95vh] overflow-y-auto">
+            <div className="story-sheet-enter w-full md:max-w-xl bg-dark-2 border border-dark-4 border-b-0 md:border-b rounded-t-3xl md:rounded-2xl p-4 md:p-6 max-h-[92vh] overflow-y-auto shadow-2xl">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-light-1 text-lg font-semibold">Create Story</h3>
-                    <button onClick={onClose} className="text-light-3 hover:text-light-1">✕</button>
+                    <button onClick={onClose} className="text-light-3 hover:text-light-1 w-10 h-10 rounded-full bg-dark-3/80">✕</button>
                 </div>
 
                 {!file ? (
@@ -105,7 +105,10 @@ const CreateStoryModal = ({ open, onClose }: CreateStoryModalProps) => {
 
                 {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
 
-                <div className="mt-5 flex justify-end gap-3">
+                <div
+                    className="mt-5 flex justify-end gap-3"
+                    style={{ paddingBottom: "calc(0.25rem + env(safe-area-inset-bottom))" }}
+                >
                     <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg bg-dark-4 text-light-2">Cancel</button>
                     <button
                         onClick={onSubmit}

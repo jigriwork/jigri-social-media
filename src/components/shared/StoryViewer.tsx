@@ -5,6 +5,7 @@ import { StoryGroup } from "@/lib/supabase/api";
 import { useDeleteStory, useRecordStoryView } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import VerificationBadge from "./VerificationBadge";
+import ConfirmActionModal from "./ConfirmActionModal";
 
 type StoryViewerProps = {
     open: boolean;
@@ -17,6 +18,7 @@ type StoryViewerProps = {
 };
 
 const STORY_DURATION = 6000;
+const HOLD_THRESHOLD_MS = 220;
 
 const StoryViewer = ({
     open,
@@ -36,7 +38,28 @@ const StoryViewer = ({
     const [progress, setProgress] = useState(0);
     const [paused, setPaused] = useState(false);
     const [showViewersPanel, setShowViewersPanel] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const touchStartYRef = useRef<number | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const pressStartRef = useRef<number | null>(null);
+
+    const handleHoldStart = useCallback(() => {
+        pressStartRef.current = Date.now();
+        setPaused(true);
+    }, []);
+
+    const handleHoldEnd = useCallback((onTap?: () => void) => {
+        const startedAt = pressStartRef.current;
+        pressStartRef.current = null;
+        setPaused(false);
+
+        if (startedAt !== null && onTap) {
+            const holdDuration = Date.now() - startedAt;
+            if (holdDuration < HOLD_THRESHOLD_MS) {
+                onTap();
+            }
+        }
+    }, []);
 
     useEffect(() => {
         if (open) {
@@ -45,6 +68,7 @@ const StoryViewer = ({
             setProgress(0);
             setPaused(false);
             setShowViewersPanel(false);
+            setShowDeleteConfirm(false);
         }
     }, [open, initialGroupIndex, initialStoryIndex]);
 
@@ -90,6 +114,22 @@ const StoryViewer = ({
         }
     }, [currentGroup, storyIndex, groupIndex, groups]);
 
+    const handleConfirmDelete = useCallback(async () => {
+        if (!currentStory) return;
+        try {
+            await deleteStory(currentStory.id);
+            setShowDeleteConfirm(false);
+            onStoryDeleted?.();
+            if ((currentGroup?.stories?.length || 0) <= 1) {
+                onClose();
+            } else {
+                goNext();
+            }
+        } catch (error) {
+            console.error("Failed to delete story", error);
+        }
+    }, [currentStory, deleteStory, onStoryDeleted, currentGroup, onClose, goNext]);
+
     useEffect(() => {
         if (!open || paused) return;
         const step = 100 / (STORY_DURATION / 100);
@@ -99,6 +139,39 @@ const StoryViewer = ({
 
         return () => clearInterval(tick);
     }, [open, paused, groupIndex, storyIndex]);
+
+    useEffect(() => {
+        if (!open || currentStory?.media_type !== "video") return;
+
+        const video = videoRef.current;
+        if (!video) return;
+
+        if (paused) {
+            video.pause();
+            return;
+        }
+
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch(() => undefined);
+        }
+    }, [paused, open, currentStory?.id, currentStory?.media_type]);
+
+    useEffect(() => {
+        if (!open) return;
+
+        const onPointerUp = () => {
+            pressStartRef.current = null;
+            setPaused(false);
+        };
+        window.addEventListener("pointerup", onPointerUp);
+        window.addEventListener("pointercancel", onPointerUp);
+
+        return () => {
+            window.removeEventListener("pointerup", onPointerUp);
+            window.removeEventListener("pointercancel", onPointerUp);
+        };
+    }, [open]);
 
     useEffect(() => {
         if (!open) return;
@@ -161,7 +234,7 @@ const StoryViewer = ({
     })();
 
     return (
-        <div className="fixed inset-0 z-[120] bg-black">
+        <div className="fixed inset-0 z-[120] bg-black transition-opacity duration-200">
             <div
                 className="h-full w-full md:max-w-md md:mx-auto md:my-8 md:h-[92vh] md:rounded-2xl md:overflow-hidden md:border md:border-dark-4 relative"
                 onTouchStart={(e) => (touchStartYRef.current = e.changedTouches[0].clientY)}
@@ -172,8 +245,11 @@ const StoryViewer = ({
                     touchStartYRef.current = null;
                 }}
             >
-                <div className="absolute top-0 left-0 right-0 z-20 px-3 pt-3 pb-2 md:px-4">
-                    <div className="flex gap-1.5 mb-3">
+                <div
+                    className="absolute top-0 left-0 right-0 z-20 px-3 pb-2 md:px-4"
+                    style={{ paddingTop: "calc(0.65rem + env(safe-area-inset-top))" }}
+                >
+                    <div className="flex gap-1.5 mb-2">
                         {currentGroup.stories.map((story, i) => (
                             <div key={story.id} className="h-1.5 flex-1 bg-white/30 rounded overflow-hidden">
                                 <div
@@ -204,18 +280,31 @@ const StoryViewer = ({
                             </p>
                             <p className="text-white/70 text-xs shrink-0">{timeAgo}</p>
                         </div>
-                        <button onClick={onClose} className="text-white text-2xl leading-none w-9 h-9 rounded-full bg-black/35">×</button>
+                        <button
+                            onClick={onClose}
+                            className="text-white text-2xl leading-none w-11 h-11 rounded-full bg-black/45 border border-white/15 active:scale-95 transition-transform"
+                            aria-label="Close story"
+                        >
+                            ×
+                        </button>
                     </div>
                 </div>
 
                 <div
                     className="absolute inset-0"
-                    onMouseDown={() => setPaused(true)}
-                    onMouseUp={() => setPaused(false)}
-                    onMouseLeave={() => setPaused(false)}
+                    onMouseDown={handleHoldStart}
+                    onMouseUp={() => handleHoldEnd()}
+                    onMouseLeave={() => handleHoldEnd()}
+                    onTouchStart={handleHoldStart}
+                    onTouchEnd={() => handleHoldEnd()}
+                    onTouchCancel={() => handleHoldEnd()}
+                    onPointerDown={handleHoldStart}
+                    onPointerUp={() => handleHoldEnd()}
+                    onPointerCancel={() => handleHoldEnd()}
                 >
                     {currentStory.media_type === "video" ? (
                         <video
+                            ref={videoRef}
                             src={currentStory.media_url}
                             autoPlay
                             playsInline
@@ -228,15 +317,29 @@ const StoryViewer = ({
                     )}
                 </div>
 
-                <button className="absolute left-0 top-0 h-full w-1/2 z-10" onClick={goPrev} aria-label="Previous story" />
-                <button className="absolute right-0 top-0 h-full w-1/2 z-10" onClick={goNext} aria-label="Next story" />
+                <button
+                    className="absolute left-0 top-0 h-full w-[50%] z-10"
+                    onPointerDown={handleHoldStart}
+                    onPointerUp={() => handleHoldEnd(goPrev)}
+                    onPointerCancel={() => handleHoldEnd()}
+                    onPointerLeave={() => handleHoldEnd()}
+                    aria-label="Previous story"
+                />
+                <button
+                    className="absolute right-0 top-0 h-full w-[50%] z-10"
+                    onPointerDown={handleHoldStart}
+                    onPointerUp={() => handleHoldEnd(goNext)}
+                    onPointerCancel={() => handleHoldEnd()}
+                    onPointerLeave={() => handleHoldEnd()}
+                    aria-label="Next story"
+                />
 
                 <div
                     className="absolute left-0 right-0 bottom-0 z-20 p-4 bg-gradient-to-t from-black/85 to-transparent"
                     style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
                 >
                     {currentStory.caption && (
-                        <p className="text-white text-sm leading-relaxed mb-3 max-w-[92%] break-words bg-black/25 rounded-lg px-2 py-1">
+                        <p className="text-white text-sm leading-relaxed mb-3 max-w-[96%] break-words bg-black/45 rounded-lg px-3 py-2 backdrop-blur-[1px]">
                             {currentStory.caption}
                         </p>
                     )}
@@ -262,19 +365,7 @@ const StoryViewer = ({
                             <button
                                 type="button"
                                 disabled={isDeleting}
-                                onClick={async () => {
-                                    try {
-                                        await deleteStory(currentStory.id);
-                                        onStoryDeleted?.();
-                                        if ((currentGroup.stories?.length || 0) <= 1) {
-                                            onClose();
-                                        } else {
-                                            goNext();
-                                        }
-                                    } catch (error) {
-                                        console.error("Failed to delete story", error);
-                                    }
-                                }}
+                                onClick={() => setShowDeleteConfirm(true)}
                                 className="rounded-full bg-red-500/90 px-3 py-1.5 text-xs text-white disabled:opacity-60"
                             >
                                 {isDeleting ? "Deleting..." : "Delete"}
@@ -320,6 +411,18 @@ const StoryViewer = ({
                         </div>
                     </>
                 )}
+
+                <ConfirmActionModal
+                    isOpen={showDeleteConfirm}
+                    title="Delete story"
+                    description="Do you want to delete this story? This action cannot be undone."
+                    confirmLabel="Yes"
+                    cancelLabel="No"
+                    isDestructive
+                    isLoading={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onClose={() => setShowDeleteConfirm(false)}
+                />
             </div>
         </div>
     );

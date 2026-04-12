@@ -154,11 +154,11 @@
 
   /* Home */
   .home-container {
-    @apply flex w-full flex-1 flex-col items-center gap-8 overflow-y-auto py-8 px-4 pb-24 md:px-6 lg:py-10 custom-scrollbar;
+    @apply flex w-full flex-1 flex-col items-center gap-7 overflow-y-auto py-8 px-4 pb-24 md:px-6 lg:py-10 custom-scrollbar;
   }
 
   .home-posts {
-    @apply flex w-full max-w-[720px] flex-col items-center gap-5 md:gap-6;
+    @apply flex w-full max-w-[720px] flex-col items-center gap-5 md:gap-5;
   }
 
   .rightsidebar {
@@ -184,6 +184,22 @@
 
   .post_details-delete_btn {
     @apply p-0 flex gap-3 hover:bg-transparent hover:text-light-1  text-light-1 small-medium lg:base-medium;
+  }
+
+  .story-sheet-enter {
+    animation: storySheetUp 240ms cubic-bezier(0.22, 1, 0.36, 1);
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  @keyframes storySheetUp {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   /* Profile */

@@ -59,8 +59,8 @@ const StoriesTray = () => {
 
     return (
         <>
-            <div className="w-full max-w-[720px] overflow-x-auto no-scrollbar">
-                <div className="flex items-center gap-3 py-2 min-w-max">
+            <div className="w-full max-w-[720px] mx-auto overflow-x-auto no-scrollbar px-0.5">
+                <div className="flex items-center gap-3 py-0.5 min-w-max">
                     <div className="flex flex-col items-center gap-1">
                         <button
                             onClick={() => {
@@ -72,7 +72,7 @@ const StoriesTray = () => {
                                     setCreateOpen(true);
                                 }
                             }}
-                            className="relative"
+                            className="relative transition-transform duration-200 active:scale-95"
                         >
                             <div className={`relative p-[2px] rounded-full ${hasOwnStory ? ringClass(false) : "bg-dark-4"}`}>
                                 <img
@@ -92,7 +92,7 @@ const StoriesTray = () => {
                             <button
                                 type="button"
                                 onClick={() => setCreateOpen(true)}
-                                className="-mt-1 text-[10px] text-primary-400 hover:text-primary-300"
+                                className="-mt-0.5 text-[10px] text-primary-400 hover:text-primary-300 min-h-[24px] px-1"
                                 aria-label="Add another story"
                             >
                                 + Add
@@ -110,7 +110,11 @@ const StoriesTray = () => {
                             .map((group: StoryGroup, idx: number) => {
                                 const absoluteIdx = orderedGroups.findIndex((g: StoryGroup) => g.user?.id === group.user?.id);
                                 return (
-                                    <button key={group.user?.id || idx} onClick={() => openGroup(absoluteIdx)} className="flex flex-col items-center gap-1">
+                                    <button
+                                        key={group.user?.id || idx}
+                                        onClick={() => openGroup(absoluteIdx)}
+                                        className="flex flex-col items-center gap-1 transition-transform duration-200 active:scale-95"
+                                    >
                                         <div className={`p-[2px] rounded-full ${ringClass(!group.hasUnviewed)}`}>
                                             <img
                                                 src={group.user?.image_url || "/assets/icons/profile-placeholder.svg"}

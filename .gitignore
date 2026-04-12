@@ -65,3 +65,5 @@ logs
 *~
 
 .vercel
+
+.next-dev/
