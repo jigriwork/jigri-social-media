@@ -66,18 +66,18 @@ const PostCard = ({ post }: PostCardProps) => {
       <div className="flex-between">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <Link href={`/profile/${post.creator.id}`} className="shrink-0">
-            <UserAvatar 
-              user={post.creator} 
+            <UserAvatar
+              user={post.creator}
               size="md"
-              showRing={true} 
+              showRing={true}
             />
           </Link>
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1">
-              <p className="base-medium text-light-1 truncate">
+              <Link href={`/profile/${post.creator.id}`} className="base-medium text-light-1 truncate hover:text-primary-400 transition-colors">
                 {post.creator.name}
-              </p>
+              </Link>
               <VerificationBadge
                 isVerified={post.creator?.is_verified}
                 badgeType={post.creator?.verification_badge_type}
@@ -92,7 +92,7 @@ const PostCard = ({ post }: PostCardProps) => {
         </div>
 
         <div className={`flex items-center gap-4 ${user?.id !== post.creator.id && "hidden"}`}>
-          <Link 
+          <Link
             href={`/update-post/${post.id}`}
             className="p-1.5 h-auto rounded-xl border border-primary-500/10 bg-primary-500/5 hover:bg-primary-500/20 hover:border-primary-500/40 transition-all duration-300 group/edit shadow-sm"
             aria-label="Edit post"

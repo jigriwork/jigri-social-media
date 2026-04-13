@@ -9,15 +9,10 @@ export default function AuthLayout() {
   const router = useRouter();
 
   useEffect(() => {
-    // Prevent scrolling on auth pages
-    document.body.style.overflow = 'hidden';
-    document.body.style.height = '100vh';
-    
-    return () => {
-      // Restore scrolling when leaving auth pages
-      document.body.style.overflow = 'auto';
-      document.body.style.height = 'auto';
-    };
+    // No longer forcing overflow:hidden on body — the auth-page-wrapper
+    // handles its own containment via overflow:hidden on the wrapper and
+    // overflow-y:auto on the form section. This prevents the layout from
+    // breaking on mobile when form content is taller than the viewport.
   }, []);
 
   if (isLoading) {
@@ -30,8 +25,8 @@ export default function AuthLayout() {
   }
 
   return (
-    <div className="w-full h-full flex overflow-hidden auth-layout">
-      <section className="flex flex-1 justify-start items-start pt-4 sm:justify-center sm:items-center flex-col px-4 min-h-0">
+    <div className="w-full h-full flex overflow-hidden">
+      <section className="flex flex-1 justify-center items-center flex-col">
         <div className="w-full" />
       </section>
       <img

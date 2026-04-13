@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import { StoryGroup } from "@/lib/supabase/api";
 import { useGetStoriesFeed, useGetUserStories } from "@/lib/react-query/queriesAndMutations";
+import { useStoryOpenController } from "@/context/StoryOpenContext";
+import { useMutedStoryUsers } from "@/hooks/useMutedStoryUsers";
 import CreateStoryModal from "./CreateStoryModal";
-import StoryViewer from "./StoryViewer";
 import VerificationBadge from "./VerificationBadge";
 
 const ringClass = (isViewed: boolean) =>
@@ -15,16 +16,17 @@ const ringClass = (isViewed: boolean) =>
 
 const StoriesTray = () => {
     const { user } = useUserContext();
+    const { openStoryForUser } = useStoryOpenController();
+    const { isMuted } = useMutedStoryUsers();
     const { data: groups = [], isPending } = useGetStoriesFeed();
     const { data: ownStories = [] } = useGetUserStories(user?.id);
 
     const [createOpen, setCreateOpen] = useState(false);
-    const [viewerOpen, setViewerOpen] = useState(false);
-    const [viewerGroupIndex, setViewerGroupIndex] = useState(0);
 
     const orderedGroups = useMemo(() => {
-        const mineFromFeed = groups.find((g: StoryGroup) => g.user?.id === user?.id);
-        const others = groups.filter((g: StoryGroup) => g.user?.id !== user?.id);
+        const visibleGroups = groups.filter((g: StoryGroup) => !isMuted(g?.user?.id || null));
+        const mineFromFeed = visibleGroups.find((g: StoryGroup) => g.user?.id === user?.id);
+        const others = visibleGroups.filter((g: StoryGroup) => g.user?.id !== user?.id);
 
         if (!user?.id) return others;
 
@@ -48,11 +50,12 @@ const StoriesTray = () => {
         }
 
         return mineFromFeed ? [mineFromFeed, ...others] : others;
-    }, [groups, ownStories, user]);
+    }, [groups, ownStories, user, isMuted]);
 
-    const openGroup = (index: number) => {
-        setViewerGroupIndex(index);
-        setViewerOpen(true);
+    const openGroup = async (index: number) => {
+        const targetUserId = orderedGroups[index]?.user?.id;
+        if (!targetUserId) return;
+        await openStoryForUser(targetUserId, "feed");
     };
 
     const hasOwnStory = ownStories.length > 0 || orderedGroups.some((g: StoryGroup) => g.user?.id === user?.id);
@@ -66,7 +69,7 @@ const StoriesTray = () => {
                             onClick={() => {
                                 if (hasOwnStory) {
                                     const mineIdx = orderedGroups.findIndex((g: StoryGroup) => g.user?.id === user?.id);
-                                    if (mineIdx >= 0) openGroup(mineIdx);
+                                    if (mineIdx >= 0) void openGroup(mineIdx);
                                     else setCreateOpen(true);
                                 } else {
                                     setCreateOpen(true);
@@ -89,17 +92,17 @@ const StoriesTray = () => {
                             </div>
                         </button>
                         <div className="flex flex-col items-center mt-1.5 h-8 justify-start">
-                          <span className="text-[11px] text-light-2 font-medium leading-tight">Your Story</span>
-                          {hasOwnStory && (
-                              <button
-                                  type="button"
-                                  onClick={() => setCreateOpen(true)}
-                                  className="text-[9px] text-primary-400 hover:text-primary-300 font-bold leading-none mt-1"
-                                  aria-label="Add another story"
-                              >
-                                  + Add
-                              </button>
-                          )}
+                            <span className="text-[11px] text-light-2 font-medium leading-tight">Your Story</span>
+                            {hasOwnStory && (
+                                <button
+                                    type="button"
+                                    onClick={() => setCreateOpen(true)}
+                                    className="text-[9px] text-primary-400 hover:text-primary-300 font-bold leading-none mt-1"
+                                    aria-label="Add another story"
+                                >
+                                    + Add
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -114,7 +117,7 @@ const StoriesTray = () => {
                                 return (
                                     <button
                                         key={group.user?.id || idx}
-                                        onClick={() => openGroup(absoluteIdx)}
+                                        onClick={() => void openGroup(absoluteIdx)}
                                         className="flex flex-col items-center pt-0.5 transition-transform duration-200 active:scale-95 min-w-[76px]"
                                     >
                                         <div className={`p-[2.5px] rounded-full ${ringClass(!group.hasUnviewed)}`}>
@@ -143,14 +146,6 @@ const StoriesTray = () => {
             </div>
 
             <CreateStoryModal open={createOpen} onClose={() => setCreateOpen(false)} />
-
-            <StoryViewer
-                open={viewerOpen}
-                groups={orderedGroups}
-                initialGroupIndex={viewerGroupIndex}
-                onAddStory={() => setCreateOpen(true)}
-                onClose={() => setViewerOpen(false)}
-            />
         </>
     );
 };

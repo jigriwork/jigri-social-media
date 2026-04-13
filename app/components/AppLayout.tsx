@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useUserContext } from '../../src/context/SupabaseAuthContext';
+import { StoryOpenProvider } from '../../src/context/StoryOpenContext';
 import Topbar from '../../src/components/shared/Topbar';
 import LeftSidebar from '../../src/components/shared/LeftSidebar';
 import RightSidebar from '../../src/components/shared/RightSidebar';
@@ -31,10 +32,10 @@ const RIGHT_SIDEBAR_HIDDEN_PREFIXES = [
 ];
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useUserContext();
+  const { user, isAuthenticated, isLoading } = useUserContext();
   const router = useRouter();
   const pathname = usePathname();
-  const { shouldShow: showOnboarding, dismiss: dismissOnboarding, checked: onboardingChecked } = useFirstTimeOnboarding();
+  const { shouldShow: showOnboarding, dismiss: dismissOnboarding, checked: onboardingChecked } = useFirstTimeOnboarding(user?.id);
   const [onboardingActive, setOnboardingActive] = useState(false);
 
   // Activate onboarding only after auth is confirmed and this is the home page
@@ -78,18 +79,20 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <CinematicEntry onComplete={handleOnboardingComplete} />
       )}
 
-      <div className="w-full min-h-screen md:flex">
-        <Topbar />
-        <LeftSidebar />
+      <StoryOpenProvider>
+        <div className="w-full min-h-screen md:flex">
+          <Topbar />
+          <LeftSidebar />
 
-        <section className="flex flex-1 min-w-0 h-full justify-center">
-          {children}
-        </section>
+          <section className="flex flex-1 min-w-0 h-full justify-center">
+            {children}
+          </section>
 
-        {showRightSidebar && <RightSidebar />}
+          {showRightSidebar && <RightSidebar />}
 
-        <Bottombar />
-      </div>
+          <Bottombar />
+        </div>
+      </StoryOpenProvider>
     </>
   );
 }

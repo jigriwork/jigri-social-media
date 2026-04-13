@@ -15,11 +15,34 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      <section className="flex flex-1 justify-center items-center flex-col py-10">
+    <div className="auth-page-wrapper">
+      {/* Animated background particles */}
+      <div className="auth-bg-particles" aria-hidden="true">
+        <div className="auth-particle auth-particle-1" />
+        <div className="auth-particle auth-particle-2" />
+        <div className="auth-particle auth-particle-3" />
+        <div className="auth-particle auth-particle-4" />
+        <div className="auth-particle auth-particle-5" />
+      </div>
+
+      {/* Gradient orbs */}
+      <div className="auth-gradient-orb auth-gradient-orb-1" aria-hidden="true" />
+      <div className="auth-gradient-orb auth-gradient-orb-2" aria-hidden="true" />
+
+      {/* Form section — scrollable */}
+      <section className="auth-form-section custom-scrollbar">
         <SignupForm />
       </section>
-      <div className="hidden xl:block h-screen w-1/2 bg-no-repeat bg-cover bg-center bg-[url('/assets/images/side-img.svg')]" />
+
+      {/* Side image — desktop only */}
+      <div className="auth-side-image">
+        <div className="auth-side-overlay" />
+        <img
+          src="/assets/images/side-img.svg"
+          alt="Jigri showcase"
+          className="auth-side-img-element"
+        />
+      </div>
     </div>
   );
 }

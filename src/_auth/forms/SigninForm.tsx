@@ -111,40 +111,47 @@ const SigninForm = () => {
 
   return (
     <Form {...form}>
-      <div className="w-full max-w-md px-6 flex flex-col items-center mt-20 sm:mt-0 sm:pt-2 sm:justify-center sm:min-h-full">
-        <img
-          src="/assets/images/logo.svg"
-          alt="logo"
-          className="w-56 h-auto mb-6 sm:w-64 sm:mb-8 auth-logo-anim"
-        />
+      <div className="auth-form-container">
+        {/* Logo with pulse glow animation */}
+        <div className="auth-logo-wrapper">
+          <div className="auth-logo-glow" />
+          <img
+            src="/assets/images/logo.svg"
+            alt="Jigri"
+            className="auth-logo-img"
+          />
+        </div>
 
-        <h2 className="text-lg font-bold text-center mb-1 sm:text-xl sm:mb-2 auth-fade-in" style={{ animationDelay: '0.1s' }}>
-          Log in to your account
-        </h2>
-        <p className="text-light-3 text-sm text-center mb-4 sm:mb-5 auth-fade-in" style={{ animationDelay: '0.2s' }}>
-          Welcome back! Please enter your details.
-        </p>
+        {/* Heading */}
+        <div className="auth-heading-group">
+          <h2 className="auth-title auth-slide-up" style={{ animationDelay: '0.15s' }}>
+            Welcome back
+          </h2>
+          <p className="auth-subtitle auth-slide-up" style={{ animationDelay: '0.25s' }}>
+            Sign in to continue to Jigri
+          </p>
+        </div>
 
         <form
           onSubmit={form.handleSubmit(handleSignin)}
-          className="flex flex-col gap-3 w-full sm:gap-4 auth-fade-in" style={{ animationDelay: '0.3s' }}>
+          className="auth-form auth-slide-up" style={{ animationDelay: '0.35s' }}>
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="shad-form_label">Email</FormLabel>
+                <FormLabel className="auth-label">Email</FormLabel>
                 <FormControl>
                   <Input
                     type="text"
-                    className="shad-input"
+                    className="auth-input"
+                    placeholder="you@example.com"
                     {...field}
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
                     onChange={(e) => {
                       field.onChange(e.target.value.toLowerCase());
-                      // Clear error when user starts typing
                       if (signInError) setSignInError(null);
                     }}
                   />
@@ -159,22 +166,22 @@ const SigninForm = () => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="shad-form_label">Password</FormLabel>
+                <FormLabel className="auth-label">Password</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      className="shad-input pr-10"
+                      className="auth-input pr-10"
+                      placeholder="••••••••"
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
-                        // Clear error when user starts typing
                         if (signInError) setSignInError(null);
                       }}
                     />
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-light-4 hover:text-light-2"
+                      className="auth-password-toggle"
                       onClick={() => setShowPassword((prev) => !prev)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -188,50 +195,45 @@ const SigninForm = () => {
           />
 
           {/* Forgot Password Link */}
-          <div className="text-right">
-            <Link
-              href="/forgot-password"
-              className="text-primary-500 text-sm font-medium hover:underline"
-            >
+          <div className="auth-forgot-row">
+            <Link href="/forgot-password" className="auth-forgot-link">
               Forgot password?
             </Link>
           </div>
 
           {/* Inline error display */}
           {signInError && (
-            <div className="text-red-500 text-sm mt-1 p-2 bg-red-50 border border-red-200 rounded-md">
+            <div className="auth-error-box auth-shake">
               {signInError}
             </div>
           )}
 
-          <Button type="submit" className="shad-button_primary mt-3 sm:mt-4">
+          <Button type="submit" className="auth-submit-btn">
             {isPending || isUserLoading ? (
               <div className="flex-center gap-2">
-                <Loader /> Loading...
+                <Loader /> Signing in...
               </div>
             ) : (
-              "Log in"
+              "Sign in"
             )}
           </Button>
 
-          <p className="text-sm text-light-2 text-center mt-3 sm:mt-4">
-            Don&apos;t have an account?
-            <Link
-              href="/sign-up"
-              className="text-primary-500 text-sm font-semibold ml-1">
+          <p className="auth-switch-text">
+            Don&apos;t have an account?{" "}
+            <Link href="/sign-up" className="auth-switch-link">
               Sign up
             </Link>
           </p>
 
           <PWAInstallPrompt
             variant="inline"
-            className="mt-4"
+            className="mt-2"
             buttonLabel="Install app"
             descriptionOverride="For the best experience, install the app on your device."
           />
 
           {/* Founder community message */}
-          <div className="auth-founder-msg mt-4">
+          <div className="auth-founder-msg auth-slide-up" style={{ animationDelay: '0.55s' }}>
             <p className="auth-founder-line" style={{ animationDelay: '0.6s' }}>We just launched Jigri v1.</p>
             <p className="auth-founder-line" style={{ animationDelay: '0.8s' }}>We&apos;re actively fixing bugs and improving every day.</p>
             <p className="auth-founder-line" style={{ animationDelay: '1.0s' }}>Help us build this together.</p>

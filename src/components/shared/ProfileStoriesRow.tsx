@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useGetUserStories } from "@/lib/react-query/queriesAndMutations";
 import { StoryGroup } from "@/lib/supabase/api";
 import { useUserContext } from "@/context/SupabaseAuthContext";
-import StoryViewer from "./StoryViewer";
+import { useStoryOpenController } from "@/context/StoryOpenContext";
 import CreateStoryModal from "./CreateStoryModal";
 
 type ProfileStoriesRowProps = {
@@ -13,8 +13,8 @@ type ProfileStoriesRowProps = {
 
 const ProfileStoriesRow = ({ userId }: ProfileStoriesRowProps) => {
     const { user } = useUserContext();
+    const { openStoryForUser } = useStoryOpenController();
     const { data: stories = [] } = useGetUserStories(userId);
-    const [viewerOpen, setViewerOpen] = useState(false);
     const [createOpen, setCreateOpen] = useState(false);
 
     const isOwnProfile = user?.id === userId;
@@ -43,7 +43,13 @@ const ProfileStoriesRow = ({ userId }: ProfileStoriesRowProps) => {
                     {isOwnProfile && (
                         <div className="flex flex-col items-center gap-1">
                             <button
-                                onClick={() => (group ? setViewerOpen(true) : setCreateOpen(true))}
+                                onClick={() => {
+                                    if (group) {
+                                        void openStoryForUser(userId, "profile");
+                                    } else {
+                                        setCreateOpen(true);
+                                    }
+                                }}
                                 className="relative"
                             >
                                 <div className="relative p-[2px] rounded-full bg-gradient-to-tr from-pink-500 via-orange-400 to-yellow-300">
@@ -73,7 +79,7 @@ const ProfileStoriesRow = ({ userId }: ProfileStoriesRowProps) => {
                     )}
 
                     {!!group && !isOwnProfile && (
-                        <button onClick={() => setViewerOpen(true)} className="flex flex-col items-center gap-1">
+                        <button onClick={() => void openStoryForUser(userId, "profile")} className="flex flex-col items-center gap-1">
                             <div className={`p-[2px] rounded-full ${group.hasUnviewed ? "bg-gradient-to-tr from-pink-500 via-orange-400 to-yellow-300" : "bg-dark-4"}`}>
                                 <img
                                     src={group.user?.image_url || "/assets/icons/profile-placeholder.svg"}
@@ -86,14 +92,6 @@ const ProfileStoriesRow = ({ userId }: ProfileStoriesRowProps) => {
                     )}
                 </div>
             </div>
-
-            <StoryViewer
-                open={viewerOpen}
-                groups={group ? [group] : []}
-                initialGroupIndex={0}
-                onAddStory={isOwnProfile ? () => setCreateOpen(true) : undefined}
-                onClose={() => setViewerOpen(false)}
-            />
 
             <CreateStoryModal open={createOpen} onClose={() => setCreateOpen(false)} />
         </>

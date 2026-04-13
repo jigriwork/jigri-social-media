@@ -1,6 +1,7 @@
 "use client";
 
 import { useStoryRingUsers } from "@/hooks/useStoryRingUsers";
+import { useStoryOpenController } from "@/context/StoryOpenContext";
 import VerificationBadge from "./VerificationBadge";
 
 type UserAvatarProps = {
@@ -34,8 +35,9 @@ const UserAvatar = ({
   className = "",
 }: UserAvatarProps) => {
   const { hasActiveStory } = useStoryRingUsers();
-  const hasStory = showRing && hasActiveStory(user.id);
-  
+  const { canOpenStories, openStoryForUser } = useStoryOpenController();
+  const hasStory = showRing && canOpenStories && hasActiveStory(user.id);
+
   const sizeConfig = SIZES[size];
 
   const AvatarImage = (
@@ -47,7 +49,25 @@ const UserAvatar = ({
   );
 
   return (
-    <div className={`relative shrink-0 ${className}`}>
+    <div
+      className={`relative shrink-0 ${className}`}
+      onClick={(e) => {
+        if (!hasStory) return;
+        e.preventDefault();
+        e.stopPropagation();
+        void openStoryForUser(user.id);
+      }}
+      role={hasStory ? "button" : undefined}
+      tabIndex={hasStory ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (!hasStory) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          void openStoryForUser(user.id);
+        }
+      }}
+    >
       {hasStory ? (
         <div className={`story-ring-wrapper ${sizeConfig.ringPadding} story-ring-active cursor-pointer`}>
           <div className="story-ring-inner">

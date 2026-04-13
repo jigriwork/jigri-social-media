@@ -183,33 +183,41 @@ const SignupForm = () => {
       });
     }
   }
+
   return (
     <Form {...form}>
-      <div className="w-full max-w-md px-6 flex flex-col items-center mt-6 sm:mt-0 sm:pt-1 sm:justify-center sm:min-h-full">
-        <img
-          src="/assets/images/logo.svg"
-          alt="logo"
-          className="w-56 h-auto mb-6 sm:w-64 sm:mb-8 auth-logo-anim"
-        />
+      <div className="auth-form-container">
+        {/* Logo with pulse glow animation */}
+        <div className="auth-logo-wrapper">
+          <div className="auth-logo-glow" />
+          <img
+            src="/assets/images/logo.svg"
+            alt="Jigri"
+            className="auth-logo-img"
+          />
+        </div>
 
-        <h2 className="text-base font-bold text-center mb-1 sm:text-lg sm:mb-1 auth-fade-in" style={{ animationDelay: '0.1s' }}>
-          Create a new account
-        </h2>
-        <p className="text-light-3 text-xs text-center mb-2 sm:text-sm sm:mb-3 auth-fade-in" style={{ animationDelay: '0.2s' }}>
-          To use Jigri, Please enter your details
-        </p>
+        {/* Heading */}
+        <div className="auth-heading-group">
+          <h2 className="auth-title auth-slide-up" style={{ animationDelay: '0.15s' }}>
+            Create your account
+          </h2>
+          <p className="auth-subtitle auth-slide-up" style={{ animationDelay: '0.25s' }}>
+            Join Jigri and start connecting
+          </p>
+        </div>
 
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col gap-1 w-full sm:gap-2">
+          className="auth-form auth-slide-up" style={{ animationDelay: '0.35s' }}>
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="shad-form_label text-xs sm:text-sm">Name</FormLabel>
+                <FormLabel className="auth-label">Name</FormLabel>
                 <FormControl>
-                  <Input type="text" className="shad-input h-8 sm:h-10" {...field} />
+                  <Input type="text" className="auth-input" placeholder="Your full name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -221,9 +229,9 @@ const SignupForm = () => {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="shad-form_label text-xs sm:text-sm">Username</FormLabel>
+                <FormLabel className="auth-label">Username</FormLabel>
                 <FormControl>
-                  <Input type="text" className="shad-input h-8 sm:h-10" {...field} />
+                  <Input type="text" className="auth-input" placeholder="Choose a username" {...field} />
                 </FormControl>
                 {getAvailabilityMessage('username')}
                 <FormMessage />
@@ -236,9 +244,9 @@ const SignupForm = () => {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="shad-form_label text-xs sm:text-sm">Email</FormLabel>
+                <FormLabel className="auth-label">Email</FormLabel>
                 <FormControl>
-                  <Input type="text" className="shad-input h-8 sm:h-10" {...field} />
+                  <Input type="text" className="auth-input" placeholder="you@example.com" {...field} />
                 </FormControl>
                 {getAvailabilityMessage('email')}
                 <FormMessage />
@@ -251,17 +259,18 @@ const SignupForm = () => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="shad-form_label text-sm">Password</FormLabel>
+                <FormLabel className="auth-label">Password</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
-                      className="shad-input h-10 pr-10"
+                      className="auth-input pr-10"
+                      placeholder="••••••••"
                       {...field}
                     />
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-light-4 hover:text-light-2"
+                      className="auth-password-toggle"
                       onClick={() => setShowPassword((prev) => !prev)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -279,11 +288,12 @@ const SignupForm = () => {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="shad-form_label text-sm">Confirm Password</FormLabel>
+                <FormLabel className="auth-label">Confirm Password</FormLabel>
                 <FormControl>
                   <Input
                     type={showPassword ? "text" : "password"}
-                    className="shad-input h-10"
+                    className="auth-input"
+                    placeholder="••••••••"
                     {...field}
                   />
                 </FormControl>
@@ -294,7 +304,7 @@ const SignupForm = () => {
 
           <Button
             type="submit"
-            className="shad-button_primary mt-2 h-8 sm:h-10 text-xs sm:text-sm"
+            className="auth-submit-btn"
             disabled={
               isCreatingAccount ||
               isSigningInUser ||
@@ -306,33 +316,31 @@ const SignupForm = () => {
           >
             {isCreatingAccount || isSigningInUser ? (
               <div className="flex-center gap-2">
-                <Loader /> Loading...
+                <Loader /> Creating account...
               </div>
             ) : availabilityStatus.email === 'taken' || availabilityStatus.username === 'taken' ? (
               "Please fix availability issues"
             ) : (
-              "Sign Up"
+              "Sign up"
             )}
           </Button>
 
-          <p className="text-sm text-light-2 text-center mt-2">
-            Already have an account?
-            <Link
-              href="/sign-in"
-              className="text-primary-500 text-sm font-semibold ml-1">
-              Log in
+          <p className="auth-switch-text">
+            Already have an account?{" "}
+            <Link href="/sign-in" className="auth-switch-link">
+              Sign in
             </Link>
           </p>
 
           <PWAInstallPrompt
             variant="inline"
-            className="mt-4"
+            className="mt-2"
             buttonLabel="Install app"
             descriptionOverride="For the best experience, install the app on your device."
           />
 
           {/* Founder community message */}
-          <div className="auth-founder-msg mt-4">
+          <div className="auth-founder-msg auth-slide-up" style={{ animationDelay: '0.55s' }}>
             <p className="auth-founder-line" style={{ animationDelay: '0.6s' }}>We just launched Jigri v1.</p>
             <p className="auth-founder-line" style={{ animationDelay: '0.8s' }}>We&apos;re actively fixing bugs and improving every day.</p>
             <p className="auth-founder-line" style={{ animationDelay: '1.0s' }}>Help us build this together.</p>

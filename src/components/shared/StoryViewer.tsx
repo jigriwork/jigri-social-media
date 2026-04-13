@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StoryGroup } from "@/lib/supabase/api";
+import { createConversation, sendMessage } from "@/lib/supabase/api";
 import { useDeleteStory, useRecordStoryView } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/SupabaseAuthContext";
+import { useMutedStoryUsers } from "@/hooks/useMutedStoryUsers";
+import { useToast } from "@/hooks/use-toast";
 import VerificationBadge from "./VerificationBadge";
 import ConfirmActionModal from "./ConfirmActionModal";
 
@@ -17,7 +20,7 @@ type StoryViewerProps = {
     onStoryDeleted?: () => void;
 };
 
-const STORY_DURATION = 6000;
+const IMAGE_STORY_DURATION = 6000;
 const HOLD_THRESHOLD_MS = 220;
 
 const StoryViewer = ({
@@ -30,8 +33,10 @@ const StoryViewer = ({
     onStoryDeleted,
 }: StoryViewerProps) => {
     const { user } = useUserContext();
+    const { toast } = useToast();
     const { mutate: recordView } = useRecordStoryView();
     const { mutateAsync: deleteStory, isPending: isDeleting } = useDeleteStory();
+    const { isMuted, muteUserStories } = useMutedStoryUsers();
 
     const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
     const [storyIndex, setStoryIndex] = useState(initialStoryIndex);
@@ -39,8 +44,15 @@ const StoryViewer = ({
     const [paused, setPaused] = useState(false);
     const [showViewersPanel, setShowViewersPanel] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showActionsMenu, setShowActionsMenu] = useState(false);
+    const [replyText, setReplyText] = useState("");
+    const [isSendingReply, setIsSendingReply] = useState(false);
+    const [isReporting, setIsReporting] = useState(false);
+    const [storyDuration, setStoryDuration] = useState(IMAGE_STORY_DURATION);
+    const [mediaVisible, setMediaVisible] = useState(true);
     const touchStartYRef = useRef<number | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
+    const rafRef = useRef<number | null>(null);
     const pressStartRef = useRef<number | null>(null);
 
     const handleHoldStart = useCallback(() => {
@@ -69,12 +81,15 @@ const StoryViewer = ({
             setPaused(false);
             setShowViewersPanel(false);
             setShowDeleteConfirm(false);
+            setShowActionsMenu(false);
+            setReplyText("");
         }
     }, [open, initialGroupIndex, initialStoryIndex]);
 
     const currentGroup = groups[groupIndex];
     const currentStory = currentGroup?.stories?.[storyIndex];
     const isOwnerStory = currentStory?.user_id === user?.id;
+    const isCurrentUserMuted = isMuted(currentGroup?.user?.id || null);
 
     const nextTarget = useMemo(() => {
         if (!currentGroup) return null;
@@ -131,14 +146,35 @@ const StoryViewer = ({
     }, [currentStory, deleteStory, onStoryDeleted, currentGroup, onClose, goNext]);
 
     useEffect(() => {
-        if (!open || paused) return;
-        const step = 100 / (STORY_DURATION / 100);
+        if (!open || !currentStory || paused) return;
+
+        if (currentStory.media_type === "video") {
+            const update = () => {
+                const video = videoRef.current;
+                if (!video || !video.duration || Number.isNaN(video.duration)) {
+                    rafRef.current = window.requestAnimationFrame(update);
+                    return;
+                }
+                const pct = Math.min(100, Math.max(0, (video.currentTime / video.duration) * 100));
+                setProgress(pct);
+                if (!video.paused && !video.ended) {
+                    rafRef.current = window.requestAnimationFrame(update);
+                }
+            };
+
+            rafRef.current = window.requestAnimationFrame(update);
+            return () => {
+                if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
+            };
+        }
+
+        const step = 100 / (storyDuration / 100);
         const tick = window.setInterval(() => {
             setProgress((prev) => Math.min(prev + step, 100));
         }, 100);
 
         return () => clearInterval(tick);
-    }, [open, paused, groupIndex, storyIndex]);
+    }, [open, paused, currentStory?.id, currentStory?.media_type, storyDuration]);
 
     useEffect(() => {
         if (!open || currentStory?.media_type !== "video") return;
@@ -174,17 +210,25 @@ const StoryViewer = ({
     }, [open]);
 
     useEffect(() => {
-        if (!open) return;
-        if (progress >= 100) {
+        if (!open || !currentStory) return;
+        if (progress >= 100 && currentStory.media_type !== "video") {
             setProgress(0);
             goNext();
         }
-    }, [progress, open, goNext]);
+    }, [progress, open, goNext, currentStory]);
 
     useEffect(() => {
         if (!open || !currentStory) return;
         setProgress(0);
         setShowViewersPanel(false);
+        setShowActionsMenu(false);
+        setReplyText("");
+        setMediaVisible(false);
+        const t = window.setTimeout(() => setMediaVisible(true), 40);
+
+        if (currentStory.media_type === "image") {
+            setStoryDuration(IMAGE_STORY_DURATION);
+        }
 
         if (currentStory.user_id !== user?.id) {
             recordView(currentStory.id);
@@ -201,7 +245,93 @@ const StoryViewer = ({
                 video.src = nextStory.media_url;
             }
         }
+        return () => window.clearTimeout(t);
     }, [open, currentStory?.id]);
+
+    useEffect(() => {
+        if (!open || !currentGroup?.user?.id) return;
+        if (isCurrentUserMuted) {
+            onClose();
+        }
+    }, [isCurrentUserMuted, open, currentGroup?.user?.id, onClose]);
+
+    const sendStoryMessage = useCallback(async (content: string) => {
+        if (!user?.id || !currentGroup?.user?.id || !currentStory?.id) return;
+        if (currentGroup.user.id === user.id) return;
+
+        const conversation = await createConversation(currentGroup.user.id);
+        if (!conversation?.id) {
+            throw new Error("Could not open conversation");
+        }
+
+        const payload = `${content}\n\n[Story:${currentStory.id}]`;
+        await sendMessage(conversation.id, payload);
+    }, [user?.id, currentGroup?.user?.id, currentStory?.id]);
+
+    const handleSendReply = useCallback(async () => {
+        if (!replyText.trim() || isSendingReply || isOwnerStory) return;
+        try {
+            setIsSendingReply(true);
+            await sendStoryMessage(replyText.trim());
+            setReplyText("");
+            toast({ title: "Reply sent" });
+        } catch (error: any) {
+            toast({ title: error?.message || "Failed to send reply", variant: "destructive" });
+        } finally {
+            setIsSendingReply(false);
+        }
+    }, [replyText, isSendingReply, isOwnerStory, sendStoryMessage, toast]);
+
+    const handleReaction = useCallback(async (emoji: string) => {
+        if (isOwnerStory || isSendingReply) return;
+        try {
+            setIsSendingReply(true);
+            await sendStoryMessage(emoji);
+            toast({ title: `Reaction sent ${emoji}` });
+        } catch (error: any) {
+            toast({ title: error?.message || "Failed to send reaction", variant: "destructive" });
+        } finally {
+            setIsSendingReply(false);
+        }
+    }, [isOwnerStory, isSendingReply, sendStoryMessage, toast]);
+
+    const handleReportStory = useCallback(async () => {
+        if (!currentStory?.id || isReporting) return;
+        try {
+            setIsReporting(true);
+            const response = await fetch('/api/reports', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    entityType: 'story',
+                    entityId: currentStory.id,
+                    reasonCode: 'inappropriate_content',
+                    description: `Reported via story viewer for @${currentGroup?.user?.username || 'user'}`,
+                }),
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload?.error || 'Failed to report story');
+            }
+
+            setShowActionsMenu(false);
+            toast({ title: 'Story reported' });
+        } catch (error: any) {
+            toast({ title: error?.message || 'Failed to report story', variant: 'destructive' });
+        } finally {
+            setIsReporting(false);
+        }
+    }, [currentStory?.id, currentGroup?.user?.username, isReporting, toast]);
+
+    const handleMuteStories = useCallback(() => {
+        const targetUserId = currentGroup?.user?.id;
+        if (!targetUserId || isOwnerStory) return;
+        muteUserStories(targetUserId);
+        setShowActionsMenu(false);
+        toast({ title: 'Stories muted from this user' });
+        onClose();
+    }, [currentGroup?.user?.id, isOwnerStory, muteUserStories, toast, onClose]);
 
     useEffect(() => {
         if (!open) return;
@@ -234,7 +364,7 @@ const StoryViewer = ({
     })();
 
     return (
-        <div className="fixed inset-0 z-[120] bg-black transition-opacity duration-200">
+        <div className="fixed inset-0 z-[120] bg-black transition-opacity duration-200 select-none">
             <div
                 className="h-full w-full md:max-w-md md:mx-auto md:my-8 md:h-[92vh] md:rounded-2xl md:overflow-hidden md:border md:border-dark-4 relative"
                 onTouchStart={(e) => (touchStartYRef.current = e.changedTouches[0].clientY)}
@@ -281,6 +411,13 @@ const StoryViewer = ({
                             <p className="text-white/70 text-xs shrink-0">{timeAgo}</p>
                         </div>
                         <button
+                            onClick={() => setShowActionsMenu((v) => !v)}
+                            className="text-white text-xl leading-none w-11 h-11 rounded-full bg-black/45 border border-white/15 active:scale-95 transition-transform"
+                            aria-label="Story options"
+                        >
+                            ⋯
+                        </button>
+                        <button
                             onClick={onClose}
                             className="text-white text-2xl leading-none w-11 h-11 rounded-full bg-black/45 border border-white/15 active:scale-95 transition-transform"
                             aria-label="Close story"
@@ -301,20 +438,38 @@ const StoryViewer = ({
                     onPointerDown={handleHoldStart}
                     onPointerUp={() => handleHoldEnd()}
                     onPointerCancel={() => handleHoldEnd()}
+                    onContextMenu={(e) => e.preventDefault()}
                 >
-                    {currentStory.media_type === "video" ? (
-                        <video
-                            ref={videoRef}
-                            src={currentStory.media_url}
-                            autoPlay
-                            playsInline
-                            muted
-                            className="h-full w-full object-cover"
-                            preload="metadata"
-                        />
-                    ) : (
-                        <img src={currentStory.media_url} alt="story" className="h-full w-full object-cover" loading="eager" />
-                    )}
+                    <div className={`h-full w-full transition-opacity duration-200 ${mediaVisible ? "opacity-100" : "opacity-0"}`}>
+                        {currentStory.media_type === "video" ? (
+                            <video
+                                ref={videoRef}
+                                src={currentStory.media_url}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="h-full w-full object-cover"
+                                preload="metadata"
+                                onLoadedMetadata={(e) => {
+                                    const duration = e.currentTarget.duration;
+                                    if (duration && !Number.isNaN(duration)) {
+                                        setStoryDuration(Math.max(800, duration * 1000));
+                                    }
+                                }}
+                                onEnded={goNext}
+                                onContextMenu={(e) => e.preventDefault()}
+                            />
+                        ) : (
+                            <img
+                                src={currentStory.media_url}
+                                alt="story"
+                                className="h-full w-full object-cover"
+                                loading="eager"
+                                draggable={false}
+                                onContextMenu={(e) => e.preventDefault()}
+                            />
+                        )}
+                    </div>
                 </div>
 
                 <button
@@ -338,6 +493,22 @@ const StoryViewer = ({
                     className="absolute left-0 right-0 bottom-0 z-20 p-4 bg-gradient-to-t from-black/85 to-transparent"
                     style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
                 >
+                    {!isOwnerStory && (
+                        <div className="flex items-center gap-2 mb-3">
+                            {["❤️", "🔥", "😂", "👏", "😮"].map((emoji) => (
+                                <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => handleReaction(emoji)}
+                                    disabled={isSendingReply}
+                                    className="w-9 h-9 rounded-full bg-black/45 border border-white/20 text-lg disabled:opacity-50"
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {currentStory.caption && (
                         <p className="text-white text-sm leading-relaxed mb-3 max-w-[96%] break-words bg-black/45 rounded-lg px-3 py-2 backdrop-blur-[1px]">
                             {currentStory.caption}
@@ -372,7 +543,48 @@ const StoryViewer = ({
                             </button>
                         </div>
                     )}
+
+                    {!isOwnerStory && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <input
+                                type="text"
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder="Reply to story..."
+                                className="flex-1 rounded-full bg-black/45 border border-white/25 px-3 py-2 text-sm text-white placeholder:text-white/60 outline-none"
+                                maxLength={500}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleSendReply}
+                                disabled={!replyText.trim() || isSendingReply}
+                                className="rounded-full bg-primary-500 px-3 py-2 text-xs text-white disabled:opacity-60"
+                            >
+                                {isSendingReply ? "..." : "Send"}
+                            </button>
+                        </div>
+                    )}
                 </div>
+
+                {!isOwnerStory && showActionsMenu && (
+                    <div className="absolute top-16 right-3 z-30 w-44 rounded-xl border border-dark-4 bg-dark-2 p-2 shadow-xl">
+                        <button
+                            type="button"
+                            onClick={handleReportStory}
+                            disabled={isReporting}
+                            className="w-full text-left rounded-lg px-3 py-2 text-sm text-light-1 hover:bg-dark-3 disabled:opacity-60"
+                        >
+                            {isReporting ? "Reporting..." : "Report story"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleMuteStories}
+                            className="w-full text-left rounded-lg px-3 py-2 text-sm text-light-1 hover:bg-dark-3"
+                        >
+                            Mute stories
+                        </button>
+                    </div>
+                )}
 
                 {isOwnerStory && showViewersPanel && (
                     <>
@@ -400,13 +612,13 @@ const StoryViewer = ({
                                                 />
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-1">
-                                                      <p className="text-light-1 text-sm truncate uppercase font-bold">{viewer.name}</p>
-                                                      <VerificationBadge
-                                                          isVerified={viewer.is_verified}
-                                                          badgeType={viewer.verification_badge_type}
-                                                          role={viewer.role}
-                                                          size={12}
-                                                      />
+                                                        <p className="text-light-1 text-sm truncate uppercase font-bold">{viewer.name}</p>
+                                                        <VerificationBadge
+                                                            isVerified={viewer.is_verified}
+                                                            badgeType={viewer.verification_badge_type}
+                                                            role={viewer.role}
+                                                            size={12}
+                                                        />
                                                     </div>
                                                     <p className="text-light-3 text-xs truncate">@{viewer.username || "user"}</p>
                                                 </div>

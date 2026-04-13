@@ -195,10 +195,11 @@ type CinematicEntryProps = {
 export default function CinematicEntry({ onComplete }: CinematicEntryProps) {
   const { user } = useUserContext();
   const [phase, setPhase] = useState(0); // 0=entry, 1=identity, 2=community, 3=exiting
+  const [manualMode, setManualMode] = useState(false);
+  const [canProceed, setCanProceed] = useState(false);
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const rippleId = useRef(0);
   const timerRefs = useRef<NodeJS.Timeout[]>([]);
-  const hasAccelerated = useRef(false);
 
   const username = user?.username || user?.name || "friend";
 
@@ -217,69 +218,81 @@ export default function CinematicEntry({ onComplete }: CinematicEntryProps) {
     };
   }, []);
 
-  // Phase timeline
+  const minReadableMs = [1000, 1400, 2200];
+  const autoAdvanceMs = [1800, 3200, 6000];
+
+  const clearTimers = useCallback(() => {
+    timerRefs.current.forEach(clearTimeout);
+    timerRefs.current = [];
+  }, []);
+
+  // Gate next action so first touch cannot instantly skip phase
   useEffect(() => {
-    const schedule = (fn: () => void, ms: number) => {
-      const t = setTimeout(fn, ms);
-      timerRefs.current.push(t);
-      return t;
-    };
+    if (phase >= 3) return;
+    setCanProceed(false);
+    const t = setTimeout(() => setCanProceed(true), minReadableMs[phase] || 1200);
+    timerRefs.current.push(t);
+    return () => clearTimeout(t);
+  }, [phase]);
 
-    // Phase 0 → 1 (entry → identity): 800ms
-    schedule(() => setPhase(1), 800);
+  // Soft auto progression (disabled once user interacts with controls)
+  useEffect(() => {
+    if (phase >= 3 || manualMode) return;
 
-    // Phase 1 → 2 (identity → community): 1600ms
-    schedule(() => setPhase(2), 1800);
+    const t = setTimeout(() => {
+      if (phase < 2) {
+        setPhase((p) => p + 1);
+      } else {
+        setPhase(3);
+        const done = setTimeout(() => onComplete(), 700);
+        timerRefs.current.push(done);
+      }
+    }, autoAdvanceMs[phase] || 3000);
 
-    // Phase 2 → 3 (community → exit): 4200ms (allows reading)
-    schedule(() => setPhase(3), 4800);
-
-    // Complete after exit animation
-    schedule(() => onComplete(), 5300);
+    timerRefs.current.push(t);
 
     return () => {
-      timerRefs.current.forEach(clearTimeout);
+      clearTimeout(t);
     };
-  }, [onComplete]);
+  }, [phase, manualMode, onComplete]);
 
-  // Tap to accelerate
-  const handleTap = useCallback(
-    (e: React.MouseEvent | React.TouchEvent) => {
-      // Create ripple
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const clientX = "touches" in e ? e.touches[0]?.clientX ?? 0 : e.clientX;
-      const clientY = "touches" in e ? e.touches[0]?.clientY ?? 0 : e.clientY;
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
-      const id = rippleId.current++;
-      setRipples((prev) => [...prev, { id, x, y }]);
-      setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 600);
+  const handleBackgroundTouch = useCallback((e: React.PointerEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const id = rippleId.current++;
+    setRipples((prev) => [...prev, { id, x, y }]);
+    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 600);
 
-      // Accelerate: skip to exit on second+ tap
-      if (!hasAccelerated.current && phase >= 1) {
-        hasAccelerated.current = true;
-        timerRefs.current.forEach(clearTimeout);
-        timerRefs.current = [];
+    // Any interaction should disable auto progression and hand control to user
+    setManualMode(true);
+  }, []);
 
-        // Show community briefly then exit
-        if (phase < 2) {
-          setPhase(2);
-          setTimeout(() => setPhase(3), 800);
-          setTimeout(() => onComplete(), 1300);
-        } else {
-          setPhase(3);
-          setTimeout(() => onComplete(), 500);
-        }
-      }
-    },
-    [phase, onComplete]
-  );
+  const handleNext = useCallback(() => {
+    if (phase >= 3 || !canProceed) return;
+    setManualMode(true);
+    clearTimers();
+
+    if (phase < 2) {
+      setPhase((p) => p + 1);
+      return;
+    }
+
+    setPhase(3);
+    const done = setTimeout(() => onComplete(), 700);
+    timerRefs.current.push(done);
+  }, [phase, canProceed, clearTimers, onComplete]);
+
+  useEffect(() => {
+    return () => {
+      clearTimers();
+    };
+  }, [clearTimers]);
 
   return (
     <div
       className={`cin-root ${phase === 3 ? "cin-exit" : ""}`}
-      onClick={handleTap}
-      onTouchStart={handleTap}
+      onPointerDown={handleBackgroundTouch}
       role="presentation"
     >
       {/* Particles */}
@@ -337,6 +350,17 @@ export default function CinematicEntry({ onComplete }: CinematicEntryProps) {
           </p>
           <span className="cin-mii">Made in India ❤️</span>
         </div>
+      )}
+
+      {phase < 3 && (
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={!canProceed}
+          className="absolute z-20 bottom-8 right-6 md:right-10 rounded-full border border-white/25 bg-black/40 px-4 py-2 text-sm text-white disabled:opacity-45"
+        >
+          {phase < 2 ? "Next →" : "Enter Jigri"}
+        </button>
       )}
 
       {/* Tap ripples */}

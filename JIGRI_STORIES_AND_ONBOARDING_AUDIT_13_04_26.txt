@@ -1,0 +1,293 @@
+JIGRI STORIES + ONBOARDING AUDIT (13-04-26)
+
+1) EXECUTIVE SUMMARY
+
+Jigri Stories has moved from basic to mid-strong functional quality: core creation, feed tray, viewer, expiry, view tracking, owner delete/viewers, and cross-surface ring-open behavior now exist in a mostly coherent system. A new central StoryOpenContext now reduces fragmented story open logic, and story APIs + schema + storage are structurally sound for v1. However, Stories is still missing multiple modern social baseline capabilities (audience control, highlights, editing tools, mention/link stack, richer owner analytics, and polished gesture-first playback UX).
+
+Cinematic onboarding has improved materially with a hybrid model (auto progression + explicit next control) and better readability pacing. Triggering is now user-scoped and home-route-scoped. It feels more deliberate than before, but still relies on localStorage-only state and lacks server-backed onboarding state + advanced skip/resume logic.
+
+
+2) CURRENT STORIES FEATURES (WHAT IS BUILT)
+
+- Story creation:
+  - CreateStoryModal supports image/video upload + optional caption.
+  - Upload API: POST /api/stories.
+  - 24h expiry generated server-side.
+  - Canonical storage pointer format: stories://<user>/<story>/media.ext
+
+- Story tray:
+  - Home StoriesTray with “Your Story” + others.
+  - Seen/unseen ring via hasUnviewed.
+  - Own “+ Add” present.
+
+- Story viewer:
+  - Full-screen modal viewer.
+  - Multi-story progression within user + next user traversal.
+  - Prev/next tap zones.
+  - Progress bars per story.
+  - Keyboard support (left/right/esc).
+  - Swipe-down close on touch.
+  - Hold-to-pause (pointer/mouse/touch).
+  - Image/video support.
+  - Video progress synced to actual video duration.
+  - Next story preloading (image/video metadata).
+
+- Story expiry:
+  - API filters active + expires_at > now.
+
+- Story views:
+  - View recording via POST /api/stories/[id]/view.
+  - Owner viewer list + viewed timestamps (from GET /api/stories/[id]).
+
+- Owner controls:
+  - Add Story.
+  - Viewers panel.
+  - Delete story.
+
+- Viewer social controls:
+  - Reply input in viewer.
+  - Quick emoji reactions (sent via DM path).
+  - Report story action.
+  - Mute stories for user (client-local).
+
+- Mobile behavior:
+  - Safe-area padding top/bottom handled.
+  - Long-press pause behavior.
+  - Context menu suppression + image draggable false + select-none in viewer.
+
+- Desktop behavior:
+  - Centered framed viewer on larger screens.
+  - Keyboard nav support.
+
+
+3) MISSING STORIES FEATURES (GAPS VS MODERN BASELINE)
+
+Top missing/weak areas:
+
+1. No close-friends / selected audience.
+2. No story privacy matrix (public/followers/custom per story).
+3. No highlights (save stories to profile collections).
+4. No mention/tag objects in story media layer.
+5. No link sticker / link tap card.
+6. No in-story editor stack (text styles, stickers, drawing, crop).
+7. No multi-item compose queue (batch post flow).
+8. No edit story post-publish.
+9. No reorder/sequence management for owner.
+10. No owner analytics beyond viewer list/count (retention, exits, taps).
+11. No mute management center (only local mute action, no settings UI).
+12. No hidden-story controls (hide my stories from specific users).
+13. No segmented ring rendering by story count.
+14. No strong gesture model (left/right swipe; mostly tap-zone based).
+15. No premium transitions between stories/users (basic fade).
+
+Additional weak spots:
+- Reply/reaction path is message-based workaround, not native story-reply model.
+- Aspect-ratio strategy is object-cover only (can crop important media).
+- No robust media loading skeleton/error recovery per frame.
+
+
+4) STORY ENTRY-POINT AUDIT
+
+A) Home story tray
+- Ring appears: Yes.
+- Should appear: Yes.
+- Tap opens: Yes.
+- Status: Working.
+
+B) Profile stories row
+- Ring appears: Yes (ProfileStoriesRow).
+- Should appear: Yes.
+- Tap opens: Yes (centralized open).
+- Status: Working.
+
+C) Messages avatar/ring surfaces
+- Ring appears: Yes (UserAvatar in list/header).
+- Should appear: Yes.
+- Tap opens: Yes (UserAvatar intercept).
+- Status: Working.
+
+D) Post feed avatar/ring
+- Ring appears: Yes (UserAvatar in PostCard).
+- Should appear: Yes.
+- Tap opens: Yes (while preserving profile-name navigation separately).
+- Status: Working.
+
+E) Comments avatar/ring
+- Ring appears: No (comment components use raw <img>, not UserAvatar).
+- Should appear: Usually yes on modern social baseline.
+- Tap opens: No.
+- Status: Missing.
+
+F) Shared profile header avatar
+- Ring appears: Yes (UserAvatar).
+- Tap opens: Yes if story exists.
+- Status: Working.
+
+Entry-point rule (recommended canonical behavior):
+- If a story ring is shown anywhere, tap on ring/avatar must open story first.
+- Name/username click should continue to open profile.
+- If no active story, avatar click should follow surface default navigation.
+- Avoid showing decorative rings that are not actionable.
+
+
+5) OWNER EXPERIENCE AUDIT
+
+Current owner can:
+- Add story.
+- Add another story after publishing.
+- See viewers list + timestamps.
+- Delete stories.
+- Observe progression bars while viewing own stories.
+
+Current owner cannot:
+- Edit published story.
+- Reorder story sequence.
+- Post multi-item batch in one flow.
+- Access meaningful analytics panel.
+- Manage audience per story.
+- Save to highlights.
+
+Verdict:
+- Functional but still v1/basic owner tooling.
+
+
+6) VIEWER EXPERIENCE AUDIT
+
+Strengths:
+- Opening from many key surfaces is now consistent.
+- Progression within user and across users works.
+- Hold-to-pause present.
+- Reply/reaction/report/mute actions now present.
+- Close paths: button + swipe-down + escape.
+
+Weaknesses:
+- Gesture experience is still tap-dominant, not fully swipe-native.
+- Transition polish is acceptable but not premium.
+- Media framing can crop aggressively (object-cover only).
+- No native story-thread response object model (DM fallback approach).
+
+Premium feel assessment:
+- Better than “noob/basic”, but not yet premium social-native.
+
+
+7) MOBILE STORIES AUDIT
+
+- Accidental text/image selection: mitigated in viewer (select-none, draggable false, context menu blocked).
+- Tap zones: large half-screen zones exist, practical for quick nav.
+- Pause behavior: present and usable.
+- Controls usability: improved, but top-right action cluster can feel dense.
+- Modal positioning: safe-area handling implemented.
+- Enjoyability: good baseline, still short of modern flagship polish.
+
+
+8) TECHNICAL ARCHITECTURE AUDIT
+
+APIs present:
+- POST /api/stories
+- GET /api/stories/feed
+- GET /api/stories/[id] (user stories)
+- DELETE /api/stories/[id]
+- POST /api/stories/[id]/view
+
+Schema present:
+- public.stories
+- public.story_views
+- RLS policies for insert/select/delete + view insert/select.
+
+Storage:
+- Dedicated stories bucket (private).
+- Canonical reference: stories://path.
+- Signed URL resolution at read-time for stories bucket.
+- Legacy posts bucket support retained for backward compatibility.
+
+Architecture quality:
+- Story-opening logic now centralized via StoryOpenContext.
+- Ring eligibility centralized via useStoryRingUsers + UserAvatar usage.
+
+Technical debt / risks:
+- Storage URL parse/resolve logic duplicated in feed + [id] endpoints.
+- Auth helper duplicated across stories routes.
+- StoryViewer now owns many concerns (playback, social actions, moderation, owner tools) → heavy component.
+- Mute state is localStorage-only and device-specific.
+- Story replies/reactions piggyback on messages, lacking explicit story-reply schema.
+
+
+9) ONBOARDING AUDIT
+
+First-time behavior:
+- Trigger location: AppLayout overlay.
+- Trigger conditions: authenticated + onboarding checked + shouldShow + pathname '/'.
+- Persistence: localStorage key per user id (improved from global key).
+
+Pacing/timing:
+- Hybrid pacing now present:
+  - Auto progression still available.
+  - Manual next button added.
+  - Minimum readable gate per phase prevents instant accidental skip.
+
+Interaction model:
+- Previous issue (too-fast auto flow) is reduced.
+- Hybrid model is better than pure auto for comprehension + control.
+
+Visual quality:
+- Cinematic layer includes particles, pulse, fade transitions.
+- Feels productized, not purely gimmick.
+
+Community announcement:
+- “Made in India ❤️” is visible and emotionally aligned.
+- Message readable, though text density could still be reduced for mobile scanning.
+
+Implementation quality / risks:
+- Still localStorage-only (no server truth).
+- No cross-device onboarding sync.
+- Style injection/removal lifecycle is manual and tightly component-coupled.
+
+
+10) PRODUCT RECOMMENDATIONS
+
+Scores:
+- Current Stories Score: 6.8/10
+- Current Onboarding Score: 7.4/10
+
+Top 15 missing/weak story features (priority set):
+1) Audience controls per story
+2) Close friends / custom audience
+3) Highlights
+4) Story edit after publish
+5) Multi-compose queue
+6) Story mention/tag entities
+7) Link support
+8) In-story editor tools
+9) Owner analytics dashboard
+10) Reorder story stack
+11) Central mute/hide manager UI
+12) Hide-my-story-from list
+13) Segmented ring rendering
+14) Swipe-first navigation polish
+15) Better media fit options (cover/contain smart strategy)
+
+Top 5 onboarding problems:
+1) Persistence not server-backed.
+2) No explicit skip/replay preference surface.
+3) Community copy slightly verbose on small screens.
+4) State tied to root layout only; no robust experiment/variant plumbing.
+5) Overlay style lifecycle is component-local rather than global animation system.
+
+What to fix first:
+- Complete core Stories feature gaps that affect daily retention: audience controls, highlights, mention/link, editor basics, mute management UI.
+
+What to add later:
+- Advanced analytics, transition micro-polish, richer motion system, creator growth tools.
+
+What to avoid:
+- Shipping too many cosmetic effects before audience/privacy + highlights are done.
+- Duplicating story-open/ring logic across components again.
+
+
+11) SUGGESTED NEXT STORIES PHASE
+
+Recommended next phase: Stories Completion (with a mini Onboarding hardening tail)
+
+Rationale:
+- Stories core is functional but still below modern baseline in critical capability depth.
+- Onboarding is now good enough to move out of emergency-fix mode; only incremental hardening is needed while Stories reaches full baseline parity.
