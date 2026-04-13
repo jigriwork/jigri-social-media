@@ -1,0 +1,110 @@
+1. Executive summary
+PHASE 5D-PREP cleanup was completed as a backend/data-layer alignment pass with no destructive schema/data operations. The implementation focused on safe source-of-truth alignment: stories now write to the dedicated `stories` bucket pathing model, canonical post-like usage is documented as `likes`, and migration state now explicitly represents likes + stories storage expectations.
+
+No live data deletion or risky table drops were introduced. Where policy cleanup is potentially risky due legacy/new-name coexistence, changes were intentionally conservative and documented for controlled follow-up.
+
+2. Policy consolidation findings
+Audit inputs used:
+- `LIVE_SUPABASE_PARITY_REPORT_13_04_26.txt`
+- `supabase/migrations/20260413000000_phase5d_consolidated_schema.sql`
+- `supabase/migrations/20260412132000_phase5c_stories_system.sql`
+- `supabase_jigri_bootstrap.sql`
+
+Findings:
+- Core domain RLS policies exist for: users, posts, comments, saves, follows, notifications, conversations, messages, stories, story_views, reports, report_actions, governance_audit_log, verification_applications, verification_application_events.
+- Legacy/new policy name coexistence is confirmed in live history context (older bootstrap naming vs consolidated naming).
+- Stories/story_views policies are already idempotent and stable (same policy names in phase5c + phase5d blocks, recreated deterministically).
+- Storage objects stories policies are represented in the consolidated migration (`stories_select_auth`, `stories_insert_auth`, `stories_update_auth`, `stories_delete_auth`).
+
+3. Policies removed / kept / why
+Removed in this phase:
+- No broad legacy policy-name drops were executed for core domain tables due live-risk of behavioral regression under mixed historical states.
+
+Kept:
+- Existing legacy policy sets with different names were kept when not provably redundant under all role paths.
+- Existing admin/moderation/verification/report/governance policy surfaces were preserved.
+
+Why:
+- Requirement priority is behavior preservation over aggressive cleanup.
+- Without direct live role-matrix execution per policy variant, hard deletion of legacy-named policies is unsafe.
+- Consolidated migration remains the canonical reference going forward; legacy policy cleanup is staged for a dedicated controlled pass.
+
+4. Canonical likes decision
+Decision: `public.likes` is the canonical post-like model for Jigri.
+
+Evidence:
+- App/API usage references `likes` in active code paths (`src/lib/supabase/api.ts`, admin API routes, public profile route relation usage).
+- No active `post_likes` app route usage found in `app/**` and `src/**` TypeScript searches.
+
+Migration/source-of-truth updates made:
+- Added explicit canonical `public.likes` table/index/RLS/policy block in `20260413000000_phase5d_consolidated_schema.sql`.
+
+5. `post_likes` status
+Status: legacy/deprecated, retained for compatibility.
+
+Actions:
+- `post_likes` was NOT dropped.
+- In migration comments, `post_likes` is marked legacy/deprecated and non-canonical.
+
+Reason:
+- Non-destructive constraint + possible unknown external/SQL dependency risk.
+
+6. Stories bucket alignment changes
+Code path aligned to dedicated bucket:
+- `app/api/stories/route.ts`
+  - bucket changed from `posts` -> `stories`
+  - canonical object path now `user_id/story_id/media.ext`
+  - canonical persisted media reference now `stories://<path>`
+
+- `app/api/stories/[id]/route.ts`
+  - added canonical/legacy URL resolver
+  - resolves `stories://...` via signed URL for authenticated reads
+  - keeps legacy posts-bucket URLs compatible
+  - delete flow now removes from whichever bucket/path is detected
+
+- `app/api/stories/feed/route.ts`
+  - added canonical/legacy URL resolver for feed output
+  - signs canonical `stories://...` assets
+  - leaves legacy `posts` URLs intact
+
+Migration alignment:
+- `20260413000000_phase5d_consolidated_schema.sql`
+  - idempotent `stories` bucket creation
+  - idempotent `storage.objects` stories policies
+  - documented canonical story URL format and path conventions
+
+7. Backward compatibility handling
+Implemented compatibility strategy:
+- New stories use canonical `stories` bucket + `stories://` reference.
+- Existing stories using public posts URLs continue to resolve unchanged.
+- Delete path supports both canonical (`stories://`) and legacy (`/storage/v1/object/public/posts/...`) media URLs.
+
+Not done intentionally in this phase:
+- No backfill/migration of old posts-bucket story objects.
+- No destructive cleanup of legacy story assets.
+
+8. Migration/source-of-truth updates
+Updated source-of-truth migration:
+- `supabase/migrations/20260413000000_phase5d_consolidated_schema.sql`
+  - canonical `likes` model block added
+  - `post_likes` explicitly marked legacy/deprecated
+  - stories storage bucket/policies represented as idempotent SQL
+  - canonical story path/reference conventions documented
+
+This keeps future environments reproducible with explicit likes and stories storage intent.
+
+9. Validation results
+What was directly verified:
+- Build/type/lint pipeline: `npm run build` passed successfully after changes.
+- Code searches verified active usage of `likes` and absence of active `post_likes` app usage.
+- Stories API code paths (`create`, `feed`, `user stories`, `delete`, `view`) remain present and wired.
+
+What was inferred (not directly live-executed in this pass):
+- Role-matrix runtime behavior for each live legacy policy variant (normal/mod/admin/report/verification/governance) was inferred from preserved policy posture and non-removal strategy, not re-executed against live role sessions here.
+- Direct live upload/view/delete runtime against Supabase buckets was inferred from code-level correctness + successful build, not performed as a live E2E run in this pass.
+
+10. Remaining risks before next phase
+- Legacy vs consolidated policy-name overlap remains in live and should be removed only with a controlled role-matrix test script/session.
+- `post_likes` remains physically present and could still confuse future contributors if docs/migrations are ignored.
+- Legacy stories in `posts` bucket remain intentionally; a future optional backfill can reduce dual-format complexity.
+- Storage signed-URL TTL for canonical stories is currently fixed to 1 hour in API resolvers; acceptable for current authenticated story flow, but should be reviewed if frontend caching/view duration requirements change.

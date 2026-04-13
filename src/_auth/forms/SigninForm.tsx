@@ -226,8 +226,8 @@ const SigninForm = () => {
           <PWAInstallPrompt
             variant="inline"
             className="mt-4"
-            buttonLabel="Download"
-            descriptionOverride="For the best experience, download the app."
+            buttonLabel="Install app"
+            descriptionOverride="For the best experience, install the app on your device."
           />
         </form>
       </div>

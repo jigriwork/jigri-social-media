@@ -1,0 +1,236 @@
+LIVE SUPABASE PARITY + SAFE MIGRATION EXECUTION REPORT
+Date: 13-04-2026
+Project Ref: wztqxpcfprghqmqvconk
+
+==================================================
+1) MIGRATION EXECUTION RESULT
+==================================================
+
+Target migration:
+- supabase/migrations/20260413000000_phase5d_consolidated_schema.sql
+
+Execution timeline:
+1. First db push attempt failed at posts policy due to enum mismatch:
+   - ERROR: invalid input value for enum app_role: "superadmin"
+   - Cause: live users.role is app_role enum (contains super_admin), migration used superadmin literals.
+2. Migration was patched safely:
+   - Role checks switched to u.role::text in (... 'super_admin', 'superadmin' ...)
+   - Users role check broadened to include both spellings for compatibility.
+3. Second db push attempt failed at notifications index creation:
+   - ERROR: column "recipient_id" does not exist
+   - Cause: live notifications schema already uses user_id/from_user_id/read naming.
+4. Migration was patched to align with live app schema naming (non-destructive).
+5. Final db push succeeded.
+6. Migration history now fully aligned.
+
+Final migration status:
+- Local vs Remote migration list:
+  - 20260411081726: applied
+  - 20260412132000: applied
+  - 20260413000000: applied
+
+==================================================
+2) TABLES VERIFIED (LIVE)
+==================================================
+
+Verified existing tables:
+- users
+- posts
+- comments
+- comment_likes
+- likes (active post-like table used by app)
+- post_likes (also present)
+- saves
+- follows
+- notifications
+- conversations
+- messages
+- stories
+- story_views
+- reports
+- report_actions
+- governance_audit_log
+- verification_applications
+- verification_application_events
+
+All listed tables are present in live public schema.
+
+==================================================
+3) MISSING / MISMATCHED ITEMS FOUND
+==================================================
+
+3.1 Migration compatibility mismatches (resolved)
+- users.role enum literal mismatch (superadmin vs super_admin)
+- notifications field naming mismatch (recipient_id/sender_id/is_read vs user_id/from_user_id/read)
+
+3.2 Live schema shape differences from older draft assumptions
+- Live app actively uses likes (not only post_likes)
+- notifications uses:
+  user_id, from_user_id, from_user_name, from_user_avatar, title, message, avatar, action_url, read
+- messages uses read boolean (not is_read)
+- verification/report/governance domains are richer than minimal draft tables (already live-compatible)
+
+3.3 Storage parity gaps (resolved safely)
+- Missing buckets at audit start:
+  - stories
+  - verification-documents
+
+3.4 Constraint mismatch discovered post-migration (resolved safely)
+- notifications_type_check initially allowed only:
+  new_post, like, comment, follow
+- App/notification logic needs mention/message (and migration target included system)
+
+==================================================
+4) SAFE FIXES APPLIED (LIVE)
+==================================================
+
+A) Migration file hardening (repo)
+- Updated migration to be enum-safe with app_role and role text comparisons.
+- Updated migration domain blocks to match current live/app naming and structures for:
+  notifications, messages, reports, report_actions, governance_audit_log,
+  verification_applications, verification_application_events.
+
+B) Live migration execution
+- Successfully applied consolidated migration after safe compatibility updates.
+
+C) Storage safe additive fixes (live)
+- Added bucket: stories (private=false? NO, private bucket => public=false)
+  - public=false
+  - file_size_limit=52428800
+  - allowed_mime_types=image/jpeg,image/png,image/webp,video/mp4
+- Added bucket: verification-documents
+  - public=false
+  - file_size_limit=10485760
+  - allowed_mime_types=image/png,image/jpeg,image/webp,application/pdf
+
+D) Storage policies for stories bucket (live)
+- Added authenticated policies on storage.objects scoped to bucket_id='stories':
+  - stories_select_auth
+  - stories_insert_auth
+  - stories_update_auth
+  - stories_delete_auth
+
+E) Notification type constraint fix (live)
+- Recreated notifications_type_check to allow:
+  new_post, like, comment, follow, mention, message, system
+- Non-destructive constraint update; no table/data drop.
+
+==================================================
+5) REMAINING UNSAFE / UNRESOLVED ISSUES
+==================================================
+
+1) Duplicate policy sets exist in some domains
+- Because legacy policies and new migration policies coexist under different names.
+- Functionally safe right now, but policy surface is noisier than ideal.
+- Not auto-deleted in this pass to avoid accidental access regression.
+
+2) stories API currently uploads to posts bucket by code constant
+- app/api/stories/*.ts currently uses STORIES_BUCKET='posts'.
+- Live parity now also has a dedicated stories bucket + policies.
+- No forced code change done in this DB-only pass.
+
+3) post_likes vs likes dual-table presence
+- App uses likes table in supabase api calls.
+- post_likes exists in parallel.
+- Not removed/merged due to non-destructive requirement.
+
+==================================================
+6) BUCKET / STORAGE STATUS
+==================================================
+
+Buckets verified now:
+- posts: exists, public=true
+- stories: exists, public=false
+- verification-documents: exists, public=false
+
+Storage object policies verified:
+- Existing posts policies retained:
+  - Public can read post images
+  - Authenticated can upload/update/delete post images
+- Added stories policies:
+  - stories_select_auth
+  - stories_insert_auth
+  - stories_update_auth
+  - stories_delete_auth
+
+No verification-documents storage.objects policy was added in SQL here because
+verification upload path uses admin client (server-side privileged path).
+
+==================================================
+7) RLS / POLICY STATUS
+==================================================
+
+RLS enabled on all audited public domain tables:
+- users, posts, comments, comment_likes, likes, notifications,
+  conversations, messages, saves, follows, stories, story_views,
+  reports, report_actions, governance_audit_log,
+  verification_applications, verification_application_events
+
+Critical policy families present and active:
+- users_* / posts_* / comments_* / likes/saves/follows
+- messages_* / notifications_*
+- reports_* / report_actions_*
+- governance_audit_*
+- verification_apps_* / verification_events_*
+- stories_* / story_views_*
+
+==================================================
+8) AUTH / COMMENTS / STORIES / MESSAGES SANITY (SCHEMA/API)
+==================================================
+
+Auth profile creation/use: supported
+- users table + auth.users FK + RLS/policies present.
+
+Comments read/write: supported
+- comments + comment_likes schema/FKs/RLS present.
+
+Stories create/view: supported
+- stories + story_views schema present.
+- stories bucket now exists with authenticated object policies.
+
+Messages/conversations: supported
+- conversations + messages schema/FKs/RLS/policies present.
+
+Notifications reads/writes: supported
+- notifications columns aligned with app usage.
+- notifications_type_check updated for mention/message/system.
+
+Verification/report/governance: supported
+- verification_applications + verification_application_events present with RLS/policies.
+- reports + report_actions present with admin-governed policy model.
+- governance_audit_log present with admin-read/no-client-insert posture.
+
+==================================================
+9) FINAL PARITY VERDICT
+==================================================
+
+Verdict: PARTIAL-PASS (production-safe baseline achieved)
+
+What is complete:
+- Consolidated migration is now applied in live migration history.
+- Core table/column/index/RLS/policy parity for app-critical domains is in place.
+- Storage bucket parity improved with stories + verification-documents added.
+- Critical notification type constraint mismatch fixed.
+
+What still blocks a "clean-final" parity state:
+- Policy duplication cleanup (safe but should be deliberate and tested).
+- Data-model simplification decisions (likes vs post_likes) not executed by design.
+- Optional code-path alignment to dedicated stories bucket remains an app-layer decision.
+
+==================================================
+10) BLOCKERS BEFORE NEXT FEATURE PHASE
+==================================================
+
+1) Policy consolidation pass (controlled)
+- Remove redundant overlapping legacy/new policies only after role-matrix test.
+
+2) Decide canonical post-like table
+- Keep likes as source-of-truth (current app behavior) and formally deprecate post_likes,
+  or migrate code deliberately if needed.
+
+3) Decide canonical stories storage bucket usage
+- Current API uses posts bucket for stories uploads.
+- If moving to stories bucket, do controlled app update + backfill/URL strategy.
+
+4) Keep migration file as true source-of-truth
+- Ensure future migrations remain additive/idempotent and app-schema aligned.

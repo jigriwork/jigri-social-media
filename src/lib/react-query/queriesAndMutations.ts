@@ -104,8 +104,14 @@ export const useSignInAccount = () => {
   })
 }
 export const useSignOutAccount = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: signOutUser,
+    onSuccess: () => {
+      // Prevent cross-account cache bleed when a different user signs in next.
+      queryClient.clear();
+    },
   });
 };
 export const useCreatePost = () => {
@@ -885,8 +891,9 @@ export const useGetComments = (postId: string) => {
     queryKey: [QUERY_KEYS.GET_COMMENTS, postId],
     queryFn: () => getPostComments(postId),
     enabled: !!postId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: false, // Comments don't change as frequently
+    staleTime: 1000 * 30, // 30 seconds — comments should feel fresh
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 };
 
@@ -961,7 +968,7 @@ export const useUpdateComment = () => {
     mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
       updateComment(commentId, content),
     onSuccess: () => {
-      // Find which post this comment belongs to and invalidate its comments
+      // Invalidate all comment queries
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_COMMENTS],
       });
@@ -975,16 +982,19 @@ export const useDeleteComment = () => {
   return useMutation({
     mutationFn: (commentId: string) => deleteComment(commentId),
     onSuccess: () => {
-      // Invalidate all comment queries since we don't know which post this belonged to
+      // Invalidate all comment queries
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_COMMENTS],
       });
-      // Also invalidate post queries to update comment counts
+      // Invalidate post queries to update comment counts in feed
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
       });
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.GET_FOLLOWING_FEED],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.GET_POST_BY_ID],
       });
     },
   });

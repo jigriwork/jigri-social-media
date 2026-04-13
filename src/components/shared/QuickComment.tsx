@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import { useUserContext } from "@/context/SupabaseAuthContext";
 import {
-  createComment,
-  getPostComments,
+  useGetComments,
+  useCreateComment,
+  useUpdateComment,
+  useDeleteComment,
+} from "@/lib/react-query/queriesAndMutations";
+import {
   Comment,
   likeComment,
   unlikeComment,
   getCommentLikeStatus,
-  updateComment,
-  deleteComment
 } from "@/lib/supabase/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,17 +34,12 @@ type QuickCommentProps = {
 const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
   const { user } = useUserContext();
   const [comment, setComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoadingComments, setIsLoadingComments] = useState(true);
   const [showAllComments, setShowAllComments] = useState(false);
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
-  const [isUpdatingComment, setIsUpdatingComment] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [authAction, setAuthAction] = useState("");
   const [deleteTargetCommentId, setDeleteTargetCommentId] = useState<string | null>(null);
@@ -50,29 +47,18 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
   const mainMentions = useMentions();
   const replyMentions = useMentions();
 
-  // Fetch comments when component mounts
-  useEffect(() => {
-    fetchComments();
-  }, [postId]);
+  // React Query hooks — read + write unified through cache
+  const { data: comments = [], isLoading: isLoadingComments } = useGetComments(postId);
+  const { mutate: createCommentMutate, isPending: isSubmitting } = useCreateComment();
+  const { mutate: updateCommentMutate, isPending: isUpdatingComment } = useUpdateComment();
+  const { mutate: deleteCommentMutate } = useDeleteComment();
 
-  // Load like statuses for comments when user is available
+  // Load like statuses when user or comments change
   useEffect(() => {
     if (user && comments.length > 0) {
       loadLikeStatuses();
     }
   }, [user, comments]);
-
-  const fetchComments = async () => {
-    try {
-      setIsLoadingComments(true);
-      const fetchedComments = await getPostComments(postId);
-      setComments(fetchedComments);
-    } catch (error) {
-      console.error("Error fetching comments:", error);
-    } finally {
-      setIsLoadingComments(false);
-    }
-  };
 
   const loadLikeStatuses = async () => {
     if (!user) return;
@@ -114,15 +100,11 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
             newSet.delete(commentId);
             return newSet;
           });
-          // Refresh comments to update counts
-          await fetchComments();
         }
       } else {
         const success = await likeComment(commentId, user.id);
         if (success) {
           setLikedComments(prev => new Set([...prev, commentId]));
-          // Refresh comments to update counts
-          await fetchComments();
         }
       }
     } catch (error) {
@@ -137,35 +119,25 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
       return;
     }
 
-    if (!replyContent.trim() || isSubmittingReply) return;
+    if (!replyContent.trim() || isSubmitting) return;
 
-    setIsSubmittingReply(true);
-
-    try {
-      const reply = await createComment({
-        content: replyContent.trim(),
-        postId,
-        userId: user.id,
-        parentId: parentId,
-      });
-
-      if (reply) {
-        await notificationService.createCommentNotification(postId, replyContent.trim(), true);
-        const mentionedUsernames = extractMentionUsernames(replyContent.trim());
-        if (mentionedUsernames.length > 0) {
-          await notificationService.createMentionNotification('comment', postId, replyContent.trim(), mentionedUsernames);
-        }
-        setReplyContent("");
-        setReplyingTo(null);
-        // Refresh comments to show the new reply
-        await fetchComments();
-        onCommentAdded?.();
+    createCommentMutate(
+      { content: replyContent.trim(), postId, userId: user.id, parentId },
+      {
+        onSuccess: async (reply) => {
+          if (reply) {
+            await notificationService.createCommentNotification(postId, replyContent.trim(), true);
+            const mentionedUsernames = extractMentionUsernames(replyContent.trim());
+            if (mentionedUsernames.length > 0) {
+              await notificationService.createMentionNotification('comment', postId, replyContent.trim(), mentionedUsernames);
+            }
+            setReplyContent("");
+            setReplyingTo(null);
+            onCommentAdded?.();
+          }
+        },
       }
-    } catch (error) {
-      console.error("Error creating reply:", error);
-    } finally {
-      setIsSubmittingReply(false);
-    }
+    );
   };
 
   const handleEditComment = (commentId: string, currentContent: string) => {
@@ -174,42 +146,24 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
     setReplyingTo(null); // Close any open reply forms
   };
 
-  const handleUpdateComment = async (commentId: string) => {
+  const handleUpdateComment = (commentId: string) => {
     if (!editContent.trim() || !user || isUpdatingComment) return;
-
-    setIsUpdatingComment(true);
-
-    try {
-      const updatedComment = await updateComment(commentId, editContent.trim());
-
-      if (updatedComment) {
-        setEditingComment(null);
-        setEditContent("");
-        // Refresh comments to show the updated content
-        await fetchComments();
+    updateCommentMutate(
+      { commentId, content: editContent.trim() },
+      {
+        onSuccess: () => {
+          setEditingComment(null);
+          setEditContent("");
+        },
       }
-    } catch (error) {
-      console.error("Error updating comment:", error);
-    } finally {
-      setIsUpdatingComment(false);
-    }
+    );
   };
 
-  const handleDeleteComment = async (commentId: string) => {
+  const handleDeleteComment = (commentId: string) => {
     if (!user) return;
-
-    try {
-      const success = await deleteComment(commentId);
-
-      if (success) {
-        // Refresh comments to remove the deleted one
-        await fetchComments();
-      }
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-    } finally {
-      setDeleteTargetCommentId(null);
-    }
+    deleteCommentMutate(commentId, {
+      onSuccess: () => setDeleteTargetCommentId(null),
+    });
   };
 
   const cancelEdit = () => {
@@ -228,35 +182,25 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
 
     if (!comment.trim() || isSubmitting) return;
 
-    setIsSubmitting(true);
-
-    try {
-      const newComment = await createComment({
-        content: comment.trim(),
-        postId,
-        userId: user.id,
-      });
-
-      if (newComment) {
-        await notificationService.createCommentNotification(postId, comment.trim(), false);
-        const mentionedUsernames = extractMentionUsernames(comment.trim());
-        if (mentionedUsernames.length > 0) {
-          await notificationService.createMentionNotification('comment', postId, comment.trim(), mentionedUsernames);
-        }
-        setComment("");
-        // Refresh comments to show the new one
-        await fetchComments();
-        onCommentAdded?.();
+    createCommentMutate(
+      { content: comment.trim(), postId, userId: user.id },
+      {
+        onSuccess: async (newComment) => {
+          if (newComment) {
+            await notificationService.createCommentNotification(postId, comment.trim(), false);
+            const mentionedUsernames = extractMentionUsernames(comment.trim());
+            if (mentionedUsernames.length > 0) {
+              await notificationService.createMentionNotification('comment', postId, comment.trim(), mentionedUsernames);
+            }
+            setComment("");
+            onCommentAdded?.();
+          }
+        },
       }
-    } catch (error) {
-      console.error("Error creating comment:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
-  // Display logic: show first 5 comments, or all if showAllComments is true
-  const displayedComments = showAllComments ? comments : comments.slice(0, 5);
+  const displayedComments = showAllComments ? comments : (comments as Comment[]).slice(0, 5);
   const hasMoreComments = comments.length > 5;
 
   return (
@@ -514,7 +458,7 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                             }}
                             className="w-full border rounded-full px-3 py-1 text-xs bg-dark-4 border-dark-4 text-light-1 placeholder:text-light-4 focus:border-primary-500"
                             maxLength={2200}
-                            disabled={isSubmittingReply}
+                            disabled={isSubmitting}
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -537,10 +481,10 @@ const QuickComment = ({ postId, onCommentAdded }: QuickCommentProps) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleSubmitReply(commentItem.id)}
-                          disabled={!replyContent.trim() || isSubmittingReply}
+                          disabled={!replyContent.trim() || isSubmitting}
                           className="text-xs text-primary-500 hover:text-primary-600 disabled:text-light-4 px-2 py-1"
                         >
-                          {isSubmittingReply ? "Posting..." : "Post"}
+                          {isSubmitting ? "Posting..." : "Post"}
                         </Button>
                       </div>
                     )}

@@ -119,9 +119,9 @@ export default function PWAInstallPrompt({
                 descriptionOverride || (variant === "settings"
                     ? "Pin Jigri to your desktop or home screen for faster access, cleaner navigation, and a more native experience."
                     : variant === "inline"
-                        ? "Download Jigri for the cleanest experience on mobile and desktop."
+                        ? "Install Jigri for the cleanest experience on mobile and desktop."
                         : "Install Jigri for quicker launch, immersive full-screen browsing, and a smoother social experience on mobile and desktop."),
-            button: buttonLabel || (deferredPrompt ? "Download" : isiOS() ? "How to install" : "Install info"),
+            button: buttonLabel || (deferredPrompt ? "Install app" : isiOS() ? "How to install" : "Install info"),
         };
     }, [deferredPrompt, isInstalled, variant]);
 

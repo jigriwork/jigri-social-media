@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useUserContext } from "@/context/SupabaseAuthContext";
-import { createComment } from "@/lib/supabase/api";
+import { useCreateComment } from "@/lib/react-query/queriesAndMutations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
@@ -26,32 +26,21 @@ const CommentForm = ({
 }: CommentFormProps) => {
   const { user } = useUserContext();
   const [comment, setComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { mutate: createComment, isPending: isSubmitting } = useCreateComment();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!comment.trim() || !user || isSubmitting) return;
 
-    setIsSubmitting(true);
-    
-    try {
-      const newComment = await createComment({
-        content: comment.trim(),
-        postId,
-        userId: user.id,
-        parentId,
-      });
-
-      if (newComment) {
-        setComment("");
-        onCommentCreated?.();
+    createComment(
+      { content: comment.trim(), postId, userId: user.id, parentId },
+      {
+        onSuccess: () => {
+          setComment("");
+          onCommentCreated?.();
+        },
       }
-    } catch (error) {
-      console.error("Error creating comment:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -72,7 +61,7 @@ const CommentForm = ({
         height={32}
         className="rounded-full"
       />
-      
+
       <div className="flex-1 flex items-center gap-2">
         <Input
           type="text"
@@ -85,7 +74,7 @@ const CommentForm = ({
           autoFocus={autoFocus}
           disabled={isSubmitting}
         />
-        
+
         <div className="flex items-center gap-1">
           {parentId && onCancel && (
             <Button
@@ -98,7 +87,7 @@ const CommentForm = ({
               Cancel
             </Button>
           )}
-          
+
           <Button
             type="submit"
             variant="ghost"

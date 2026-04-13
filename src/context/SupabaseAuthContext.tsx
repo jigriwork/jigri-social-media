@@ -152,22 +152,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Initialize from localStorage on component mount
+  // Initialize cached auth only if it matches the active Supabase session.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return
+
+    let mounted = true
+
+    const restoreCachedAuthSafely = async () => {
       const cachedUser = localStorage.getItem('jigri_user')
       const cachedAuth = localStorage.getItem('jigri_auth')
 
-      if (cachedUser && cachedAuth === 'true') {
-        try {
-          const userData = JSON.parse(cachedUser)
-          setUser(userData)
-          setIsAuthenticated(true)
-        } catch (error) {
-          console.error('Error parsing cached user:', error)
-          clearCachedAuth()
-        }
+      if (!cachedUser || cachedAuth !== 'true') {
+        return
       }
+
+      try {
+        const parsedUser = JSON.parse(cachedUser)
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!mounted) return
+
+        if (session?.user?.id && parsedUser?.id === session.user.id) {
+          setSupabaseUser(session.user)
+          setUser(parsedUser)
+          setIsAuthenticated(true)
+          return
+        }
+
+        // Cached auth does not belong to current session -> remove stale cache.
+        clearCachedAuth()
+      } catch (error) {
+        console.error('Error restoring cached auth state:', error)
+        clearCachedAuth()
+      }
+    }
+
+    restoreCachedAuthSafely()
+
+    return () => {
+      mounted = false
     }
   }, [])
 

@@ -1,7 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const STORIES_BUCKET = 'posts'
+const STORIES_BUCKET = 'stories'
+const LEGACY_STORIES_BUCKET = 'posts'
+
+function extractStorageLocation(mediaUrl: string): { bucket: string; path: string } | null {
+    if (mediaUrl.startsWith('stories://')) {
+        return { bucket: STORIES_BUCKET, path: mediaUrl.slice('stories://'.length) }
+    }
+
+    const markers = [
+        { bucket: STORIES_BUCKET, marker: `/storage/v1/object/public/${STORIES_BUCKET}/` },
+        { bucket: LEGACY_STORIES_BUCKET, marker: `/storage/v1/object/public/${LEGACY_STORIES_BUCKET}/` },
+    ]
+
+    for (const { bucket, marker } of markers) {
+        const index = mediaUrl.indexOf(marker)
+        if (index >= 0) {
+            return {
+                bucket,
+                path: mediaUrl.slice(index + marker.length),
+            }
+        }
+    }
+
+    return null
+}
+
+async function resolveStoryMediaUrl(supabase: Awaited<ReturnType<typeof createClient>>, mediaUrl: string | null) {
+    if (!mediaUrl || typeof mediaUrl !== 'string') return mediaUrl
+
+    const location = extractStorageLocation(mediaUrl)
+    if (!location) return mediaUrl
+
+    if (location.bucket === LEGACY_STORIES_BUCKET) {
+        return mediaUrl
+    }
+
+    const { data, error } = await supabase.storage
+        .from(location.bucket)
+        .createSignedUrl(location.path, 60 * 60)
+
+    if (error || !data?.signedUrl) return mediaUrl
+    return data.signedUrl
+}
 
 async function getAuthenticatedUser(supabase: Awaited<ReturnType<typeof createClient>>, request?: NextRequest) {
     const authHeader = request?.headers.get('authorization')
@@ -57,11 +99,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             viewedStoryIds = new Set((views || []).map((view: any) => view.story_id))
         }
 
-        const enhancedStories = (stories || []).map((story: any) => ({
+        const enhancedStories = await Promise.all((stories || []).map(async (story: any) => ({
             ...story,
+            media_url: await resolveStoryMediaUrl(supabase, story.media_url),
             viewed: viewedStoryIds.has(story.id),
             viewers: [],
-        }))
+        })))
 
         if (user.id === userId && storyIds.length > 0) {
             const { data: viewerRows } = await (supabase as any)
@@ -135,11 +178,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
         }
 
         if (story.media_url && typeof story.media_url === 'string') {
-            const marker = `/storage/v1/object/public/${STORIES_BUCKET}/`
-            const index = story.media_url.indexOf(marker)
-            if (index >= 0) {
-                const objectPath = story.media_url.slice(index + marker.length)
-                await supabase.storage.from(STORIES_BUCKET).remove([objectPath])
+            const location = extractStorageLocation(story.media_url)
+            if (location) {
+                await supabase.storage.from(location.bucket).remove([location.path])
             }
         }
 

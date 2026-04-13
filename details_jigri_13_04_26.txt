@@ -1,0 +1,311 @@
+JIGRI MASTER BUG + DATA INTEGRITY + INSTALL FLOW AUDIT
+Date: 13-04-2026
+Scope: Deep audit + safe fix pass (no new features)
+
+==================================================
+1) EXECUTIVE SUMMARY
+==================================================
+
+This pass focused on production trust issues: comments visibility, stale data/account switching, routing inconsistencies, install/download confusion, and repository-level Supabase integrity drift.
+
+Key findings:
+- High-confidence root cause for cross-account stale state was confirmed in client cache/session handling.
+- Comment freshness issues are strongly linked to mixed query strategies and stale cache windows, not a single DB write failure.
+- A concrete routing/auth-wrapper inconsistency was found for public post pages.
+- “Download app” UX is misleading: current flow is PWA install prompt, not APK download.
+- Repository Supabase artifacts are inconsistent/drifted versus current app capabilities (especially messaging/stories/verification/reporting/governance tables).
+
+Safe fixes were applied only where confidence was high and behavior change was low-risk.
+
+==================================================
+2) ALL BUGS FOUND
+==================================================
+
+2.1 Cross-account stale data/session bleed risk (HIGH)
+- Symptoms: after logout/login with another account, old user/feed/profile state may persist.
+- Evidence:
+  - Query cache was not explicitly cleared on sign-out mutation success.
+  - Auth context bootstrapped localStorage user cache before validating active Supabase session match.
+
+2.2 Public post route wrapped in authenticated layout (HIGH)
+- Symptoms: route/auth inconsistency on /posts/[id], especially for logged-out or deep-link scenarios.
+- Evidence:
+  - /posts/[id] page used AppLayout unconditionally, which redirects unauthenticated users to /sign-in.
+  - But middleware marks /posts public route.
+
+2.3 Install/download UX mismatch (MEDIUM-HIGH trust issue)
+- Symptoms: users click “Download” expecting APK/package; behavior is install prompt/help text.
+- Evidence:
+  - PWAInstallPrompt used “Download” copy on sign-in/sign-up inline prompts.
+  - Actual implementation is beforeinstallprompt-based PWA install (service worker + manifest), not APK distribution.
+
+2.4 Comments freshness inconsistencies (MEDIUM)
+- Symptoms: comments sometimes not showing immediately.
+- Evidence:
+  - Multiple comment pathways exist (Comments + QuickComment) using direct API calls + local fetch refresh.
+  - Separate React Query comment hooks exist but are not uniformly used by active comment components.
+  - Large stale/cache windows elsewhere can make surrounding post/comment counters feel outdated.
+
+2.5 Supabase schema/migration drift in repository (HIGH structural risk)
+- Symptoms: uncertainty in live integrity, table/policy drift risk across environments.
+- Evidence:
+  - supabase/migrations contains only two files (username tracking + stories).
+  - App code references many domains/tables (messages, conversations, reports, governance, verification events etc.) not represented as full migration chain in repo migrations folder.
+  - Bootstrap SQL files exist with overlapping but incomplete/outdated scope.
+
+2.6 Notification state complexity (LOW-MEDIUM)
+- Evidence:
+  - NotificationBell uses its own Supabase realtime + local state workflow.
+  - notificationService also exists with separate channel/listener model.
+  - Not an immediate failure, but raises consistency/maintenance risk.
+
+==================================================
+3) ROOT CAUSE FOR EACH BUG
+==================================================
+
+3.1 Cross-account stale data/session bleed
+Root cause:
+- React Query cache survives account boundary unless explicitly cleared.
+- Local cached auth payload (jigri_user/jigri_auth) could be restored before session-user equivalence check.
+
+3.2 Public post route inconsistency
+Root cause:
+- Route intent (public in middleware) conflicts with component wrapper (AppLayout enforces auth redirect).
+
+3.3 Download/install confusion
+Root cause:
+- Product copy labels install action as “Download”, implying file/package delivery.
+- Actual implementation is browser-managed PWA install flow.
+
+3.4 Comments not showing / delayed
+Root cause (most probable in current code):
+- Mixed state management paths (manual fetch + React Query hooks) reduce invalidation coherence.
+- UI freshness depends on local fetch lifecycle rather than unified query invalidation across all comment surfaces.
+- Not enough repository evidence of a deterministic write failure in createComment path.
+
+3.5 Supabase integrity/drift
+Root cause:
+- Migration history in repo is incomplete for full product scope.
+- Bootstrap scripts were used as catch-all artifacts, causing possible divergence and unclear source of truth.
+
+==================================================
+4) WHICH BUGS WERE FIXED
+==================================================
+
+FIXED A) Query cache reset on logout (high confidence)
+- File: src/lib/react-query/queriesAndMutations.ts
+- Change: useSignOutAccount now clears QueryClient on successful sign-out.
+- Benefit: prevents stale cross-account query data bleed.
+
+FIXED B) Cached auth restoration now session-validated first (high confidence)
+- File: src/context/SupabaseAuthContext.tsx
+- Change: initial localStorage restore now checks active session and user-id match before applying cached user.
+- Benefit: prevents stale cached identity from appearing during account switches.
+
+FIXED C) Public post route no longer always forced through auth wrapper (high confidence)
+- File: app/posts/[id]/page.tsx
+- Change: AppLayout is used only when user is authenticated; unauthenticated viewers get direct public page content.
+- Benefit: resolves middleware-vs-layout mismatch on public post deep links.
+
+FIXED D) Install wording aligned with actual PWA behavior (high confidence, low risk)
+- File: src/components/shared/PWAInstallPrompt.tsx
+- Change: inline prompt text/button changed from “Download” semantics to “Install app” semantics in default content.
+- Benefit: reduces trust-breaking install expectation mismatch.
+
+==================================================
+5) BUGS NOT FIXED (AND WHY)
+==================================================
+
+NOT FIXED 1) Full comments architecture unification
+Why:
+- Requires broader refactor (moving all comment surfaces to one query strategy), higher regression risk.
+- Out of safe minimal-fix scope for this pass.
+
+NOT FIXED 2) Potential notification architecture consolidation
+Why:
+- Dual-path notification handling is architectural debt, but not a proven P0 break from static audit alone.
+
+NOT FIXED 3) Live Android Play Protect warning/package trust chain
+Why:
+- No repository artifact proving an APK/TWA wrapper pipeline currently used in production.
+- This warning usually relates to sideloaded APK signing/source/target SDK in a separate Android packaging pipeline not present in this repo.
+- Requires external pipeline/package metadata audit.
+
+NOT FIXED 4) Definitive live Supabase schema/runtime verification
+Why:
+- Repository-only audit cannot confirm currently deployed Supabase state, drift, or data quality in production.
+- Needs direct live DB inspection using privileged access.
+
+==================================================
+6) AUTH / SESSION / ACCOUNT SWITCHING AUDIT
+==================================================
+
+Audited:
+- Supabase auth usage (signIn/signOut/getSession/getUser/onAuthStateChange)
+- localStorage cached auth keys
+- React Query cache lifecycle on logout
+- Auth wrapper redirects
+
+Findings:
+- Auth context is robust in many places (session checks, onAuthStateChange handling, stale cache mismatch cleanup path existed in helper).
+- Critical gaps were at logout cache reset and initial cached-user bootstrap timing.
+
+Actions completed:
+- QueryClient clear on signout added.
+- Initial cached auth restore now session-validated before state application.
+
+Residual risk:
+- Multiple components manually set auth state alongside auth events (e.g., sidebar/settings) can still create brief transient UI races; major issue reduced by fixes above.
+
+==================================================
+7) COMMENTS / DATA FRESHNESS AUDIT
+==================================================
+
+Audited areas:
+- createComment/getPostComments in supabase API
+- Comments component
+- QuickComment component
+- React Query comment hooks and invalidation strategy
+
+Findings:
+- Comment write path is straightforward and returns inserted comment with joined user/likes.
+- Fetch path returns top-level comments + per-comment reply hydration.
+- UI uses manual refetch after operations in comments components.
+- Invalidation exists in query hooks but active components are not consistently using those hooks.
+
+Conclusion:
+- “Sometimes not show” is most consistent with front-end freshness/consistency behavior rather than persistent insert failure.
+
+==================================================
+8) ROUTING AUDIT
+==================================================
+
+Audited:
+- middleware.ts route classification
+- AppLayout auth redirect behavior
+- core page wrappers and public/private route boundaries
+
+Critical issue found and fixed:
+- /posts/[id] marked public in middleware but was effectively gated by AppLayout in page component.
+- Fixed by conditional layout usage based on auth state.
+
+Other routing notes:
+- Many pages intentionally require auth via AppLayout.
+- Shared-profile route appears intentionally public and bypasses AppLayout.
+
+==================================================
+9) DOWNLOAD / INSTALL / ANDROID WARNING AUDIT
+==================================================
+
+What download button does:
+- It drives PWA install prompt logic (beforeinstallprompt + install help fallback).
+- It does NOT download an APK.
+
+Why “http code not present” style issues may appear:
+- If users expect direct file download/package, this flow won’t provide one.
+- Browser-dependent PWA prompt availability can feel broken when prompt is unavailable.
+
+Manifest/service worker findings:
+- Manifest route exists via app/manifest.ts and metadata links to /manifest.webmanifest.
+- Service worker registration exists (PWARegistration) and sw.js caches broadly.
+
+Android unsafe warning:
+- Likely from external sideloaded app package/wrapper not represented in this codebase.
+- Not attributable to the web PWA flow itself from repository evidence.
+
+Safe action done:
+- wording adjusted toward “Install app” to reduce false APK expectation.
+
+==================================================
+10) FULL SUPABASE SCHEMA + TABLE INTEGRITY AUDIT (REPO-LEVEL)
+==================================================
+
+Expected functional surface from code includes:
+- users, posts, comments, likes, saves, follows
+- notifications
+- conversations, messages
+- stories, story_views
+- reports, report_actions
+- governance_audit_log
+- verification_applications, verification_application_events
+
+Repository findings:
+- supabase/migrations only has:
+  - 20260411081726_add_username_change_tracking.sql
+  - 20260412132000_phase5c_stories_system.sql
+- This is insufficient as authoritative migration history for full app domain.
+- Bootstrap SQLs define a subset/legacy core schema and policies; not a clean migration source of truth.
+
+Integrity conclusion:
+- High drift risk between app expectations and reproducible schema state from migrations.
+- Requires migration consolidation and live parity verification before next phase.
+
+==================================================
+11) STORAGE / BUCKETS AUDIT
+==================================================
+
+Observed usage:
+- posts bucket used for post media.
+- stories bucket expected by stories API routes.
+
+Repository policy/state evidence:
+- Bootstrap includes posts bucket policy setup.
+- stories system migration focuses on stories tables/policies; storage bucket creation/policies for stories bucket are not clearly centralized in migrations chain.
+
+Risk:
+- Environment-specific manual bucket setup can cause inconsistencies.
+
+==================================================
+12) CACHE / QUERY / STATE AUDIT
+==================================================
+
+Findings:
+- QueryProvider uses global QueryClient with offlineFirst behavior and broad stale windows.
+- Critical cache isolation gap on logout was present and fixed.
+- Auth context had local cache restoration race risk and now validates session before apply.
+- Some domains still mix direct API state refresh and React Query patterns, reducing predictability.
+
+==================================================
+13) BUILD / LINT / VALIDATION STATUS
+==================================================
+
+Command run:
+- npm run build
+
+Result:
+- Build: PASS
+- Type/lint phase: PASS (with warning about Next.js ESLint plugin detection)
+- Static/dynamic page generation: PASS
+
+Warning noted:
+- Browserslist caniuse-lite outdated (non-blocking)
+- Next ESLint plugin warning (non-blocking)
+
+==================================================
+14) EXACT REMAINING BLOCKERS BEFORE NEXT PHASE
+==================================================
+
+Blocker A (High):
+- Establish single authoritative Supabase migration history covering all active product domains.
+
+Blocker B (High):
+- Run direct live Supabase parity audit (tables, RLS, indexes, FK constraints, buckets, policy behavior under real user roles).
+
+Blocker C (High):
+- Audit any external Android packaging/sideload pipeline (if APK/TWA exists) for target SDK, signing, and Play Protect trust chain.
+
+Blocker D (Medium):
+- Unify comment/data freshness strategy onto consistent React Query usage to eliminate intermittent perception of missing comments.
+
+Blocker E (Medium):
+- Align all install CTA copy/UX surfaces to explicit “Install (PWA)” messaging and remove any residual “Download app” ambiguity if no APK is offered.
+
+
+==================================================
+FILES UPDATED IN THIS PASS
+==================================================
+
+- src/lib/react-query/queriesAndMutations.ts
+- src/context/SupabaseAuthContext.tsx
+- app/posts/[id]/page.tsx
+- src/components/shared/PWAInstallPrompt.tsx

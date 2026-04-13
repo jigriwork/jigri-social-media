@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const STORIES_BUCKET = 'posts'
+const STORIES_BUCKET = 'stories'
 
 async function getAuthenticatedUser(supabase: Awaited<ReturnType<typeof createClient>>, request?: NextRequest) {
     const authHeader = request?.headers.get('authorization')
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         const storyId = crypto.randomUUID()
         const ext = media.name.includes('.') ? media.name.split('.').pop() : (isVideo ? 'mp4' : 'jpg')
         const safeExt = ext?.replace(/[^a-zA-Z0-9]/g, '') || (isVideo ? 'mp4' : 'jpg')
-        const objectPath = `stories/${user.id}/${storyId}/media.${safeExt}`
+        const objectPath = `${user.id}/${storyId}/media.${safeExt}`
 
         const { error: uploadError } = await supabase.storage
             .from(STORIES_BUCKET)
@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: uploadError.message }, { status: 500 })
         }
 
-        const {
-            data: { publicUrl },
-        } = supabase.storage.from(STORIES_BUCKET).getPublicUrl(objectPath)
+        // Store canonical internal storage reference for stories bucket.
+        // Read endpoints resolve this to signed URLs for authenticated viewers.
+        const mediaUrl = `stories://${objectPath}`
 
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
             .insert({
                 id: storyId,
                 user_id: user.id,
-                media_url: publicUrl,
+                media_url: mediaUrl,
                 media_type: isVideo ? 'video' : 'image',
                 caption,
                 expires_at: expiresAt,
