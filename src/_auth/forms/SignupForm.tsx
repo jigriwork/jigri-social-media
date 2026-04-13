@@ -189,13 +189,13 @@ const SignupForm = () => {
         <img
           src="/assets/images/logo.svg"
           alt="logo"
-          className="w-56 h-auto mb-6 sm:w-64 sm:mb-8"
+          className="w-56 h-auto mb-6 sm:w-64 sm:mb-8 auth-logo-anim"
         />
 
-        <h2 className="text-base font-bold text-center mb-1 sm:text-lg sm:mb-1">
+        <h2 className="text-base font-bold text-center mb-1 sm:text-lg sm:mb-1 auth-fade-in" style={{ animationDelay: '0.1s' }}>
           Create a new account
         </h2>
-        <p className="text-light-3 text-xs text-center mb-2 sm:text-sm sm:mb-3">
+        <p className="text-light-3 text-xs text-center mb-2 sm:text-sm sm:mb-3 auth-fade-in" style={{ animationDelay: '0.2s' }}>
           To use Jigri, Please enter your details
         </p>
 
@@ -330,6 +330,15 @@ const SignupForm = () => {
             buttonLabel="Install app"
             descriptionOverride="For the best experience, install the app on your device."
           />
+
+          {/* Founder community message */}
+          <div className="auth-founder-msg mt-4">
+            <p className="auth-founder-line" style={{ animationDelay: '0.6s' }}>We just launched Jigri v1.</p>
+            <p className="auth-founder-line" style={{ animationDelay: '0.8s' }}>We&apos;re actively fixing bugs and improving every day.</p>
+            <p className="auth-founder-line" style={{ animationDelay: '1.0s' }}>Help us build this together.</p>
+            <p className="auth-founder-line" style={{ animationDelay: '1.2s' }}>Report issues. Share feedback. Be part of the journey.</p>
+            <span className="auth-founder-badge" style={{ animationDelay: '1.4s' }}>Made in India ❤️</span>
+          </div>
         </form>
       </div>
     </Form>

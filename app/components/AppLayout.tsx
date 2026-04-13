@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useUserContext } from '../../src/context/SupabaseAuthContext';
 import Topbar from '../../src/components/shared/Topbar';
 import LeftSidebar from '../../src/components/shared/LeftSidebar';
@@ -8,6 +9,13 @@ import RightSidebar from '../../src/components/shared/RightSidebar';
 import Bottombar from '../../src/components/shared/Bottombar';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
+import { useFirstTimeOnboarding } from '../../src/hooks/useFirstTimeOnboarding';
+
+// Dynamic import — only loaded on first visit, zero cost on repeat visits
+const CinematicEntry = dynamic(
+  () => import('../../src/components/onboarding/CinematicEntry'),
+  { ssr: false }
+);
 
 const RIGHT_SIDEBAR_HIDDEN_PREFIXES = [
   '/messages',
@@ -26,6 +34,20 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useUserContext();
   const router = useRouter();
   const pathname = usePathname();
+  const { shouldShow: showOnboarding, dismiss: dismissOnboarding, checked: onboardingChecked } = useFirstTimeOnboarding();
+  const [onboardingActive, setOnboardingActive] = useState(false);
+
+  // Activate onboarding only after auth is confirmed and this is the home page
+  useEffect(() => {
+    if (onboardingChecked && showOnboarding && isAuthenticated && !isLoading && pathname === '/') {
+      setOnboardingActive(true);
+    }
+  }, [onboardingChecked, showOnboarding, isAuthenticated, isLoading, pathname]);
+
+  const handleOnboardingComplete = useCallback(() => {
+    setOnboardingActive(false);
+    dismissOnboarding();
+  }, [dismissOnboarding]);
 
   const showRightSidebar = !RIGHT_SIDEBAR_HIDDEN_PREFIXES.some((route) =>
     pathname?.startsWith(route)
@@ -50,18 +72,25 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="w-full min-h-screen md:flex">
-      <Topbar />
-      <LeftSidebar />
+    <>
+      {/* Cinematic onboarding — overlays on top, feed loads underneath */}
+      {onboardingActive && (
+        <CinematicEntry onComplete={handleOnboardingComplete} />
+      )}
 
-      <section className="flex flex-1 min-w-0 h-full justify-center">
-        {children}
-      </section>
+      <div className="w-full min-h-screen md:flex">
+        <Topbar />
+        <LeftSidebar />
 
-      {showRightSidebar && <RightSidebar />}
+        <section className="flex flex-1 min-w-0 h-full justify-center">
+          {children}
+        </section>
 
-      <Bottombar />
-    </div>
+        {showRightSidebar && <RightSidebar />}
+
+        <Bottombar />
+      </div>
+    </>
   );
 }
 

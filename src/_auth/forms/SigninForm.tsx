@@ -115,19 +115,19 @@ const SigninForm = () => {
         <img
           src="/assets/images/logo.svg"
           alt="logo"
-          className="w-56 h-auto mb-6 sm:w-64 sm:mb-8"
+          className="w-56 h-auto mb-6 sm:w-64 sm:mb-8 auth-logo-anim"
         />
 
-        <h2 className="text-lg font-bold text-center mb-1 sm:text-xl sm:mb-2">
+        <h2 className="text-lg font-bold text-center mb-1 sm:text-xl sm:mb-2 auth-fade-in" style={{ animationDelay: '0.1s' }}>
           Log in to your account
         </h2>
-        <p className="text-light-3 text-sm text-center mb-4 sm:mb-5">
+        <p className="text-light-3 text-sm text-center mb-4 sm:mb-5 auth-fade-in" style={{ animationDelay: '0.2s' }}>
           Welcome back! Please enter your details.
         </p>
 
         <form
           onSubmit={form.handleSubmit(handleSignin)}
-          className="flex flex-col gap-3 w-full sm:gap-4">
+          className="flex flex-col gap-3 w-full sm:gap-4 auth-fade-in" style={{ animationDelay: '0.3s' }}>
           <FormField
             control={form.control}
             name="email"
@@ -229,6 +229,15 @@ const SigninForm = () => {
             buttonLabel="Install app"
             descriptionOverride="For the best experience, install the app on your device."
           />
+
+          {/* Founder community message */}
+          <div className="auth-founder-msg mt-4">
+            <p className="auth-founder-line" style={{ animationDelay: '0.6s' }}>We just launched Jigri v1.</p>
+            <p className="auth-founder-line" style={{ animationDelay: '0.8s' }}>We&apos;re actively fixing bugs and improving every day.</p>
+            <p className="auth-founder-line" style={{ animationDelay: '1.0s' }}>Help us build this together.</p>
+            <p className="auth-founder-line" style={{ animationDelay: '1.2s' }}>Report issues. Share feedback. Be part of the journey.</p>
+            <span className="auth-founder-badge" style={{ animationDelay: '1.4s' }}>Made in India ❤️</span>
+          </div>
         </form>
       </div>
     </Form>

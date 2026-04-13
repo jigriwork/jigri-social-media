@@ -1,0 +1,112 @@
+CINEMATIC FIRST-TIME ONBOARDING — IMPLEMENTATION REPORT
+========================================================
+Date: 2026-04-13
+
+1) IMPLEMENTATION SUMMARY
+--------------------------
+A cinematic first-time entry experience was implemented for Jigri.
+It runs ONCE per user on their first authenticated visit to the home page,
+then never again. The experience is a fullscreen dark overlay with
+animated particles, a center pulse, phased text reveals, a founder-tone
+community announcement, and a smooth fade-out into the already-loaded feed.
+
+Total experience duration: ~5 seconds (acceleratable via tap).
+No new dependencies added. Pure CSS animations + React state.
+
+2) ANIMATION APPROACH
+----------------------
+All animations are CSS-only for 60fps performance:
+
+- PARTICLES: 18 small dots floating upward with staggered delays.
+  Uses translateY + opacity + scale via @keyframes cin-float.
+
+- CENTER PULSE: Radial gradient circle that scales outward and fades.
+  Uses @keyframes cin-pulse-anim (scale 0.3 → 2.4, opacity fade).
+
+- TEXT TRANSITIONS: opacity + transform (scale/translateY) via CSS
+  transitions triggered by className toggling ("visible" class).
+
+- TAP RIPPLE: On-click expanding circle via @keyframes cin-ripple-anim.
+  Scale 0 → 4 with opacity fade-out. Created at touch/click coordinates.
+
+- EXIT: Entire root fades via @keyframes cin-fade-out (opacity 1 → 0).
+
+No Lottie, no GSAP, no Framer Motion. Zero external animation deps.
+
+3) ANNOUNCEMENT IMPLEMENTATION
+-------------------------------
+Phase 2 shows a centered card with founder-tone community message:
+
+  "We just launched Jigri v1."
+  "We're actively fixing bugs and improving every day."
+  "Help us build this together."
+  "Report issues. Share feedback. Be part of the journey."
+
+Followed by a soft pill badge: "Made in India ❤️"
+
+Styling: translucent dark card with subtle purple border glow.
+Tone: honest early-stage startup, not corporate or marketing.
+
+4) STATE HANDLING
+------------------
+Hook: src/hooks/useFirstTimeOnboarding.ts
+
+- Checks localStorage key: "jigri_onboarding_seen"
+- Returns { shouldShow, dismiss, checked }
+- dismiss() sets the flag to "true" — experience never runs again
+- If localStorage is unavailable, gracefully skips (no crash)
+- AppLayout only activates onboarding when:
+  - Flag check is complete (checked === true)
+  - User is authenticated
+  - Auth is not loading
+  - Current path is "/" (home page only)
+
+5) PERFORMANCE NOTES
+---------------------
+- CinematicEntry is loaded via next/dynamic with { ssr: false }
+  → Zero JS cost on repeat visits (code-split, only loaded when needed)
+- CSS styles are injected into <head> on mount, removed on unmount
+- Particles are pre-generated as static data (no per-frame computation)
+- Feed loads underneath the overlay — when onboarding dismisses,
+  the app is already painted. No layout shift, no reload.
+- Tap-to-accelerate allows users to skip immediately
+- Total component size: ~8KB unminified (CSS + JSX)
+
+6) FILES CREATED
+-----------------
+- src/hooks/useFirstTimeOnboarding.ts
+  First-time flag hook (localStorage-backed)
+
+- src/components/onboarding/CinematicEntry.tsx
+  Full cinematic overlay component (CSS animations, phased timeline,
+  tap ripple, community announcement, fade-out exit)
+
+7) FILES UPDATED
+-----------------
+- app/components/AppLayout.tsx
+  Added: dynamic import of CinematicEntry, useFirstTimeOnboarding hook,
+  onboarding activation logic (only on home page + first auth),
+  overlay renders on top of feed (no layout displacement)
+
+8) KNOWN LIMITATIONS
+---------------------
+- Onboarding only triggers on "/" path. If a user's first authenticated
+  page load is /explore or /messages, they won't see it. This is
+  intentional — the cinematic entry is designed for the home feed reveal.
+
+- The "tap to accelerate" requires at least phase 1 (identity) to be
+  visible before acceleration kicks in — prevents accidental skip on
+  the very first frame.
+
+- If a user clears localStorage, they'll see onboarding again.
+  This is acceptable behavior for a client-side flag.
+
+- Community announcement text is hardcoded. To update it, edit
+  CinematicEntry.tsx directly.
+
+9) BUILD STATUS
+----------------
+✓ Compiled successfully
+✓ Linting and type checking passed
+✓ 35/35 static pages generated
+Exit code: 0
