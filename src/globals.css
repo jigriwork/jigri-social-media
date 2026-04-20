@@ -5,12 +5,32 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --app-bg: #050507;
+    --app-surface: rgba(18, 18, 24, 0.68);
+    --app-surface-strong: rgba(20, 20, 28, 0.86);
+    --app-border: rgba(255, 255, 255, 0.09);
+    --app-border-strong: rgba(255, 255, 255, 0.16);
+    --app-glow: rgba(139, 92, 246, 0.3);
+  }
+
   * {
     @apply box-border list-none p-0 m-0 scroll-smooth;
   }
 
   body {
-    @apply bg-dark-1 text-white min-h-screen font-inter;
+    @apply text-white min-h-screen font-inter antialiased;
+    background-color: var(--app-bg);
+    background-image:
+      radial-gradient(1200px 600px at -10% -20%, rgba(124, 58, 237, 0.22), transparent 55%),
+      radial-gradient(900px 550px at 110% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+      radial-gradient(900px 700px at 50% 120%, rgba(139, 92, 246, 0.14), transparent 65%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(139, 92, 246, 0.35);
+    color: #fff;
   }
 
 }
@@ -119,7 +139,7 @@
   }
 
   .common-container {
-    @apply flex flex-col flex-1 items-center gap-10 overflow-scroll py-10 px-5 pb-24 md:px-8 md:pb-10 lg:p-14 custom-scrollbar;
+    @apply flex flex-col flex-1 items-center gap-10 overflow-scroll py-8 px-4 pb-24 md:px-8 md:pb-10 lg:p-12 custom-scrollbar;
   }
 
   /* All Users */
@@ -146,15 +166,19 @@
 
   /* Home */
   .home-container {
-    @apply flex w-full flex-1 flex-col items-center gap-7 overflow-y-auto py-8 px-4 pb-24 md:px-6 lg:py-10 custom-scrollbar;
+    @apply flex w-full flex-1 flex-col items-center gap-7 overflow-y-auto py-7 px-4 pb-24 md:px-6 lg:py-9 custom-scrollbar;
   }
 
   .home-posts {
-    @apply flex w-full max-w-[720px] flex-col items-center gap-5 md:gap-5;
+    @apply flex w-full max-w-[760px] flex-col items-center gap-5 md:gap-5;
   }
 
   .rightsidebar {
-    @apply hidden lg:flex flex-col w-[300px] xl:w-[320px] px-6 py-8 gap-8 h-screen sticky top-0 overflow-y-auto custom-scrollbar border-l border-dark-4/40;
+    @apply hidden lg:flex flex-col w-[300px] xl:w-[320px] px-6 py-8 gap-8 h-screen sticky top-0 overflow-y-auto custom-scrollbar border-l;
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   /* Post Details */
@@ -214,7 +238,11 @@
 
   /* Bottom bar */
   .bottom-bar {
-    @apply z-[70] flex items-stretch justify-between gap-1.5 w-[calc(100%-1rem)] max-w-[420px] fixed left-1/2 -translate-x-1/2 rounded-[26px] bg-dark-2/80 backdrop-blur-2xl px-2 py-2.5 border border-dark-4/55 shadow-[0_10px_36px_rgba(0,0,0,0.5)] md:hidden;
+    @apply z-[70] flex items-stretch justify-between gap-1.5 w-[calc(100%-1rem)] max-w-[420px] fixed left-1/2 -translate-x-1/2 rounded-[26px] px-2 py-2.5 border shadow-[0_10px_36px_rgba(0,0,0,0.5)] md:hidden;
+    background: var(--app-surface-strong);
+    border-color: var(--app-border);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
@@ -263,7 +291,11 @@
 
   /* Left sidebar */
   .leftsidebar {
-    @apply hidden md:flex px-6 py-8 flex-col justify-between w-[280px] bg-dark-2/50 backdrop-blur-md h-screen sticky top-0 border-r border-dark-4/40;
+    @apply hidden md:flex px-6 py-8 flex-col justify-between w-[280px] h-screen sticky top-0 border-r;
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .leftsidebar-link {
@@ -272,7 +304,11 @@
 
   /* Post Card */
   .post-card {
-    @apply bg-dark-2/60 backdrop-blur-sm rounded-[28px] border border-dark-4/40 p-4 lg:p-5 w-full transition-all hover:bg-dark-2/90 hover:border-dark-4/80 hover:shadow-2xl hover:-translate-y-[2px];
+    @apply rounded-[28px] border p-4 lg:p-5 w-full transition-all hover:shadow-2xl hover:-translate-y-[2px];
+    background: linear-gradient(145deg, rgba(18, 18, 24, 0.82), rgba(14, 14, 20, 0.72));
+    border-color: var(--app-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .post-card_img {
@@ -281,12 +317,24 @@
 
   /* Topbar */
   .topbar {
-    @apply sticky top-0 z-50 md:hidden bg-dark-2 w-full;
+    @apply sticky top-0 z-50 md:hidden w-full border-b;
+    background: var(--app-surface-strong);
+    border-color: var(--app-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   /* User card */
   .user-card {
     @apply flex-center flex-col gap-3 xs:gap-4 border border-dark-4 rounded-[20px] px-3 xs:px-5 py-6 xs:py-8;
+  }
+
+  .glass-panel {
+    @apply border rounded-2xl;
+    background: rgba(18, 18, 24, 0.56);
+    border-color: var(--app-border);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
 }
 
@@ -302,20 +350,31 @@
   }
 
   .shad-input {
-    @apply h-12 bg-dark-4 border border-dark-4 text-light-1 placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ring-offset-dark-1 text-[16px] !important;
+    @apply h-12 border text-light-1 placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ring-offset-dark-1 text-[16px] !important;
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--app-border);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 
   .shad-textarea {
-    @apply h-36 bg-dark-3 rounded-xl border border-dark-4 text-light-1 placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ring-offset-dark-1 text-[16px] !important;
+    @apply h-36 rounded-xl border text-light-1 placeholder:text-light-4 focus-visible:ring-1 focus-visible:ring-primary-500 focus-visible:ring-offset-1 ring-offset-dark-1 text-[16px] !important;
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--app-border);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
   }
 
   /* Button */
   .shad-button_primary {
-    @apply bg-primary-500 hover:bg-primary-500 text-light-1 flex gap-2 !important;
+    @apply text-light-1 flex gap-2 !important;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 45%, #6d28d9 100%);
   }
 
   .shad-button_dark_4 {
-    @apply h-12 bg-dark-4 px-5 text-light-1 flex gap-2 !important;
+    @apply h-12 px-5 text-light-1 flex gap-2 border !important;
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--app-border);
   }
 
   .shad-button_ghost {
@@ -326,6 +385,21 @@
 /* ADMIN DASHBOARD STYLES */
 .admin-container {
   @apply flex flex-col flex-1 items-center gap-6 md:gap-10 py-6 px-4 pb-24 md:px-8 lg:p-14;
+}
+
+.app-shell {
+  position: relative;
+}
+
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(700px 400px at 8% 12%, rgba(139, 92, 246, 0.11), transparent 60%),
+    radial-gradient(800px 500px at 92% 16%, rgba(99, 102, 241, 0.08), transparent 62%);
+  z-index: -1;
 }
 
 .stat-card {
@@ -393,7 +467,10 @@
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
-  background: #09090a;
+  background:
+    radial-gradient(1000px 600px at -10% -25%, rgba(124, 58, 237, 0.2), transparent 60%),
+    radial-gradient(900px 500px at 110% 0%, rgba(99, 102, 241, 0.16), transparent 62%),
+    #07070a;
   overflow: hidden;
 }
 
@@ -548,6 +625,13 @@
   flex-direction: column;
   align-items: center;
   gap: 0;
+  padding: 24px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(18, 18, 24, 0.62);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
 
 /* ── Logo ── */

@@ -80,7 +80,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <StoryOpenProvider>
-        <div className="w-full min-h-screen md:flex">
+        <div className="app-shell w-full min-h-screen md:flex">
           <Topbar />
           <LeftSidebar />
 

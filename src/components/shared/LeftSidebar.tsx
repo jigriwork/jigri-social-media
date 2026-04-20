@@ -41,7 +41,7 @@ const LeftSidebar = () => {
   });
 
   return (
-    <nav className="leftsidebar">
+    <nav className="leftsidebar shadow-[8px_0_40px_rgba(0,0,0,0.28)]">
       <div className="flex flex-col gap-8 min-h-0">
         <Link href="/" className="flex gap-3 items-center -mt-1 pl-2">
           <img
@@ -59,35 +59,34 @@ const LeftSidebar = () => {
         ) : (
           <>
 
-              <Link href={`/profile/${user.id}`} className="flex gap-3 items-center min-w-0 pr-2 group/profile">
-                <img
-                  src={user.image_url || "/assets/icons/profile-placeholder.svg"}
-                  alt="profile"
-                  className="h-12 w-12 rounded-full border-2 border-transparent group-hover/profile:border-primary-500 transition-all"
-                />
-                <div className="flex flex-col min-w-0">
-                  <p className="body-bold text-light-1 group-hover/profile:text-primary-500 transition-colors truncate max-w-[200px]">{user.name}</p>
-                  <p className="small-regular text-light-3 truncate max-w-[200px]">@{user.username}</p>
-                </div>
-              </Link>
+            <Link href={`/profile/${user.id}`} className="flex gap-3 items-center min-w-0 pr-2 group/profile">
+              <img
+                src={user.image_url || "/assets/icons/profile-placeholder.svg"}
+                alt="profile"
+                className="h-12 w-12 rounded-full border-2 border-transparent group-hover/profile:border-primary-500 transition-all"
+              />
+              <div className="flex flex-col min-w-0">
+                <p className="body-bold text-light-1 group-hover/profile:text-primary-500 transition-colors truncate max-w-[200px]">{user.name}</p>
+                <p className="small-regular text-light-3 truncate max-w-[200px]">@{user.username}</p>
+              </div>
+            </Link>
 
 
           </>
         )}
 
-        <ul className="flex flex-col gap-4 overflow-y-auto pr-1 custom-scrollbar">
+        <ul className="flex flex-col gap-3 overflow-y-auto pr-1 custom-scrollbar">
           {filteredSidebarLinks.map((link: INavLink) => {
             const isActive = pathname === link.route;
 
             return (
               <li
                 key={link.label}
-                className={`leftsidebar-link group ${
-                  isActive ? "bg-primary-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-primary-500/50" : ""
-                }`}>
+                className={`leftsidebar-link group ${isActive ? "bg-primary-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)] border border-primary-500/50" : ""
+                  }`}>
                 <Link
                   href={link.route}
-                  className="flex gap-4 items-center p-4">
+                  className="flex gap-4 items-center px-4 py-3.5">
                   <img
                     src={link.imgURL}
                     alt={link.label}
@@ -103,7 +102,7 @@ const LeftSidebar = () => {
       </div>
 
       <Button
-        className="shad-button_ghost mt-6"
+        className="shad-button_ghost mt-6 rounded-xl border border-white/10 bg-white/[0.02]"
         onClick={(e) => handleSignOut(e)}>
         <img src="/assets/icons/logout.svg" alt="logout" />
         <p className="small-medium lg:base-medium">Logout</p>

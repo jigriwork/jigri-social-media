@@ -21,7 +21,7 @@ const Topbar = () => {
 
   return (
     <section className="topbar">
-      <div className="flex-between py-4 px-5">
+      <div className="flex-between py-4 px-5 md:py-4.5">
         <Link href="/" className="flex gap-3 items-center">
           <img
             src="/assets/images/logo.svg"
@@ -31,27 +31,29 @@ const Topbar = () => {
         </Link>
 
         <div className="flex gap-2 items-center">
-          <NotificationBell />
-          
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-1.5">
+            <NotificationBell />
+          </div>
+
           {/* Admin Button - only show if user has admin access */}
           {isAdmin && (
             <Link href="/admin">
               <Button
-                className="shad-button_ghost p-2"
+                className="shad-button_ghost p-2 rounded-xl border border-white/10 bg-white/[0.03]"
                 title="Admin Dashboard"
               >
-                <img 
-                  src="/assets/icons/filter.svg" 
-                  alt="admin" 
+                <img
+                  src="/assets/icons/filter.svg"
+                  alt="admin"
                   width={18}
                   height={18}
                 />
               </Button>
             </Link>
           )}
-          
+
           <Button
-            className="shad-button_ghost p-2"
+            className="shad-button_ghost p-2 rounded-xl border border-white/10 bg-white/[0.03]"
             onClick={() => signOut()}>
             <img src="/assets/icons/logout.svg" alt="logout" width={18} height={18} />
           </Button>

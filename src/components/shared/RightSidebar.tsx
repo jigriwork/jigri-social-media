@@ -7,7 +7,7 @@ import { useUserContext } from "@/context/SupabaseAuthContext";
 
 const RightSidebar = () => {
   const { user } = useUserContext();
-  
+
   const {
     data: creators,
     isPending: isUserLoading,
@@ -27,10 +27,10 @@ const RightSidebar = () => {
     <div className="rightsidebar">
       {/* Search / Explore Area (Optional) */}
       <div className="w-full relative">
-        <input 
-          type="text" 
-          placeholder="Search..." 
-          className="w-full bg-dark-4/50 border border-dark-4/60 rounded-full py-2.5 px-5 text-sm text-light-1 focus:outline-none focus:border-primary-500/50 focus:bg-dark-4/80 transition-all"
+        <input
+          type="text"
+          placeholder="Search..."
+          className="w-full rounded-full py-2.5 px-5 text-sm text-light-1 focus:outline-none focus:border-primary-500/50 transition-all border border-white/10 bg-white/[0.04]"
         />
         <img src="/assets/icons/search.svg" alt="search" className="absolute right-4 top-3 w-4 h-4 opacity-50" />
       </div>
@@ -49,11 +49,11 @@ const RightSidebar = () => {
           <div className="flex flex-col gap-4">
             {suggestedUsers && suggestedUsers.length > 0 ? (
               suggestedUsers.map((creator: any) => (
-                <div key={creator?.id} className="flex items-center justify-between p-3 rounded-2xl bg-dark-2/40 border border-dark-4/30 hover:bg-dark-2/80 transition-all">
+                <div key={creator?.id} className="glass-panel flex items-center justify-between p-3 hover:bg-white/[0.08] transition-all">
                   <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src={creator.image_url || "/assets/icons/profile-placeholder.svg"} 
-                      alt="creator" 
+                    <img
+                      src={creator.image_url || "/assets/icons/profile-placeholder.svg"}
+                      alt="creator"
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex flex-col min-w-0">
@@ -80,10 +80,10 @@ const RightSidebar = () => {
       {/* Trending Topics */}
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-bold text-light-1">Trending</h3>
-        <div className="flex flex-col bg-dark-2/40 border border-dark-4/30 rounded-2xl overflow-hidden">
+        <div className="glass-panel flex flex-col overflow-hidden">
           {trendingTopics.map((topic, i) => (
-            <Link 
-              key={i} 
+            <Link
+              key={i}
               href={`/explore?search=${encodeURIComponent(topic.tag)}`}
               className={`flex flex-col gap-1 p-4 hover:bg-dark-4/40 transition-colors ${i !== trendingTopics.length - 1 ? 'border-b border-dark-4/30' : ''}`}
             >
@@ -94,7 +94,7 @@ const RightSidebar = () => {
           ))}
         </div>
       </div>
-      
+
       {/* Footer Links */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-auto px-2">
         <a href="#" className="text-xs text-light-4 hover:underline">About</a>
